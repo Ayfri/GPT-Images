@@ -78,7 +78,7 @@
       >
         <div class="flex justify-between items-center mb-2">
           <button
-            on:click={handleDelete}
+            on:click|stopPropagation={handleDelete}
             class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
             aria-label="Delete image"
             title="Delete image"
@@ -88,7 +88,7 @@
 
           <div class="flex space-x-1">
             <button
-              on:click={copyPrompt}
+              on:click|stopPropagation={copyPrompt}
               class="btn-ghost p-2 rounded-full hover:bg-primary-700/30"
               aria-label="Copy prompt"
               title="Copy prompt"
@@ -97,7 +97,7 @@
             </button>
 
             <button
-              on:click={handleDownload}
+              on:click|stopPropagation={handleDownload}
               class="btn-ghost p-2 rounded-full hover:bg-secondary-700/30"
               aria-label="Download image"
               title="Download image"
@@ -106,7 +106,7 @@
             </button>
 
             <button
-              on:click={handleRegenerate}
+              on:click|stopPropagation={handleRegenerate}
               class="btn-ghost p-2 rounded-full hover:bg-accent-700/30"
               aria-label="Regenerate with this prompt"
               title="Regenerate with this prompt"
