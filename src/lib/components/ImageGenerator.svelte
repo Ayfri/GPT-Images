@@ -161,7 +161,7 @@
 
     <button
       type="submit"
-      class="btn btn-accent w-full flex items-center justify-center gap-2"
+      class="btn group bg-gradient-to-r ring-transparent ring-2 duration-300 hover:ring-white from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2"
       disabled={isGenerating || !$apiKey}
     >
       {#if isGenerating}
