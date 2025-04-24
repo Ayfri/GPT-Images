@@ -62,8 +62,14 @@
         size: selectedSize
       });
 
-      // Store the generated image
-      await addImage(`data:image/png;base64,${imageData}`, prompt);
+      // Store the generated image with quality and size info
+      await addImage(
+        `data:image/png;base64,${imageData}`,
+        prompt,
+        'gpt-image-1',
+        selectedQuality,
+        selectedSize
+      );
 
       // Refresh the image store
       await refreshImageStore();
