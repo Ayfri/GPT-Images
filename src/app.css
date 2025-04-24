@@ -1,0 +1,61 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply font-sans;
+  background: linear-gradient(135deg, theme('colors.dark.300'), theme('colors.dark.200'));
+  background-attachment: fixed;
+}
+
+.bg-gradient-accent {
+  background: linear-gradient(135deg, theme('colors.accent.600/20'), theme('colors.secondary.600/20'));
+}
+
+.border-gradient {
+  border: 1px solid transparent;
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+  background-image: 
+    linear-gradient(to right, theme('colors.dark.200'), theme('colors.dark.200')), 
+    linear-gradient(135deg, theme('colors.accent.500/50'), theme('colors.secondary.500/50'));
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-300;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 text-white;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-600 hover:bg-secondary-700 focus:ring-secondary-500 text-white;
+  }
+  
+  .btn-accent {
+    @apply bg-accent-600 hover:bg-accent-700 focus:ring-accent-500 text-white;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-gray-800/50 text-gray-200;
+  }
+
+  .card {
+    @apply rounded-xl border border-gray-800 bg-dark-200/70 backdrop-blur-sm overflow-hidden shadow-md hover:shadow-lg transition-all duration-300;
+  }
+
+  .input {
+    @apply bg-dark-100/80 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all duration-200;
+  }
+
+  .glass-effect {
+    @apply bg-dark-200/60 backdrop-blur-md border border-gray-800/50;
+  }
+}
