@@ -9,7 +9,7 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 
 **Website**: [https://gpt-images.ayfri.com](https://gpt-images.ayfri.com)
 
-![Screenshot of the application](public/screenshot.png) <!-- Add a screenshot of your application here -->
+![Screenshot of the application](public/screenshot.png)
 
 ## Features
 
@@ -129,7 +129,3 @@ Contributions are welcome! Please follow standard fork-and-pull-request workflow
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details (if applicable).
-
----
-
-*Remember to add a `screenshot.png` to the `public` folder and create an `og-image.png` for social media sharing.*
