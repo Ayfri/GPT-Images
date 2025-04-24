@@ -7,6 +7,8 @@
 
 A modern web application built with SvelteKit and Tailwind CSS that allows users to generate stunning images using OpenAI's image generation models.
 
+**Website**: [https://gpt-images.ayfri.com](https://gpt-images.ayfri.com)
+
 ![Screenshot of the application](public/screenshot.png) <!-- Add a screenshot of your application here -->
 
 ## Features
@@ -18,6 +20,7 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 *   **Usage Statistics**: Tracks usage information (details depend on implementation).
 *   **Responsive Design**: Adapts beautifully to different screen sizes thanks to Tailwind CSS.
 *   **Modern UI**: Clean and intuitive user interface built with Svelte.
+*   **SEO Optimized**: Includes comprehensive meta tags and Open Graph properties for better search engine visibility and social sharing.
 
 ## Tech Stack
 
@@ -42,7 +45,7 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/gpt-images.git # Replace with your repo URL
+    git clone https://github.com/Ayfri/gpt-images.git
     cd gpt-images
     ```
 
@@ -129,4 +132,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*Remember to add a `screenshot.png` to the `public` folder or update the path in the README.*
+*Remember to add a `screenshot.png` to the `public` folder and create an `og-image.png` for social media sharing.*
