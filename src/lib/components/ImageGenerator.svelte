@@ -12,6 +12,7 @@
   let error: string | null = null;
   let selectedQuality: 'low' | 'medium' | 'high' = 'low'; // Default to low
   let selectedSize: '1024x1024' | '1024x1536' | '1536x1024' = '1024x1024'; // Default size
+  let imageCount = 1; // Default number of images to generate
 
   // Pricing based on the provided image
   const pricing = {
@@ -33,7 +34,7 @@
   };
 
   // Calculate price dynamically
-  $: currentPrice = pricing[selectedQuality][selectedSize];
+  $: currentPrice = pricing[selectedQuality][selectedSize] * imageCount;
   $: qualityApiValue = qualityOptions[selectedQuality].apiValue; // Keep this for API call if needed, though API expects 'low', 'medium', 'high' directly
 
   onMount(() => {
@@ -56,20 +57,23 @@
     error = null;
 
     try {
-      const imageData = await generateImage($apiKey, {
+      const imageDataArray = await generateImage($apiKey, {
         prompt,
-        quality: selectedQuality, // Pass 'low', 'medium', or 'high' directly
-        size: selectedSize
+        quality: selectedQuality,
+        size: selectedSize,
+        n: imageCount
       });
 
-      // Store the generated image with quality and size info
-      await addImage(
-        `data:image/png;base64,${imageData}`,
-        prompt,
-        'gpt-image-1',
-        selectedQuality,
-        selectedSize
-      );
+      // Store each generated image
+      for (const imageData of imageDataArray) {
+        await addImage(
+          `data:image/png;base64,${imageData}`,
+          prompt,
+          'gpt-image-1',
+          selectedQuality,
+          selectedSize
+        );
+      }
 
       // Refresh the image store
       await refreshImageStore();
@@ -137,6 +141,24 @@
       </div>
     </div>
 
+    <div>
+      <label for="imageCount" class="block text-sm font-medium text-gray-300 mb-2">
+        Number of Images: {imageCount}
+      </label>
+      <div class="flex items-center gap-2">
+        <input
+          id="imageCount"
+          type="range"
+          min="1"
+          max="10"
+          bind:value={imageCount}
+          class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+          disabled={isGenerating}
+        />
+        <span class="text-sm text-gray-400 w-6">{imageCount}</span>
+      </div>
+    </div>
+
     <button
       type="submit"
       class="btn btn-accent w-full flex items-center justify-center gap-2"
@@ -147,7 +169,7 @@
         Generating...
       {:else}
         <Send class="h-5 w-5" />
-        Generate Image
+        Generate {imageCount > 1 ? `${imageCount} Images` : 'Image'}
       {/if}
     </button>
 
@@ -168,7 +190,7 @@
 
     <div class="text-xs text-gray-500 flex justify-between pt-1">
       <span>Model: gpt-image-1</span>
-      <span class="text-secondary-400">${currentPrice.toFixed(3)} per image</span>
+      <span class="text-secondary-400">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
     </div>
   </form>
 </div>
