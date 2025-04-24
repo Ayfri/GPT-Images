@@ -1,5 +1,3 @@
-// import type { ImageGenerationParams } from './types'; // Removed as it's defined below
-
 const API_URL = 'https://api.openai.com/v1/images/generations';
 
 export async function generateImage(apiKey: string, params: ImageGenerationParams): Promise<string> {
