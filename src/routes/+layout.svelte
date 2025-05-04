@@ -12,7 +12,7 @@
 
   <footer class="border-t border-gray-800 py-4 text-center text-sm text-gray-500">
     <p>
-      GPT Image Generator | <a href="https://ayfri.com" target="_blank">Ayfri</a> | {new Date().getFullYear()}
+      GPT Image Generator | <a class="hover:underline" href="https://ayfri.com" target="_blank">Ayfri</a> | {new Date().getFullYear()}
     </p>
   </footer>
 </div>
