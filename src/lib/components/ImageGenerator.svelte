@@ -527,14 +527,6 @@
       </div>
     {/if}
 
-    {#if mode === 'edit'}
-      <div class="text-sm text-blue-400 bg-blue-900/20 border border-blue-600/20 p-2 rounded-md">
-        Image editing uses GPT Image 1 with high input fidelity.
-        <br />
-        Upload clear images for best results. Masks must be PNG, max 4MB, same dimensions as image.
-      </div>
-    {/if}
-
     {#if error}
       <div
         in:fly={{ y: 10, duration: 300 }}
