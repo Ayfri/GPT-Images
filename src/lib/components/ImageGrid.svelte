@@ -1,10 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-svelte';
+  import {
+    ArrowDown,
+    ArrowUp,
+    ChevronLeft,
+    ChevronRight,
+    Image as ImageIcon
+  } from 'lucide-svelte';
   import ImageCard from './ImageCard.svelte';
   import { images, initImageStore, pricing, type ImageRecord } from '$lib/stores/imageStore';
   import { quintOut } from 'svelte/easing';
+  import { flip } from 'svelte/animate';
 
   export let onRegenerate: (prompt: string) => void;
 
@@ -12,9 +19,56 @@
   let largeViewIndex: number | null = null;
   let currentImage: ImageRecord | null = null;
   let currentImagePrice = 0;
+  let sortDirection: 'asc' | 'desc' = 'desc';
+  let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = 'timestamp';
+
+  const qualityOrder = { high: 3, low: 1, medium: 2 };
+
+  function getImagePrice(image: ImageRecord): number {
+    return image.quality && image.size && pricing[image.quality]?.[image.size]
+      ? pricing[image.quality][image.size]
+      : 0.01;
+  }
+
+  function getImageSizeArea(size: string | undefined): number {
+    if (!size) return 0;
+    const [w, h] = size.split('x').map(Number);
+    return w * h;
+  }
+
+  function getSortValue(
+    image: ImageRecord,
+    field: typeof sortField
+  ): string | number {
+    switch (field) {
+      case 'price':
+        return getImagePrice(image);
+      case 'quality':
+        return qualityOrder[image.quality ?? 'low'] ?? 0;
+      case 'size':
+        return getImageSizeArea(image.size);
+      case 'prompt':
+        return image.prompt.toLowerCase();
+      case 'timestamp':
+        return image.timestamp;
+    }
+  }
+
+  $: sortedImages = [...$images].sort((a, b) => {
+    const aValue = getSortValue(a, sortField);
+    const bValue = getSortValue(b, sortField);
+
+    if (aValue < bValue) {
+      return sortDirection === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortDirection === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
 
   $: if (largeViewIndex !== null) {
-    currentImage = $images[largeViewIndex];
+    currentImage = sortedImages[largeViewIndex];
   } else {
     currentImage = null;
   }
@@ -38,7 +92,7 @@
 
   function handleView(event: CustomEvent<{ id: string }>) {
     const imageId = event.detail.id;
-    largeViewIndex = $images.findIndex(img => img.id === imageId);
+    largeViewIndex = sortedImages.findIndex(img => img.id === imageId);
   }
 
   function closeLargeImage() {
@@ -47,12 +101,12 @@
 
   function showNext() {
     if (largeViewIndex === null) return;
-    largeViewIndex = (largeViewIndex + 1) % $images.length;
+    largeViewIndex = (largeViewIndex + 1) % sortedImages.length;
   }
 
   function showPrev() {
     if (largeViewIndex === null) return;
-    largeViewIndex = (largeViewIndex - 1 + $images.length) % $images.length;
+    largeViewIndex = (largeViewIndex - 1 + sortedImages.length) % sortedImages.length;
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -67,7 +121,35 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <div>
-  <h2 class="text-xl font-medium text-gray-100 mb-6">Image History</h2>
+  <div class="mb-6 flex items-center justify-between">
+    <h2 class="text-xl font-medium text-gray-100">Image History</h2>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-gray-400" for="sort-by">Sort by</label>
+        <select
+          bind:value={sortField}
+          class="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm text-white focus:border-blue-500 focus:ring-blue-500"
+          id="sort-by"
+        >
+          <option value="timestamp">Date</option>
+          <option value="price">Price</option>
+          <option value="prompt">Prompt</option>
+          <option value="quality">Quality</option>
+          <option value="size">Size</option>
+        </select>
+      </div>
+      <button
+        class="rounded-md border border-gray-700 bg-gray-800 p-1.5 text-white hover:bg-gray-700"
+        on:click={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+      >
+        {#if sortDirection === 'asc'}
+          <ArrowUp class="h-4 w-4" />
+        {:else}
+          <ArrowDown class="h-4 w-4" />
+        {/if}
+      </button>
+    </div>
+  </div>
 
   {#if loading}
     <div class="flex justify-center items-center h-40">
@@ -86,8 +168,8 @@
     </div>
   {:else}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {#each $images as image, i (image.id)}
-        <div in:fly={{ y: 20, duration: 300, delay: 50 * i }}>
+      {#each sortedImages as image, i (image.id)}
+        <div animate:flip={{ duration: 300 }} in:fly={{ y: 20, duration: 300, delay: 50 * i }}>
           <ImageCard
             id={image.id}
             prompt={image.prompt}
