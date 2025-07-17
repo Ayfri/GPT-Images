@@ -15,11 +15,11 @@
   const dispatch = createEventDispatcher<{
     regenerate: { prompt: string };
     deleted: { id: string };
+    view: { id: string };
   }>();
 
   let copied = false;
   let showControls = false;
-  let showLargeImage = false;
   let quality: ImageRecord['quality'];
   let size: ImageRecord['size'];
   let price: number;
@@ -57,12 +57,8 @@
     dispatch('regenerate', { prompt });
   }
 
-  function openLargeImage() {
-    showLargeImage = true;
-  }
-
-  function closeLargeImage() {
-    showLargeImage = false;
+  function handleView() {
+    dispatch('view', { id });
   }
 </script>
 
@@ -75,7 +71,7 @@
   role="article"
   aria-label="Generated image card"
 >
-  <div class="relative aspect-square cursor-pointer overflow-hidden" on:click={openLargeImage}>
+  <div class="relative aspect-square cursor-pointer overflow-hidden" on:click={handleView}>
     <img
       src={imageData}
       alt={prompt}
@@ -150,23 +146,3 @@
     </p>
   </div>
 </div>
-
-{#if showLargeImage}
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-    transition:fade={{ duration: 150 }}
-    on:click={closeLargeImage}
-  >
-    <img
-      alt={prompt}
-      class="max-h-[90vh] max-w-[90vw] object-contain"
-      src={imageData}
-      on:click|stopPropagation
-    />
-    <div class="absolute left-4 text-gray-400 text-xs top-4 flex flex-col gap-2">
-      <span>Quality: {quality ?? 'N/A'}</span>
-      <span>Size: {size ?? 'N/A'}</span>
-      <span>Cost: ${price.toFixed(3)}</span>
-    </div>
-  </div>
-{/if}
