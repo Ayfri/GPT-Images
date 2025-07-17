@@ -126,6 +126,34 @@ export async function addImage(
   return id;
 }
 
+export async function getImages(
+  offset: number,
+  limit: number
+): Promise<GeneratedImage[]> {
+  const db = await getDb();
+  const tx = db.transaction('generated-images', 'readonly');
+  const store = tx.objectStore('generated-images');
+  const index = store.index('by-timestamp');
+
+  const images: GeneratedImage[] = [];
+  let cursor = await index.openCursor(null, 'prev'); // 'prev' for newest first
+  let i = 0;
+
+  while (cursor && images.length < limit) {
+    if (i >= offset) {
+      images.push(cursor.value);
+    }
+    cursor = await cursor.continue();
+    i++;
+  }
+  return images;
+}
+
+export async function countImages(): Promise<number> {
+  const db = await getDb();
+  return db.count('generated-images');
+}
+
 export async function getAllImages(): Promise<GeneratedImage[]> {
   const db = await getDb();
   return db.getAllFromIndex('generated-images', 'by-timestamp').then(images =>

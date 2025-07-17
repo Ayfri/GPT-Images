@@ -1,5 +1,5 @@
-import { writable, derived } from 'svelte/store';
-import { getAllImages } from '$lib/db/imageStore';
+import { writable, derived, get } from 'svelte/store';
+import { getAllImages, countImages, getImages } from '$lib/db/imageStore';
 import type { Writable, Readable } from 'svelte/store';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
 import { PRICING } from '$lib/types/image';
@@ -21,6 +21,9 @@ export interface ImageRecord {
 
 // Create a store to hold our image records
 export const images: Writable<ImageRecord[]> = writable([]);
+export const totalImageCount: Writable<number> = writable(0);
+export const currentImageOffset: Writable<number> = writable(0);
+const PAGE_SIZE = 12; // Adjust as needed
 
 // Create a derived store for total cost calculation
 export const totalCost: Readable<number> = derived(images, ($images) => {
@@ -37,12 +40,26 @@ export const totalCost: Readable<number> = derived(images, ($images) => {
 // Initialize the store with data from IndexedDB
 export const initImageStore = async () => {
   try {
-    const allImages = await getAllImages();
-    images.set(allImages);
+    const count = await countImages();
+    totalImageCount.set(count);
+
+    const initialImages = await getImages(0, PAGE_SIZE);
+    images.set(initialImages);
+    currentImageOffset.set(initialImages.length);
   } catch (error) {
     console.error('Failed to load images from IndexedDB:', error);
     images.set([]);
+    totalImageCount.set(0);
+    currentImageOffset.set(0);
   }
+};
+
+// Function to load more images
+export const loadMoreImages = async () => {
+  const currentOffset = await get(currentImageOffset);
+  const newImages = await getImages(currentOffset, PAGE_SIZE);
+  images.update((existingImages) => [...existingImages, ...newImages]);
+  currentImageOffset.update((offset) => offset + newImages.length);
 };
 
 // Function to refresh the image store

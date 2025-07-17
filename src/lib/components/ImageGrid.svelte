@@ -9,7 +9,7 @@
     Image as ImageIcon
   } from 'lucide-svelte';
   import ImageCard from './ImageCard.svelte';
-  import { images, initImageStore, type ImageRecord } from '$lib/stores/imageStore';
+  import { images, initImageStore, loadMoreImages, totalImageCount, type ImageRecord } from '$lib/stores/imageStore';
   import { PRICING } from '$lib/types/image';
   import { quintOut } from 'svelte/easing';
   import { flip } from 'svelte/animate';
@@ -17,11 +17,15 @@
   export let onRegenerate: (prompt: string) => void;
 
   let loading = true;
+  let loadingMore = false; // New state for loading more images
   let largeViewIndex: number | null = null;
   let currentImage: ImageRecord | null = null;
   let currentImagePrice = 0;
   let sortDirection: 'asc' | 'desc' = 'desc';
   let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = 'timestamp';
+
+  let observer: IntersectionObserver;
+  let imageGridRef: HTMLElement;
 
   const qualityOrder = { high: 3, low: 1, medium: 2 };
 
@@ -85,7 +89,36 @@
   onMount(async () => {
     await initImageStore();
     loading = false;
+
+    // Set up intersection observer for infinite scroll
+    observer = new IntersectionObserver(
+      async (entries) => {
+        const lastImageCard = entries[0];
+        if (lastImageCard.isIntersecting && !loadingMore && $images.length < $totalImageCount) {
+          loadingMore = true;
+          await loadMoreImages();
+          loadingMore = false;
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    // Cleanup observer on component destroy
+    return () => observer.disconnect();
   });
+
+  // Reactively observe the last element when sortedImages changes
+  $: if (sortedImages.length > 0 && imageGridRef) {
+    // Disconnect old observer if it exists
+    if (observer) {
+      observer.disconnect();
+    }
+    // Re-observe the new last element
+    const lastCard = imageGridRef.lastElementChild;
+    if (lastCard) {
+      observer.observe(lastCard);
+    }
+  }
 
   function handleRegenerate(event: CustomEvent<{ prompt: string }>) {
     onRegenerate(event.detail.prompt);
@@ -168,7 +201,7 @@
       </p>
     </div>
   {:else}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="image-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" bind:this={imageGridRef}>
       {#each sortedImages as image, i (image.id)}
         <div animate:flip={{ duration: 300 }} in:fly={{ y: 20, duration: 300, delay: 50 * i }}>
           <ImageCard
@@ -182,6 +215,17 @@
         </div>
       {/each}
     </div>
+
+    {#if $images.length < $totalImageCount}
+      <div class="mt-8 flex justify-center">
+        <div
+          class="animate-pulse-slow text-gray-500"
+          class:hidden={!loadingMore}
+        >
+          Loading more images...
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
