@@ -9,7 +9,7 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 
 **Website**: [https://gpt-images.ayfri.com](https://gpt-images.ayfri.com)
 
-![Screenshot of the application](public/screenshot.png)
+![Screenshot of the application](static/screenshot.png)
 
 ## Features
 
