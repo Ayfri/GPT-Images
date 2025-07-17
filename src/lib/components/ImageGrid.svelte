@@ -3,18 +3,17 @@
   import { fly } from 'svelte/transition';
   import { Image as ImageIcon } from 'lucide-svelte';
   import ImageCard from './ImageCard.svelte';
-  import type { ImageRecord } from '$lib/stores/imageStore';
   import { images, initImageStore } from '$lib/stores/imageStore';
-  
+
   export let onRegenerate: (prompt: string) => void;
-  
+
   let loading = true;
-  
+
   onMount(async () => {
     await initImageStore();
     loading = false;
   });
-  
+
   function handleRegenerate(event: CustomEvent<{ prompt: string }>) {
     onRegenerate(event.detail.prompt);
   }
@@ -22,13 +21,13 @@
 
 <div>
   <h2 class="text-xl font-medium text-gray-100 mb-6">Image History</h2>
-  
+
   {#if loading}
     <div class="flex justify-center items-center h-40">
       <div class="animate-pulse-slow text-gray-500">Loading images...</div>
     </div>
   {:else if $images.length === 0}
-    <div 
+    <div
       in:fly={{ y: 20, duration: 300 }}
       class="text-center py-10 px-4 border border-dashed border-gray-700 rounded-xl"
     >
@@ -42,7 +41,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {#each $images as image (image.id)}
         <div in:fly={{ y: 20, duration: 300, delay: 50 * $images.indexOf(image) }}>
-          <ImageCard 
+          <ImageCard
             id={image.id}
             prompt={image.prompt}
             imageData={image.imageData}

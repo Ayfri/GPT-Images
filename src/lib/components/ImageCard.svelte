@@ -3,7 +3,8 @@
   import { fade, fly } from 'svelte/transition';
   import { downloadImage } from '$lib/utils/downloadImage';
   import { deleteImage } from '$lib/db/imageStore';
-  import { images } from '$lib/stores/imageStore';
+  import { images, pricing } from '$lib/stores/imageStore';
+  import type { ImageRecord } from '$lib/stores/imageStore';
   import { createEventDispatcher } from 'svelte';
 
   export let id: string;
@@ -19,6 +20,16 @@
   let copied = false;
   let showControls = false;
   let showLargeImage = false;
+  let quality: ImageRecord['quality'];
+  let size: ImageRecord['size'];
+  let price: number;
+
+  $: {
+    const rec = $images.find(img => img.id === id);
+    quality = rec?.quality;
+    size = rec?.size;
+    price = rec && rec.quality && rec.size && pricing[rec.quality]?.[rec.size] ? pricing[rec.quality][rec.size] : 0.01;
+  }
 
   function formatDate(timestamp: number): string {
     return new Date(timestamp).toLocaleString();
@@ -133,8 +144,9 @@
     <p class="text-sm text-gray-300 line-clamp-2 mb-2" title={prompt}>
       {prompt}
     </p>
-    <p class="text-xs text-gray-500">
-      {formatDate(timestamp)}
+    <p class="text-xs text-gray-500 flex justify-between items-center">
+      <span>{formatDate(timestamp)}</span>
+      <span class="text-gray-400">${price.toFixed(3)}</span>
     </p>
   </div>
 </div>
@@ -151,5 +163,10 @@
       src={imageData}
       on:click|stopPropagation
     />
+    <div class="absolute left-4 text-gray-400 text-xs top-4 flex flex-col gap-2">
+      <span>Quality: {quality ?? 'N/A'}</span>
+      <span>Size: {size ?? 'N/A'}</span>
+      <span>Cost: ${price.toFixed(3)}</span>
+    </div>
   </div>
 {/if}
