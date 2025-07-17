@@ -9,7 +9,8 @@
     Image as ImageIcon
   } from 'lucide-svelte';
   import ImageCard from './ImageCard.svelte';
-  import { images, initImageStore, pricing, type ImageRecord } from '$lib/stores/imageStore';
+  import { images, initImageStore, type ImageRecord } from '$lib/stores/imageStore';
+  import { PRICING } from '$lib/types/image';
   import { quintOut } from 'svelte/easing';
   import { flip } from 'svelte/animate';
 
@@ -25,8 +26,8 @@
   const qualityOrder = { high: 3, low: 1, medium: 2 };
 
   function getImagePrice(image: ImageRecord): number {
-    return image.quality && image.size && pricing[image.quality]?.[image.size]
-      ? pricing[image.quality][image.size]
+    return image.quality && image.size && PRICING[image.quality]?.[image.size]
+      ? PRICING[image.quality][image.size]
       : 0.01;
   }
 
@@ -75,8 +76,8 @@
 
   $: if (currentImage) {
     currentImagePrice =
-      currentImage.quality && currentImage.size && pricing[currentImage.quality]?.[currentImage.size]
-        ? pricing[currentImage.quality][currentImage.size]
+      currentImage.quality && currentImage.size && PRICING[currentImage.quality]?.[currentImage.size]
+        ? PRICING[currentImage.quality][currentImage.size]
         : 0.01;
   }
 
@@ -217,6 +218,15 @@
     <div class="absolute left-4 top-4 flex flex-col gap-2 text-xs text-gray-400">
       <span>Quality: {currentImage.quality ?? 'N/A'}</span>
       <span>Size: {currentImage.size ?? 'N/A'}</span>
+      {#if currentImage.input_fidelity !== 'low'}
+        <span>Input Fidelity: {currentImage.input_fidelity}</span>
+      {/if}
+      {#if currentImage.output_compression !== 100}
+        <span>Output Compression: {currentImage.output_compression}</span>
+      {/if}
+      {#if currentImage.output_format !== 'png'}
+        <span>Output Format: {currentImage.output_format}</span>
+      {/if}
       <span>Cost: ${currentImagePrice.toFixed(3)}</span>
     </div>
 

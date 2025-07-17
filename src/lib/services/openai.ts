@@ -4,19 +4,32 @@ const GENERATION_API_URL = 'https://api.openai.com/v1/images/generations';
 const EDIT_API_URL = 'https://api.openai.com/v1/images/edits';
 
 export async function generateImage(apiKey: string, params: ImageGenerationParams): Promise<string[]> {
+	const requestBody: any = {
+		model: 'gpt-image-1',
+		prompt: params.prompt,
+		quality: params.quality,
+		size: params.size,
+		n: params.n
+	};
+
+	// Add optional parameters if provided
+	if (params.input_fidelity !== undefined) {
+		requestBody.input_fidelity = params.input_fidelity;
+	}
+	if (params.output_compression !== undefined) {
+		requestBody.output_compression = params.output_compression;
+	}
+	if (params.output_format !== undefined) {
+		requestBody.output_format = params.output_format;
+	}
+
 	const response = await fetch(GENERATION_API_URL, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 			'Authorization': `Bearer ${apiKey}`
 		},
-		body: JSON.stringify({
-			model: 'gpt-image-1',
-			prompt: params.prompt,
-			quality: params.quality,
-			size: params.size,
-			n: params.n
-		})
+		body: JSON.stringify(requestBody)
 	});
 
 	if (!response.ok) {
@@ -46,6 +59,17 @@ export async function editImage(apiKey: string, params: ImageEditParams): Promis
 	formData.append('size', params.size);
 	formData.append('n', params.n.toString());
 	formData.append('quality', params.quality);
+
+	// Add optional parameters if provided
+	if (params.input_fidelity !== undefined) {
+		formData.append('input_fidelity', params.input_fidelity);
+	}
+	if (params.output_compression !== undefined) {
+		formData.append('output_compression', params.output_compression.toString());
+	}
+	if (params.output_format !== undefined) {
+		formData.append('output_format', params.output_format);
+	}
 
 	const response = await fetch(EDIT_API_URL, {
 		method: 'POST',

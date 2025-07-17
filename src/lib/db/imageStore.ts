@@ -1,5 +1,6 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
+import type { ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
 
 interface GeneratedImage {
   id: string;
@@ -7,8 +8,11 @@ interface GeneratedImage {
   imageData: string;
   timestamp: number;
   model?: string;
-  quality?: 'low' | 'medium' | 'high';
-  size?: '1024x1024' | '1024x1536' | '1536x1024';
+  quality?: ImageQuality;
+  size?: ImageSize;
+  input_fidelity?: InputFidelity;
+  output_compression?: number;
+  output_format?: OutputFormat;
 }
 
 interface ImageDB extends DBSchema {
@@ -25,7 +29,7 @@ let db: IDBPDatabase<ImageDB> | null = null;
 
 export async function getDb() {
   if (!db) {
-    db = await openDB<ImageDB>('gpt-image-generator', 2, {
+    db = await openDB<ImageDB>('gpt-image-generator', 3, {
       upgrade(db, oldVersion, newVersion, transaction) {
         if (oldVersion < 1) {
           // First time setup
@@ -52,6 +56,23 @@ export async function getDb() {
             return cursor.continue().then(updateRecords);
           });
         }
+
+        // Migrate from version 2 to 3 to add advanced options
+        if (oldVersion < 3) {
+          const tx = transaction.objectStore('generated-images');
+          tx.openCursor().then(function updateRecords(cursor): Promise<void> | void {
+            if (!cursor) return;
+
+            // Add new advanced options fields to existing records
+            const updatedRecord = { ...cursor.value };
+            if (!updatedRecord.input_fidelity) updatedRecord.input_fidelity = 'low';
+            if (!updatedRecord.output_compression) updatedRecord.output_compression = 100;
+            if (!updatedRecord.output_format) updatedRecord.output_format = 'png';
+
+            cursor.update(updatedRecord);
+            return cursor.continue().then(updateRecords);
+          });
+        }
       }
     });
   }
@@ -62,8 +83,11 @@ export async function addImage(
   imageData: string,
   prompt: string,
   model: string = 'gpt-image-1',
-  quality: 'low' | 'medium' | 'high' = 'low',
-  size: '1024x1024' | '1024x1536' | '1536x1024' = '1024x1024'
+  quality: ImageQuality = 'low',
+  size: ImageSize = '1024x1024',
+  input_fidelity: InputFidelity = 'low',
+  output_compression: number = 100,
+  output_format: OutputFormat = 'png'
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -75,7 +99,10 @@ export async function addImage(
     timestamp: Date.now(),
     model,
     quality,
-    size
+    size,
+    input_fidelity,
+    output_compression,
+    output_format
   };
 
   await db.add('generated-images', image);

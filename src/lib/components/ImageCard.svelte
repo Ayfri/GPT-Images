@@ -3,9 +3,9 @@
   import { fade, fly } from 'svelte/transition';
   import { downloadImage } from '$lib/utils/downloadImage';
   import { deleteImage } from '$lib/db/imageStore';
-  import { images, pricing } from '$lib/stores/imageStore';
-  import type { ImageRecord } from '$lib/stores/imageStore';
+  import { images } from '$lib/stores/imageStore';
   import { createEventDispatcher } from 'svelte';
+  import { PRICING } from '$lib/types/image';
 
   export let id: string;
   export let prompt: string;
@@ -20,15 +20,11 @@
 
   let copied = false;
   let showControls = false;
-  let quality: ImageRecord['quality'];
-  let size: ImageRecord['size'];
   let price: number;
 
   $: {
     const rec = $images.find(img => img.id === id);
-    quality = rec?.quality;
-    size = rec?.size;
-    price = rec && rec.quality && rec.size && pricing[rec.quality]?.[rec.size] ? pricing[rec.quality][rec.size] : 0.01;
+    price = rec && rec.quality && rec.size && PRICING[rec.quality]?.[rec.size] ? PRICING[rec.quality][rec.size] : 0.01;
   }
 
   function formatDate(timestamp: number): string {

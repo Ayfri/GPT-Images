@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
-  import { Send, Loader2, Upload, X } from 'lucide-svelte';
+  import { Send, Loader2, Upload, X, ChevronDown, ChevronRight } from 'lucide-svelte';
   import { apiKey } from '$lib/stores/apiKeyStore';
   import { addImage } from '$lib/db/imageStore';
   import { images, refreshImageStore } from '$lib/stores/imageStore';
   import { generateImage, editImage } from '$lib/services/openai';
-  import type { ImageQuality, ImageSize } from '$lib/types/image';
-  import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS } from '$lib/types/image';
+  import type { ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
+  import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS } from '$lib/types/image';
 
   export let prompt = '';
   let isGenerating = false;
@@ -18,6 +18,12 @@
   let mode: 'generate' | 'edit' = 'generate';
   let inputImages: File[] = [];
   let imagePreviews: string[] = [];
+
+  // Advanced options
+  let showAdvanced = false;
+  let inputFidelity: InputFidelity = 'low';
+  let outputCompression = 100;
+  let outputFormat: OutputFormat = 'png';
 
   // Calculate price dynamically
   $: currentPrice = PRICING[selectedQuality][selectedSize] * imageCount;
@@ -112,21 +118,23 @@
     try {
       let imageDataArray: string[];
 
+      const baseParams = {
+        prompt,
+        quality: selectedQuality,
+        size: selectedSize,
+        n: imageCount,
+        input_fidelity: inputFidelity,
+        output_compression: outputCompression,
+        output_format: outputFormat
+      };
+
       if (mode === 'edit' && inputImages.length > 0) {
         imageDataArray = await editImage($apiKey, {
-          images: inputImages,
-          prompt,
-          quality: selectedQuality,
-          size: selectedSize,
-          n: imageCount
+          ...baseParams,
+          images: inputImages
         });
       } else {
-        imageDataArray = await generateImage($apiKey, {
-          prompt,
-          quality: selectedQuality,
-          size: selectedSize,
-          n: imageCount
-        });
+        imageDataArray = await generateImage($apiKey, baseParams);
       }
 
       // Store each generated image
@@ -137,7 +145,10 @@
           prompt,
           'gpt-image-1',
           selectedQuality,
-          selectedSize
+          selectedSize,
+          inputFidelity,
+          outputCompression,
+          outputFormat
         );
       }
 
@@ -188,13 +199,14 @@
     <!-- Image Upload Section (only for edit mode) -->
     {#if mode === 'edit'}
       <div>
-        <label class="block text-sm font-medium text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-gray-300 mb-2" for="image-upload">
           Images ({inputImages.length}/{IMAGE_UPLOAD_LIMITS.maxImages})
         </label>
 
         <div class="flex items-center gap-4 mb-3">
           <label class="cursor-pointer">
             <input
+              id="image-upload"
               type="file"
               accept={IMAGE_UPLOAD_LIMITS.acceptedExtensions}
               class="hidden"
@@ -305,6 +317,89 @@
         />
         <span class="text-sm text-gray-400 w-6">{imageCount}</span>
       </div>
+    </div>
+
+    <!-- Advanced Options -->
+    <div class="border-t border-gray-700 pt-4">
+      <button
+        type="button"
+        class="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+        on:click={() => showAdvanced = !showAdvanced}
+      >
+        {#if showAdvanced}
+          <ChevronDown class="h-4 w-4" />
+        {:else}
+          <ChevronRight class="h-4 w-4" />
+        {/if}
+        Advanced Options
+      </button>
+
+      {#if showAdvanced}
+        <div class="mt-4 space-y-4 pl-6 border-l-2 border-gray-700">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="inputFidelity" class="block text-sm font-medium text-gray-300 mb-2">
+                Input Fidelity
+              </label>
+              <select
+                id="inputFidelity"
+                bind:value={inputFidelity}
+                class="input w-full"
+                disabled={isGenerating}
+              >
+                {#each Object.entries(INPUT_FIDELITY_OPTIONS) as [key, option] (key)}
+                  <option value={key}>{option.label}</option>
+                {/each}
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                {INPUT_FIDELITY_OPTIONS[inputFidelity].description}
+              </p>
+            </div>
+
+            <div>
+              <label for="outputFormat" class="block text-sm font-medium text-gray-300 mb-2">
+                Output Format
+              </label>
+              <select
+                id="outputFormat"
+                bind:value={outputFormat}
+                class="input w-full"
+                disabled={isGenerating}
+              >
+                {#each Object.entries(OUTPUT_FORMAT_OPTIONS) as [key, option] (key)}
+                  <option value={key}>{option.label}</option>
+                {/each}
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                {OUTPUT_FORMAT_OPTIONS[outputFormat].description}
+              </p>
+            </div>
+          </div>
+
+          {#if outputFormat === 'jpeg' || outputFormat === 'webp'}
+            <div>
+              <label for="outputCompression" class="block text-sm font-medium text-gray-300 mb-2">
+                Output Compression: {outputCompression}%
+              </label>
+              <div class="flex items-center gap-2">
+                <input
+                  id="outputCompression"
+                  type="range"
+                  min="0"
+                  max="100"
+                  bind:value={outputCompression}
+                  class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  disabled={isGenerating}
+                />
+                <span class="text-sm text-gray-400 w-12">{outputCompression}%</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Higher values = better quality, larger file size
+              </p>
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <button
