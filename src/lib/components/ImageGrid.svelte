@@ -15,6 +15,7 @@
   import { flip } from 'svelte/animate';
 
   export let onRegenerate: (prompt: string) => void;
+  export let onEditImage: (image: ImageRecord) => void; // New prop for editing
 
   let loading = true;
   let loadingMore = false; // New state for loading more images
@@ -103,6 +104,14 @@
       { threshold: 0.5 }
     );
 
+    // Observe the last element if images are already loaded
+    if (sortedImages.length > 0 && imageGridRef) {
+      const lastCard = imageGridRef.lastElementChild;
+      if (lastCard) {
+        observer.observe(lastCard);
+      }
+    }
+
     // Cleanup observer on component destroy
     return () => observer.disconnect();
   });
@@ -127,6 +136,15 @@
   function handleView(event: CustomEvent<{ id: string }>) {
     const imageId = event.detail.id;
     largeViewIndex = sortedImages.findIndex(img => img.id === imageId);
+  }
+
+  function handleEdit(event: CustomEvent<{ id: string }>) {
+    const imageId = event.detail.id;
+    const imageToEdit = sortedImages.find(img => img.id === imageId);
+    if (imageToEdit) {
+      onEditImage(imageToEdit);
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
+    }
   }
 
   function closeLargeImage() {
@@ -211,6 +229,7 @@
             timestamp={image.timestamp}
             on:regenerate={handleRegenerate}
             on:view={handleView}
+            on:edit={handleEdit}
           />
         </div>
       {/each}

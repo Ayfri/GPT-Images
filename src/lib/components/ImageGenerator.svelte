@@ -10,6 +10,7 @@
   import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
 
   export let prompt = '';
+  export let imageToEdit: ImageRecord | null = null; // New prop to receive image for editing
   let isGenerating = false;
   let error: string | null = null;
   let selectedQuality: ImageQuality = 'low';
@@ -35,6 +36,30 @@
     prompt = "A cyberpunk city at night with neon lights and flying cars";
     error = null;
   });
+
+  // Reactively set prompt and image for editing
+  $: if (imageToEdit) {
+    prompt = imageToEdit.prompt;
+    mode = 'edit';
+    // Convert base64 image data URL to a File object for inputImages
+    fetch(imageToEdit.imageData)
+      .then(res => res.blob())
+      .then(blob => {
+        const filename = `edited_image_${imageToEdit?.id}.png`;
+        const file = new File([blob], filename, { type: blob.type });
+        inputImages = [file];
+        imagePreviews = [imageToEdit.imageData];
+      })
+      .catch(e => console.error("Error converting image data to File:", e));
+
+    // Set other image properties if available
+    selectedQuality = imageToEdit.quality ?? 'low';
+    selectedSize = imageToEdit.size ?? '1024x1024';
+    inputFidelity = imageToEdit.input_fidelity ?? 'low';
+    outputCompression = imageToEdit.output_compression ?? 100;
+    outputFormat = imageToEdit.output_format ?? 'png';
+    selectedBackground = imageToEdit.background ?? 'auto';
+  }
 
   function validateImageFile(file: File): string | null {
     // Check file size
@@ -207,6 +232,7 @@
       prompt = '';
       if (mode === 'edit') {
         clearAllImages();
+        imageToEdit = null; // Clear the imageToEdit prop after successful edit
       }
 
     } catch (err) {

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { Download, Copy, Trash2, RefreshCw } from 'lucide-svelte';
+  import { Download, Copy, Trash2, RefreshCw, Edit } from 'lucide-svelte';
   import { fade, fly } from 'svelte/transition';
   import { downloadImage } from '$lib/utils/downloadImage';
   import { deleteImage } from '$lib/db/imageStore';
   import { images } from '$lib/stores/imageStore';
   import { createEventDispatcher } from 'svelte';
   import { PRICING } from '$lib/types/image';
+  import type { ImageRecord } from '$lib/stores/imageStore';
 
   export let id: string;
   export let prompt: string;
@@ -16,6 +17,7 @@
     regenerate: { prompt: string };
     deleted: { id: string };
     view: { id: string };
+    edit: { id: string }; // New edit event
   }>();
 
   let copied = false;
@@ -115,6 +117,14 @@
               title="Regenerate with this prompt"
             >
               <RefreshCw class="w-4 h-4 text-accent-400" />
+            </button>
+            <button
+              on:click|stopPropagation={() => dispatch('edit', { id })}
+              class="btn-ghost p-2 rounded-full hover:bg-blue-700/30"
+              aria-label="Edit image"
+              title="Edit image"
+            >
+              <Edit class="w-4 h-4 text-blue-400" />
             </button>
           </div>
         </div>

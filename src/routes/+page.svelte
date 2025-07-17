@@ -4,11 +4,23 @@
   import ImageGenerator from '$lib/components/ImageGenerator.svelte';
   import ImageGrid from '$lib/components/ImageGrid.svelte';
   import UsageStats from '$lib/components/UsageStats.svelte';
-  
+  import type { ImageRecord } from '$lib/stores/imageStore';
+
   let currentPrompt = '';
-  
+  let imageForEdit: ImageRecord | null = null; // New state variable
+
   function handleRegenerate(newPrompt: string) {
     currentPrompt = newPrompt;
+    imageForEdit = null; // Clear imageForEdit when regenerating
+    // Scroll to form
+    const generatorElement = document.getElementById('generator-section');
+    if (generatorElement) {
+      generatorElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function handleEditImage(image: ImageRecord) {
+    imageForEdit = image;
     // Scroll to form
     const generatorElement = document.getElementById('generator-section');
     if (generatorElement) {
@@ -31,14 +43,14 @@
 <div class="grid gap-8 grid-cols-1 md:grid-cols-3">
   <div class="md:col-span-2">
     <div id="generator-section" class="mb-8">
-      <ImageGenerator bind:prompt={currentPrompt} />
+      <ImageGenerator bind:prompt={currentPrompt} bind:imageToEdit={imageForEdit} />
     </div>
-    
+
     <div>
-      <ImageGrid onRegenerate={handleRegenerate} />
+      <ImageGrid onRegenerate={handleRegenerate} onEditImage={handleEditImage} />
     </div>
   </div>
-  
+
   <div class="space-y-8">
     <ApiKeyForm />
     <UsageStats />
