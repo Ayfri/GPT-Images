@@ -262,16 +262,16 @@
     <div class="absolute left-4 top-4 flex flex-col gap-2 text-xs text-gray-400">
       <span>Quality: {currentImage.quality ?? 'N/A'}</span>
       <span>Size: {currentImage.size ?? 'N/A'}</span>
-      {#if currentImage.input_fidelity !== 'low'}
+      {#if currentImage.input_fidelity && currentImage.input_fidelity !== 'low'}
         <span>Input Fidelity: {currentImage.input_fidelity}</span>
       {/if}
-      {#if currentImage.output_compression !== 100}
+      {#if currentImage.output_compression && currentImage.output_compression !== 100}
         <span>Output Compression: {currentImage.output_compression}</span>
       {/if}
-      {#if currentImage.output_format !== 'png'}
+      {#if currentImage.output_format && currentImage.output_format !== 'png'}
         <span>Output Format: {currentImage.output_format}</span>
       {/if}
-      {#if currentImage.background !== 'auto'}
+      {#if currentImage.background && currentImage.background !== 'auto'}
         <span>Background: {currentImage.background}</span>
       {/if}
       <span>Cost: ${currentImagePrice.toFixed(3)}</span>
