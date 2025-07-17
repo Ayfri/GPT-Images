@@ -6,8 +6,8 @@
   import { addImage } from '$lib/db/imageStore';
   import { images, refreshImageStore } from '$lib/stores/imageStore';
   import { generateImage, editImage } from '$lib/services/openai';
-  import type { ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
-  import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS } from '$lib/types/image';
+  import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
+  import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
 
   export let prompt = '';
   let isGenerating = false;
@@ -18,12 +18,15 @@
   let mode: 'generate' | 'edit' = 'generate';
   let inputImages: File[] = [];
   let imagePreviews: string[] = [];
+  let inputMask: File | null = null;
+  let maskPreview: string | null = null;
 
   // Advanced options
   let showAdvanced = false;
   let inputFidelity: InputFidelity = 'low';
   let outputCompression = 100;
   let outputFormat: OutputFormat = 'png';
+  let selectedBackground: ImageBackground = 'auto';
 
   // Calculate price dynamically
   $: currentPrice = PRICING[selectedQuality][selectedSize] * imageCount;
@@ -86,6 +89,41 @@
     target.value = '';
   }
 
+  function handleMaskUpload(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+
+    if (!file) return;
+
+    // Mask specific validation
+    if (file.type !== 'image/png') {
+      error = 'Mask image must be a PNG file.';
+      return;
+    }
+    if (file.size > IMAGE_UPLOAD_LIMITS.maskMaxSize) {
+      error = `Mask file "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maskMaxSize / (1024 * 1024)}MB.`;
+      return;
+    }
+
+    // Clear any previous errors
+    error = null;
+
+    inputMask = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      maskPreview = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+
+    // Clear the input
+    target.value = '';
+  }
+
+  function removeMask() {
+    inputMask = null;
+    maskPreview = null;
+  }
+
   function removeImage(index: number) {
     inputImages = inputImages.filter((_, i) => i !== index);
     imagePreviews = imagePreviews.filter((_, i) => i !== index);
@@ -94,6 +132,8 @@
   function clearAllImages() {
     inputImages = [];
     imagePreviews = [];
+    inputMask = null;
+    maskPreview = null;
   }
 
   async function handleGenerate() {
@@ -112,6 +152,11 @@
       return;
     }
 
+    if (selectedBackground === 'transparent' && outputFormat === 'jpeg') {
+      error = 'Transparent background is not supported for JPEG output format. Please select PNG or WebP.';
+      return;
+    }
+
     isGenerating = true;
     error = null;
 
@@ -125,13 +170,15 @@
         n: imageCount,
         input_fidelity: inputFidelity,
         output_compression: outputCompression,
-        output_format: outputFormat
+        output_format: outputFormat,
+        background: selectedBackground
       };
 
       if (mode === 'edit' && inputImages.length > 0) {
         imageDataArray = await editImage($apiKey, {
           ...baseParams,
-          images: inputImages
+          images: inputImages,
+          mask: inputMask || undefined
         });
       } else {
         imageDataArray = await generateImage($apiKey, baseParams);
@@ -148,7 +195,8 @@
           selectedSize,
           inputFidelity,
           outputCompression,
-          outputFormat
+          outputFormat,
+          selectedBackground
         );
       }
 
@@ -367,13 +415,32 @@
                 disabled={isGenerating}
               >
                 {#each Object.entries(OUTPUT_FORMAT_OPTIONS) as [key, option] (key)}
-                  <option value={key}>{option.label}</option>
+                  <option value={key} disabled={selectedBackground === 'transparent' && key === 'jpeg'}>{option.label}</option>
                 {/each}
               </select>
               <p class="text-xs text-gray-500 mt-1">
                 {OUTPUT_FORMAT_OPTIONS[outputFormat].description}
               </p>
             </div>
+          </div>
+
+          <div>
+            <label for="background" class="block text-sm font-medium text-gray-300 mb-2">
+              Background
+            </label>
+            <select
+              id="background"
+              bind:value={selectedBackground}
+              class="input w-full"
+              disabled={isGenerating}
+            >
+              {#each Object.entries(BACKGROUND_OPTIONS) as [key, option] (key)}
+                <option value={key}>{option.label}</option>
+              {/each}
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+              {BACKGROUND_OPTIONS[selectedBackground].description}
+            </p>
           </div>
 
           {#if outputFormat === 'jpeg' || outputFormat === 'webp'}
@@ -398,6 +465,44 @@
               </p>
             </div>
           {/if}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2 mt-4" for="mask-upload">
+              Mask (Optional)
+            </label>
+            <div class="flex items-center gap-4 mb-3">
+              <label class="cursor-pointer">
+                <input
+                  id="mask-upload"
+                  type="file"
+                  accept=".png"
+                  class="hidden"
+                  on:change={handleMaskUpload}
+                  disabled={isGenerating || inputMask !== null}
+                />
+                <div class="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors {inputMask !== null ? 'opacity-50 cursor-not-allowed' : ''}">
+                  <Upload class="h-4 w-4" />
+                  <span class="text-sm">Upload Mask (PNG)</span>
+                </div>
+              </label>
+
+              {#if maskPreview}
+                <div class="relative">
+                  <img src={maskPreview} alt="Mask Preview" class="w-16 h-16 object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 rounded-full p-1"
+                    on:click={removeMask}
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
+                </div>
+              {/if}
+            </div>
+            <p class="text-xs text-gray-500">
+              Optional PNG file (max 4MB) to control image editing areas. Applied to the first image.
+            </p>
+          </div>
         </div>
       {/if}
     </div>
@@ -424,7 +529,9 @@
 
     {#if mode === 'edit'}
       <div class="text-sm text-blue-400 bg-blue-900/20 border border-blue-600/20 p-2 rounded-md">
-        Image editing uses GPT Image 1 with high input fidelity. Upload clear images for best results.
+        Image editing uses GPT Image 1 with high input fidelity.
+        <br />
+        Upload clear images for best results. Masks must be PNG, max 4MB, same dimensions as image.
       </div>
     {/if}
 

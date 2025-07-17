@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
+import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
 
 interface GeneratedImage {
   id: string;
@@ -13,6 +13,7 @@ interface GeneratedImage {
   input_fidelity?: InputFidelity;
   output_compression?: number;
   output_format?: OutputFormat;
+  background?: ImageBackground;
 }
 
 interface ImageDB extends DBSchema {
@@ -29,7 +30,7 @@ let db: IDBPDatabase<ImageDB> | null = null;
 
 export async function getDb() {
   if (!db) {
-    db = await openDB<ImageDB>('gpt-image-generator', 3, {
+    db = await openDB<ImageDB>('gpt-image-generator', 4, {
       upgrade(db, oldVersion, newVersion, transaction) {
         if (oldVersion < 1) {
           // First time setup
@@ -73,6 +74,20 @@ export async function getDb() {
             return cursor.continue().then(updateRecords);
           });
         }
+
+        // Migrate from version 3 to 4 to add background option
+        if (oldVersion < 4) {
+          const tx = transaction.objectStore('generated-images');
+          tx.openCursor().then(function updateRecords(cursor): Promise<void> | void {
+            if (!cursor) return;
+
+            const updatedRecord = { ...cursor.value };
+            if (!updatedRecord.background) updatedRecord.background = 'auto';
+
+            cursor.update(updatedRecord);
+            return cursor.continue().then(updateRecords);
+          });
+        }
       }
     });
   }
@@ -87,7 +102,8 @@ export async function addImage(
   size: ImageSize = '1024x1024',
   input_fidelity: InputFidelity = 'low',
   output_compression: number = 100,
-  output_format: OutputFormat = 'png'
+  output_format: OutputFormat = 'png',
+  background: ImageBackground = 'auto'
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -102,7 +118,8 @@ export async function addImage(
     size,
     input_fidelity,
     output_compression,
-    output_format
+    output_format,
+    background
   };
 
   await db.add('generated-images', image);

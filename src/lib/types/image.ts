@@ -3,12 +3,14 @@ export type ImageQuality = 'low' | 'medium' | 'high';
 export type ImageSize = '1024x1024' | '1024x1536' | '1536x1024';
 export type InputFidelity = 'low' | 'high';
 export type OutputFormat = 'png' | 'jpeg' | 'webp';
+export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 
 export interface ImageGenerationParams {
 	prompt: string;
 	quality: ImageQuality;
 	size: ImageSize;
 	n: number;
+	background?: ImageBackground;
 	input_fidelity?: InputFidelity;
 	output_compression?: number;
 	output_format?: OutputFormat;
@@ -20,9 +22,11 @@ export interface ImageEditParams {
 	quality: ImageQuality;
 	size: ImageSize;
 	n: number;
+	background?: ImageBackground;
 	input_fidelity?: InputFidelity;
 	output_compression?: number;
 	output_format?: OutputFormat;
+	mask?: File;
 }
 
 export const QUALITY_OPTIONS = {
@@ -48,6 +52,12 @@ export const OUTPUT_FORMAT_OPTIONS = {
 	webp: { label: 'WebP', description: 'Modern format, good compression' }
 } as const;
 
+export const BACKGROUND_OPTIONS = {
+	auto: { label: 'Auto', description: 'Model automatically determines the best background' },
+	opaque: { label: 'Opaque', description: 'Ensures a solid background' },
+	transparent: { label: 'Transparent', description: 'Generates image with transparent background (PNG/WebP only)' }
+} as const;
+
 export const PRICING: Record<ImageQuality, Record<ImageSize, number>> = {
 	low: { '1024x1024': 0.011, '1024x1536': 0.016, '1536x1024': 0.016 },
 	medium: { '1024x1024': 0.042, '1024x1536': 0.063, '1536x1024': 0.063 },
@@ -59,5 +69,6 @@ export const IMAGE_UPLOAD_LIMITS = {
 	maxFileSize: 50 * 1024 * 1024, // 50MB in bytes
 	maxImages: 16,
 	acceptedFormats: ['image/png', 'image/webp', 'image/jpeg', 'image/jpg'],
-	acceptedExtensions: '.png,.webp,.jpg,.jpeg'
+	acceptedExtensions: '.png,.webp,.jpg,.jpeg',
+	maskMaxSize: 4 * 1024 * 1024 // 4MB in bytes
 } as const;

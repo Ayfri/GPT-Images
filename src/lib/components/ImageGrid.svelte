@@ -227,6 +227,9 @@
       {#if currentImage.output_format !== 'png'}
         <span>Output Format: {currentImage.output_format}</span>
       {/if}
+      {#if currentImage.background !== 'auto'}
+        <span>Background: {currentImage.background}</span>
+      {/if}
       <span>Cost: ${currentImagePrice.toFixed(3)}</span>
     </div>
 

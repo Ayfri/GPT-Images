@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import { getAllImages } from '$lib/db/imageStore';
 import type { Writable, Readable } from 'svelte/store';
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
+import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
 import { PRICING } from '$lib/types/image';
 
 // Define the interface for our image records
@@ -16,6 +16,7 @@ export interface ImageRecord {
   input_fidelity?: InputFidelity;
   output_compression?: number;
   output_format?: OutputFormat;
+  background?: ImageBackground;
 }
 
 // Create a store to hold our image records
