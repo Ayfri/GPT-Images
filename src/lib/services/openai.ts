@@ -1,39 +1,70 @@
-const API_URL = 'https://api.openai.com/v1/images/generations';
+import type { ImageGenerationParams, ImageEditParams } from '$lib/types/image';
+
+const GENERATION_API_URL = 'https://api.openai.com/v1/images/generations';
+const EDIT_API_URL = 'https://api.openai.com/v1/images/edits';
 
 export async function generateImage(apiKey: string, params: ImageGenerationParams): Promise<string[]> {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-image-1',
-      prompt: params.prompt,
-      quality: params.quality, // Use quality directly from params
-      size: params.size, // Use size directly from params
-      n: params.n // Number of images to generate
-    })
-  });
+	const response = await fetch(GENERATION_API_URL, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${apiKey}`
+		},
+		body: JSON.stringify({
+			model: 'gpt-image-1',
+			prompt: params.prompt,
+			quality: params.quality,
+			size: params.size,
+			n: params.n
+		})
+	});
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to generate image');
-  }
+	if (!response.ok) {
+		const error = await response.json();
+		throw new Error(error.error?.message || 'Failed to generate image');
+	}
 
-  const data = await response.json();
-  if (!data.data || data.data.length === 0) {
-    throw new Error('API did not return image data');
-  }
+	const data = await response.json();
+	if (!data.data || data.data.length === 0) {
+		throw new Error('API did not return image data');
+	}
 
-  // Return array of base64 images
-  return data.data.map((item: any) => item.b64_json);
+	// Return array of base64 images
+	return data.data.map((item: any) => item.b64_json);
 }
 
-// Define the type for parameters
-export interface ImageGenerationParams {
-  prompt: string;
-  quality: 'low' | 'medium' | 'high'; // Use the correct quality values for gpt-image-1
-  size: '1024x1024' | '1024x1536' | '1536x1024'; // Use the correct size values for gpt-image-1
-  n: number; // Number of images to generate (1-10)
+export async function editImage(apiKey: string, params: ImageEditParams): Promise<string[]> {
+	const formData = new FormData();
+
+	// Add all images to the form data
+	params.images.forEach((image, index) => {
+		formData.append(`image`, image);
+	});
+
+	formData.append('prompt', params.prompt);
+	formData.append('model', 'gpt-image-1');
+	formData.append('size', params.size);
+	formData.append('n', params.n.toString());
+	formData.append('quality', params.quality);
+
+	const response = await fetch(EDIT_API_URL, {
+		method: 'POST',
+		headers: {
+			'Authorization': `Bearer ${apiKey}`
+		},
+		body: formData
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		throw new Error(error.error?.message || 'Failed to edit image');
+	}
+
+	const data = await response.json();
+	if (!data.data || data.data.length === 0) {
+		throw new Error('API did not return image data');
+	}
+
+	// Return array of base64 images
+	return data.data.map((item: any) => item.b64_json);
 }
