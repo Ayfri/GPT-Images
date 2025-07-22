@@ -5,17 +5,18 @@ export type InputFidelity = 'low' | 'high';
 export type OutputFormat = 'png' | 'jpeg' | 'webp';
 export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 
+// Parameters for image generation (new images)
 export interface ImageGenerationParams {
 	prompt: string;
 	quality: ImageQuality;
 	size: ImageSize;
 	n: number;
 	background?: ImageBackground;
-	input_fidelity?: InputFidelity;
 	output_compression?: number;
 	output_format?: OutputFormat;
 }
 
+// Parameters for image editing (modifying existing images)
 export interface ImageEditParams {
 	images: File[];
 	prompt: string;
@@ -23,7 +24,7 @@ export interface ImageEditParams {
 	size: ImageSize;
 	n: number;
 	background?: ImageBackground;
-	input_fidelity?: InputFidelity;
+	input_fidelity?: InputFidelity; // Only available for editing
 	output_compression?: number;
 	output_format?: OutputFormat;
 	mask?: File;
@@ -42,8 +43,8 @@ export const SIZE_OPTIONS = {
 } as const;
 
 export const INPUT_FIDELITY_OPTIONS = {
-	low: { label: 'Low', description: 'Faster generation, less strict matching' },
-	high: { label: 'High', description: 'Better matching of style and facial features' }
+	low: { label: 'Low', description: 'Faster editing, less strict matching' },
+	high: { label: 'High', description: 'Better matching of style and facial features (editing only)' }
 } as const;
 
 export const OUTPUT_FORMAT_OPTIONS = {

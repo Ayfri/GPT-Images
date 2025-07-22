@@ -7,6 +7,7 @@
   import { images, refreshImageStore } from '$lib/stores/imageStore';
   import { generateImage, editImage } from '$lib/services/openai';
   import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
+  import type { ImageRecord } from '$lib/stores/imageStore';
   import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
 
   export let prompt = '';
@@ -53,12 +54,14 @@
       .catch(e => console.error("Error converting image data to File:", e));
 
     // Set other image properties if available
-    selectedQuality = imageToEdit.quality ?? 'low';
-    selectedSize = imageToEdit.size ?? '1024x1024';
-    inputFidelity = imageToEdit.input_fidelity ?? 'low';
-    outputCompression = imageToEdit.output_compression ?? 100;
-    outputFormat = imageToEdit.output_format ?? 'png';
-    selectedBackground = imageToEdit.background ?? 'auto';
+    if (imageToEdit) {
+      selectedQuality = imageToEdit.quality ?? 'low';
+      selectedSize = imageToEdit.size ?? '1024x1024';
+      inputFidelity = imageToEdit.input_fidelity ?? 'low';
+      outputCompression = imageToEdit.output_compression ?? 100;
+      outputFormat = imageToEdit.output_format ?? 'png';
+      selectedBackground = imageToEdit.background ?? 'auto';
+    }
   }
 
   function validateImageFile(file: File): string | null {
@@ -202,11 +205,22 @@
       if (mode === 'edit' && inputImages.length > 0) {
         imageDataArray = await editImage($apiKey, {
           ...baseParams,
+          input_fidelity: inputFidelity, // Only add input_fidelity for editing
           images: inputImages,
           mask: inputMask || undefined
         });
       } else {
-        imageDataArray = await generateImage($apiKey, baseParams);
+        // For generation, create params without input_fidelity
+        const generationParams = {
+          prompt,
+          quality: selectedQuality,
+          size: selectedSize,
+          n: imageCount,
+          output_compression: outputCompression,
+          output_format: outputFormat,
+          background: selectedBackground
+        };
+        imageDataArray = await generateImage($apiKey, generationParams);
       }
 
       // Store each generated image
@@ -411,24 +425,26 @@
       {#if showAdvanced}
         <div class="mt-4 space-y-4 pl-6 border-l-2 border-gray-700">
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label for="inputFidelity" class="block text-sm font-medium text-gray-300 mb-2">
-                Input Fidelity
-              </label>
-              <select
-                id="inputFidelity"
-                bind:value={inputFidelity}
-                class="input w-full"
-                disabled={isGenerating}
-              >
-                {#each Object.entries(INPUT_FIDELITY_OPTIONS) as [key, option] (key)}
-                  <option value={key}>{option.label}</option>
-                {/each}
-              </select>
-              <p class="text-xs text-gray-500 mt-1">
-                {INPUT_FIDELITY_OPTIONS[inputFidelity].description}
-              </p>
-            </div>
+            {#if mode === 'edit'}
+              <div>
+                <label for="inputFidelity" class="block text-sm font-medium text-gray-300 mb-2">
+                  Input Fidelity
+                </label>
+                <select
+                  id="inputFidelity"
+                  bind:value={inputFidelity}
+                  class="input w-full"
+                  disabled={isGenerating}
+                >
+                  {#each Object.entries(INPUT_FIDELITY_OPTIONS) as [key, option] (key)}
+                    <option value={key}>{option.label}</option>
+                  {/each}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">
+                  {INPUT_FIDELITY_OPTIONS[inputFidelity].description}
+                </p>
+              </div>
+            {/if}
 
             <div>
               <label for="outputFormat" class="block text-sm font-medium text-gray-300 mb-2">

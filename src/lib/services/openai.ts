@@ -12,16 +12,18 @@ export async function generateImage(apiKey: string, params: ImageGenerationParam
 		n: params.n
 	};
 
-	// Add optional parameters if provided
-	if (params.input_fidelity !== undefined) {
-		requestBody.input_fidelity = params.input_fidelity;
-	}
+	// Only add parameters that are valid for generation
 	if (params.output_compression !== undefined) {
 		requestBody.output_compression = params.output_compression;
 	}
 	if (params.output_format !== undefined) {
 		requestBody.output_format = params.output_format;
 	}
+	if (params.background !== undefined) {
+		requestBody.background = params.background;
+	}
+
+	// NOTE: input_fidelity is NOT supported for generation, only for editing
 
 	const response = await fetch(GENERATION_API_URL, {
 		method: 'POST',
@@ -60,7 +62,7 @@ export async function editImage(apiKey: string, params: ImageEditParams): Promis
 	formData.append('n', params.n.toString());
 	formData.append('quality', params.quality);
 
-	// Add optional parameters if provided
+	// Add optional parameters that are valid for editing
 	if (params.input_fidelity !== undefined) {
 		formData.append('input_fidelity', params.input_fidelity);
 	}
@@ -69,6 +71,14 @@ export async function editImage(apiKey: string, params: ImageEditParams): Promis
 	}
 	if (params.output_format !== undefined) {
 		formData.append('output_format', params.output_format);
+	}
+	if (params.background !== undefined) {
+		formData.append('background', params.background);
+	}
+
+	// Add mask if provided
+	if (params.mask) {
+		formData.append('mask', params.mask);
 	}
 
 	const response = await fetch(EDIT_API_URL, {
