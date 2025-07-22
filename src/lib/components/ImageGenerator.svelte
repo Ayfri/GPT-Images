@@ -9,6 +9,41 @@
   import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
   import type { ImageRecord } from '$lib/stores/imageStore';
   import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
+  import { browser } from '$app/environment';
+
+  // Storage keys
+  const FORM_OPTIONS_KEY = 'image-generator-options';
+
+  // Load options from localStorage if available
+  function loadFormOptions() {
+    if (!browser) return
+    const raw = localStorage.getItem(FORM_OPTIONS_KEY)
+    if (!raw) return
+    try {
+      const opts = JSON.parse(raw)
+      if (opts.selectedQuality) selectedQuality = opts.selectedQuality
+      if (opts.selectedSize) selectedSize = opts.selectedSize
+      if (opts.imageCount) imageCount = opts.imageCount
+      if (opts.inputFidelity) inputFidelity = opts.inputFidelity
+      if (opts.outputCompression !== undefined) outputCompression = opts.outputCompression
+      if (opts.outputFormat) outputFormat = opts.outputFormat
+      if (opts.selectedBackground) selectedBackground = opts.selectedBackground
+    } catch {}
+  }
+
+  function saveFormOptions() {
+    if (!browser) return
+    const opts = {
+      selectedQuality,
+      selectedSize,
+      imageCount,
+      inputFidelity,
+      outputCompression,
+      outputFormat,
+      selectedBackground
+    }
+    localStorage.setItem(FORM_OPTIONS_KEY, JSON.stringify(opts))
+  }
 
   export let prompt = '';
   export let imageToEdit: ImageRecord | null = null; // New prop to receive image for editing
@@ -34,9 +69,13 @@
   $: currentPrice = PRICING[selectedQuality][selectedSize] * imageCount;
 
   onMount(() => {
+    loadFormOptions()
     prompt = "A cyberpunk city at night with neon lights and flying cars";
     error = null;
   });
+
+  // Save options whenever they change
+  $: saveFormOptions(), [selectedQuality, selectedSize, imageCount, inputFidelity, outputCompression, outputFormat, selectedBackground]
 
   // Reactively set prompt and image for editing
   $: if (imageToEdit) {
