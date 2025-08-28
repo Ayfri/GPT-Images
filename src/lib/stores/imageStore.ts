@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { getAllImages, countImages, getImages } from '$lib/db/imageStore';
+import { countImages, getImages } from '$lib/db/imageStore';
 import type { Writable, Readable } from 'svelte/store';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
 import { PRICING } from '$lib/types/image';

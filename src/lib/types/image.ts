@@ -5,30 +5,6 @@ export type InputFidelity = 'low' | 'high';
 export type OutputFormat = 'png' | 'jpeg' | 'webp';
 export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 
-// Parameters for image generation (new images)
-export interface ImageGenerationParams {
-	prompt: string;
-	quality: ImageQuality;
-	size: ImageSize;
-	n: number;
-	background?: ImageBackground;
-	output_compression?: number;
-	output_format?: OutputFormat;
-}
-
-// Parameters for image editing (modifying existing images)
-export interface ImageEditParams {
-	images: File[];
-	prompt: string;
-	quality: ImageQuality;
-	size: ImageSize;
-	n: number;
-	background?: ImageBackground;
-	input_fidelity?: InputFidelity; // Only available for editing
-	output_compression?: number;
-	output_format?: OutputFormat;
-	mask?: File;
-}
 
 export const QUALITY_OPTIONS = {
 	low: { label: 'Low', apiValue: 'low' },
