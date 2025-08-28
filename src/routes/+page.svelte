@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import ApiKeyForm from '$lib/components/ApiKeyForm.svelte';
   import ImageGenerator from '$lib/components/ImageGenerator.svelte';
   import ImageGrid from '$lib/components/ImageGrid.svelte';

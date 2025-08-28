@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { Download, Copy, Trash2, RefreshCw, Edit } from 'lucide-svelte';
+  import { Download, Copy, Pencil, Trash2, RefreshCw } from 'lucide-svelte';
   import { fade, fly } from 'svelte/transition';
   import { downloadImage } from '$lib/utils/downloadImage';
   import { deleteImage } from '$lib/db/imageStore';
   import { images } from '$lib/stores/imageStore';
   import { createEventDispatcher } from 'svelte';
   import { PRICING } from '$lib/types/image';
-  import type { ImageRecord } from '$lib/stores/imageStore';
 
   export let id: string;
   export let prompt: string;
@@ -124,7 +123,7 @@
               aria-label="Edit image"
               title="Edit image"
             >
-              <Edit class="w-4 h-4 text-blue-400" />
+              <Pencil class="w-4 h-4 text-blue-400" />
             </button>
           </div>
         </div>

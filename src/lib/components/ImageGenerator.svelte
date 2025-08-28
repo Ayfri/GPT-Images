@@ -88,7 +88,7 @@
         const filename = `edited_image_${imageToEdit?.id}.png`;
         const file = new File([blob], filename, { type: blob.type });
         inputImages = [file];
-        imagePreviews = [imageToEdit.imageData];
+        imagePreviews = [imageToEdit!.imageData];
       })
       .catch(e => console.error("Error converting image data to File:", e));
 
