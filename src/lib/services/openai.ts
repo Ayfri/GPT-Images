@@ -28,7 +28,6 @@ export async function generateImage(apiKey: string, params: GenerateImageParams)
 			quality: params.quality,
 			size: params.size,
 			n: params.n,
-			response_format: 'b64_json'
 		};
 
 		// Ajouter les paramètres optionnels seulement s'ils sont définis
@@ -96,7 +95,6 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 			size: params.size,
 			n: params.n,
 			quality: params.quality,
-			response_format: 'b64_json'
 		};
 
 		// Add optional parameters that are valid for editing
