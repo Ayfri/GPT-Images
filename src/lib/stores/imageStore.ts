@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { countImages, getImages } from '$lib/db/imageStore';
 import type { Writable, Readable } from 'svelte/store';
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
+import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
 import { PRICING } from '$lib/types/image';
 
 // Define the interface for our image records
@@ -10,7 +10,7 @@ export interface ImageRecord {
   prompt: string;
   imageData: string;
   timestamp: number;
-  model?: string;
+  model?: ImageModel;
   quality?: ImageQuality;
   size?: ImageSize;
   input_fidelity?: InputFidelity;
@@ -29,7 +29,7 @@ const PAGE_SIZE = 12; // Adjust as needed
 export const totalCost: Readable<number> = derived(images, ($images) => {
   return $images.reduce((total, image) => {
     // If we have model, quality and size info, use specific pricing
-    const model = (image.model || 'gpt-image-1') as 'gpt-image-1' | 'gpt-image-1-mini';
+    const model = (image.model || 'gpt-image-1') as ImageModel;
     if (image.quality && image.size && PRICING[model]?.[image.quality]?.[image.size]) {
       return total + PRICING[model][image.quality][image.size];
     }
@@ -45,7 +45,7 @@ export const initImageStore = async () => {
     totalImageCount.set(count);
 
     const initialImages = await getImages(0, PAGE_SIZE);
-    images.set(initialImages);
+    images.set(initialImages as ImageRecord[]);
     currentImageOffset.set(initialImages.length);
   } catch (error) {
     console.error('Failed to load images from IndexedDB:', error);
@@ -57,9 +57,9 @@ export const initImageStore = async () => {
 
 // Function to load more images
 export const loadMoreImages = async () => {
-  const currentOffset = await get(currentImageOffset);
+  const currentOffset = get(currentImageOffset);
   const newImages = await getImages(currentOffset, PAGE_SIZE);
-  images.update((existingImages) => [...existingImages, ...newImages]);
+  images.update((existingImages) => [...existingImages, ...newImages] as ImageRecord[]);
   currentImageOffset.update((offset) => offset + newImages.length);
 };
 
