@@ -301,6 +301,9 @@
       {#if currentImage.background && currentImage.background !== 'auto'}
         <span>Background: {currentImage.background}</span>
       {/if}
+      {#if currentImage.model}
+        <span>Model: {currentImage.model}</span>
+      {/if}
       <span>Cost: ${currentImagePrice.toFixed(3)}</span>
     </div>
 
