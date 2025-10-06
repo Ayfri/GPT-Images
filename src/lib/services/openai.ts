@@ -1,4 +1,4 @@
-import type { ImageBackground, ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
+import type { ImageBackground, ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
 import OpenAI from 'openai';
 import type {
 	ImageEditParamsNonStreaming,
@@ -7,6 +7,7 @@ import type {
 
 export interface GenerateImageParams {
 	background?: ImageBackground;
+	model: ImageModel;
 	n: number;
 	output_compression?: number;
 	output_format?: OutputFormat;
@@ -23,7 +24,7 @@ export async function generateImage(apiKey: string, params: GenerateImageParams)
 
 	try {
 		const generateParams: ImageGenerateParamsNonStreaming = {
-			model: 'gpt-image-1',
+			model: params.model,
 			prompt: params.prompt,
 			quality: params.quality,
 			size: params.size,
@@ -67,6 +68,7 @@ export interface EditImageParams {
 	images: File[];
 	input_fidelity?: InputFidelity;
 	mask?: File;
+	model: ImageModel;
 	n: number;
 	output_compression?: number;
 	output_format?: OutputFormat;
@@ -89,7 +91,7 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 		}
 
 		const editParams: ImageEditParamsNonStreaming = {
-			model: 'gpt-image-1',
+			model: params.model,
 			image: imageFile,
 			prompt: params.prompt,
 			size: params.size,

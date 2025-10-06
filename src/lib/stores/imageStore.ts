@@ -28,9 +28,10 @@ const PAGE_SIZE = 12; // Adjust as needed
 // Create a derived store for total cost calculation
 export const totalCost: Readable<number> = derived(images, ($images) => {
   return $images.reduce((total, image) => {
-    // If we have quality and size info, use specific pricing
-    if (image.quality && image.size && PRICING[image.quality]?.[image.size]) {
-      return total + PRICING[image.quality][image.size];
+    // If we have model, quality and size info, use specific pricing
+    const model = (image.model || 'gpt-image-1') as 'gpt-image-1' | 'gpt-image-1-mini';
+    if (image.quality && image.size && PRICING[model]?.[image.quality]?.[image.size]) {
+      return total + PRICING[model][image.quality][image.size];
     }
     // Default fallback price for images without detailed info
     return total + 0.01;

@@ -6,9 +6,9 @@
   import { addImage } from '$lib/db/imageStore';
   import { images, refreshImageStore } from '$lib/stores/imageStore';
   import { generateImage, editImage } from '$lib/services/openai';
-  import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
+  import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
   import type { ImageRecord } from '$lib/stores/imageStore';
-  import { QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
+  import { MODEL_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
   import { browser } from '$app/environment';
 
   // Storage keys
@@ -21,6 +21,7 @@
     if (!raw) return
     try {
       const opts = JSON.parse(raw)
+      if (opts.selectedModel) selectedModel = opts.selectedModel
       if (opts.selectedQuality) selectedQuality = opts.selectedQuality
       if (opts.selectedSize) selectedSize = opts.selectedSize
       if (opts.imageCount) imageCount = opts.imageCount
@@ -34,6 +35,7 @@
   function saveFormOptions() {
     if (!browser) return
     const opts = {
+      selectedModel,
       selectedQuality,
       selectedSize,
       imageCount,
@@ -49,6 +51,7 @@
   export let imageToEdit: ImageRecord | null = null; // New prop to receive image for editing
   let isGenerating = false;
   let error: string | null = null;
+  let selectedModel: ImageModel = 'gpt-image-1';
   let selectedQuality: ImageQuality = 'low';
   let selectedSize: ImageSize = '1024x1024';
   let imageCount = 1;
@@ -66,7 +69,7 @@
   let selectedBackground: ImageBackground = 'auto';
 
   // Calculate price dynamically
-  $: currentPrice = PRICING[selectedQuality][selectedSize] * imageCount;
+  $: currentPrice = PRICING[selectedModel][selectedQuality][selectedSize] * imageCount;
 
   onMount(() => {
     loadFormOptions()
@@ -75,7 +78,7 @@
   });
 
   // Save options whenever they change
-  $: saveFormOptions(), [selectedQuality, selectedSize, imageCount, inputFidelity, outputCompression, outputFormat, selectedBackground]
+  $: saveFormOptions(), [selectedModel, selectedQuality, selectedSize, imageCount, inputFidelity, outputCompression, outputFormat, selectedBackground]
 
   // Reactively set prompt and image for editing
   $: if (imageToEdit) {
@@ -94,6 +97,7 @@
 
     // Set other image properties if available
     if (imageToEdit) {
+      selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-1';
       selectedQuality = imageToEdit.quality ?? 'low';
       selectedSize = imageToEdit.size ?? '1024x1024';
       inputFidelity = imageToEdit.input_fidelity ?? 'low';
@@ -231,6 +235,7 @@
       let imageDataArray: string[];
 
       const baseParams = {
+        model: selectedModel,
         prompt,
         quality: selectedQuality,
         size: selectedSize,
@@ -251,6 +256,7 @@
       } else {
         // For generation, create params without input_fidelity
         const generationParams = {
+          model: selectedModel,
           prompt,
           quality: selectedQuality,
           size: selectedSize,
@@ -268,7 +274,7 @@
         await addImage(
           imageDataUrl,
           prompt,
-          'gpt-image-1',
+          selectedModel,
           selectedQuality,
           selectedSize,
           inputFidelity,
@@ -393,6 +399,25 @@
         class="input w-full"
         disabled={isGenerating}
       ></textarea>
+    </div>
+
+    <div>
+      <label for="model" class="block text-sm font-medium text-gray-300 mb-2">
+        Model
+      </label>
+      <select
+        id="model"
+        bind:value={selectedModel}
+        class="input w-full"
+        disabled={isGenerating}
+      >
+        {#each Object.entries(MODEL_OPTIONS) as [key, option] (key)}
+          <option value={key}>{option.label}</option>
+        {/each}
+      </select>
+      <p class="text-xs text-gray-500 mt-1">
+        {MODEL_OPTIONS[selectedModel].description}
+      </p>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
@@ -618,7 +643,7 @@
     {/if}
 
     <div class="text-xs text-gray-500 flex justify-between pt-1">
-      <span>Model: gpt-image-1</span>
+      <span>Model: {MODEL_OPTIONS[selectedModel].label}</span>
       <span class="text-secondary-400">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
     </div>
   </form>
