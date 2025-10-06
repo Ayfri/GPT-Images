@@ -10,11 +10,11 @@ export const apiKey = writable<string>(defaultValue);
 
 // Subscribe to changes and update localStorage
 if (browser) {
-  apiKey.subscribe(value => {
-    if (value) {
-      localStorage.setItem(API_KEY_STORAGE_KEY, value);
-    } else {
-      localStorage.removeItem(API_KEY_STORAGE_KEY);
-    }
-  });
+	apiKey.subscribe(value => {
+		if (value) {
+			localStorage.setItem(API_KEY_STORAGE_KEY, value);
+		} else {
+			localStorage.removeItem(API_KEY_STORAGE_KEY);
+		}
+	});
 }
