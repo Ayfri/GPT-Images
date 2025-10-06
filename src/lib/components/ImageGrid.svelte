@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import {
     ArrowDown,
@@ -10,6 +10,7 @@
   } from 'lucide-svelte';
   import ImageCard from './ImageCard.svelte';
   import { images, initImageStore, loadMoreImages, totalImageCount, type ImageRecord } from '$lib/stores/imageStore';
+  import type { ImageModel } from '$lib/types/image';
   import { PRICING } from '$lib/types/image';
   import { quintOut } from 'svelte/easing';
   import { flip } from 'svelte/animate';
@@ -31,8 +32,9 @@
   const qualityOrder = { high: 3, low: 1, medium: 2 };
 
   function getImagePrice(image: ImageRecord): number {
-    return image.quality && image.size && PRICING[image.quality]?.[image.size]
-      ? PRICING[image.quality][image.size]
+    const model = (image.model || 'gpt-image-1') as ImageModel;
+    return image.quality && image.size && PRICING[model]?.[image.quality]?.[image.size]
+      ? PRICING[model][image.quality][image.size]
       : 0.01;
   }
 
@@ -80,9 +82,10 @@
   }
 
   $: if (currentImage) {
+    const model = (currentImage.model || 'gpt-image-1') as ImageModel;
     currentImagePrice =
-      currentImage.quality && currentImage.size && PRICING[currentImage.quality]?.[currentImage.size]
-        ? PRICING[currentImage.quality][currentImage.size]
+      currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
+        ? PRICING[model][currentImage.quality][currentImage.size]
         : 0.01;
   }
 
@@ -112,8 +115,13 @@
       }
     }
 
-    // Cleanup observer on component destroy
-    return () => observer.disconnect();
+  });
+
+  // Cleanup observer on component destroy
+  onDestroy(() => {
+    if (observer) {
+      observer.disconnect();
+    }
   });
 
   // Reactively observe the last element when sortedImages changes
