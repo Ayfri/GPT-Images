@@ -3,23 +3,32 @@
 </script>
 
 <header class="py-4 px-5 lg:px-6 border-b border-gray-800 mb-6 sticky top-0 z-10 glass-effect">
-	<div class="container mx-auto flex justify-between items-center">
-		<div class="flex items-center space-x-3">
+	<div class="container mx-auto flex items-center gap-12">
+		<div class="flex items-center gap-4">
 			<img src={logo} alt="logo" class="size-10"/>
 			<div>
 				<h1 class="text-xl font-bold bg-linear-to-r from-accent-400 to-secondary-400 bg-clip-text text-transparent">
-					GPT Image Generator
+					GPT Generator
 				</h1>
 				<p class="text-xs text-gray-400">Powered by OpenAI</p>
 			</div>
 		</div>
 
-		<div class="flex items-center space-x-4">
+		<div class="flex items-center gap-8">
+			<a href="/" class="text-sm text-gray-400 hover:text-primary-400 transition-colors">
+				Images
+			</a>
+			<a href="/videos" class="text-sm text-gray-400 hover:text-primary-400 transition-colors">
+				Videos
+			</a>
+		</div>
+
+		<div class="flex items-center gap-4 ml-auto">
 			<a
 				href='https://platform.openai.com/docs/guides/image-generation'
 				target='_blank'
 				rel='noopener noreferrer'
-				class='text-sm text-gray-400 hover:text-primary-400 transition-colors mr-4'
+				class='text-sm text-gray-400 hover:text-primary-400 transition-colors'
 			>
 				API Docs
 			</a>
