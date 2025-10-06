@@ -30,7 +30,7 @@
 
 <div class="mb-6">
   <h1 class="text-3xl font-bold mb-2 text-center">
-    <span class="bg-gradient-to-r from-accent-400 via-primary-400 to-secondary-400 bg-clip-text text-transparent">
+    <span class="bg-linear-to-r from-accent-400 via-primary-400 to-secondary-400 bg-clip-text text-transparent">
       GPT Image Generator
     </span>
   </h1>

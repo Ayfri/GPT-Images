@@ -35,15 +35,15 @@
         <div class="space-y-2">
           <div class="text-sm font-medium text-gray-300">Low Quality</div>
           <div class="grid grid-cols-3 gap-3">
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1024x1024</div>
               <div class="text-lg font-semibold text-gray-100">$0.011</div>
             </div>
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1024x1536</div>
               <div class="text-lg font-semibold text-gray-100">$0.016</div>
             </div>
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1536x1024</div>
               <div class="text-lg font-semibold text-gray-100">$0.016</div>
             </div>
@@ -54,15 +54,15 @@
         <div class="space-y-2">
           <div class="text-sm font-medium text-gray-300">Medium Quality</div>
           <div class="grid grid-cols-3 gap-3">
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1024x1024</div>
               <div class="text-lg font-semibold text-gray-100">$0.042</div>
             </div>
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1024x1536</div>
               <div class="text-lg font-semibold text-gray-100">$0.063</div>
             </div>
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1536x1024</div>
               <div class="text-lg font-semibold text-gray-100">$0.063</div>
             </div>
@@ -73,15 +73,15 @@
         <div class="space-y-2">
           <div class="text-sm font-medium text-gray-300">High Quality</div>
           <div class="grid grid-cols-3 gap-3">
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1024x1024</div>
               <div class="text-lg font-semibold text-gray-100">$0.167</div>
             </div>
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1024x1536</div>
               <div class="text-lg font-semibold text-gray-100">$0.25</div>
             </div>
-            <div class="bg-dark-200/60 rounded p-3 text-center">
+            <div class="bg-dark-200/60 rounded-sm p-3 text-center">
               <div class="text-xs text-gray-400">1536x1024</div>
               <div class="text-lg font-semibold text-gray-100">$0.25</div>
             </div>

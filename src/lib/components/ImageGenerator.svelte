@@ -313,14 +313,14 @@
     <div class="flex bg-gray-800 rounded-lg p-1">
       <button
         type="button"
-        class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {mode === 'generate' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}"
+        class="cursor-pointer flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {mode === 'generate' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}"
         on:click={() => mode = 'generate'}
       >
         Generate
       </button>
       <button
         type="button"
-        class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {mode === 'edit' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}"
+        class="cursor-pointer flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {mode === 'edit' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}"
         on:click={() => mode = 'edit'}
       >
         Edit
@@ -475,7 +475,7 @@
     <div class="border-t border-gray-700 pt-4">
       <button
         type="button"
-        class="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+        class="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors cursor-pointer"
         on:click={() => showAdvanced = !showAdvanced}
       >
         {#if showAdvanced}
@@ -615,7 +615,7 @@
 
     <button
       type="submit"
-      class="btn group bg-gradient-to-r ring-transparent ring-2 duration-300 hover:ring-white from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2"
+      class="btn group bg-linear-to-r ring-transparent ring-2 duration-300 hover:ring-white from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2"
       disabled={isGenerating || !$apiKey || (mode === 'edit' && inputImages.length === 0)}
     >
       {#if isGenerating}

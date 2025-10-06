@@ -7,7 +7,7 @@
     <div class="flex items-center space-x-3">
       <img src={logo} alt="logo" class="size-10"/>
       <div>
-        <h1 class="text-xl font-bold bg-gradient-to-r from-accent-400 to-secondary-400 bg-clip-text text-transparent">
+        <h1 class="text-xl font-bold bg-linear-to-r from-accent-400 to-secondary-400 bg-clip-text text-transparent">
           GPT Image Generator
         </h1>
         <p class="text-xs text-gray-400">Powered by OpenAI</p>

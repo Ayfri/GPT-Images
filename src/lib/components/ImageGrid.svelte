@@ -191,7 +191,7 @@
         </select>
       </div>
       <button
-        class="rounded-md border border-gray-700 bg-gray-800 p-1.5 text-white hover:bg-gray-700"
+        class="cursor-pointer rounded-md border border-gray-700 bg-gray-800 p-1.5 text-white hover:bg-gray-700"
         on:click={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
       >
         {#if sortDirection === 'asc'}

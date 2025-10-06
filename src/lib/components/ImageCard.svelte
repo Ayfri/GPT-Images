@@ -5,7 +5,7 @@
   import { deleteImage } from '$lib/db/imageStore';
   import { images } from '$lib/stores/imageStore';
   import { createEventDispatcher } from 'svelte';
-  import { PRICING } from '$lib/types/image';
+  import { PRICING, type ImageModel } from '$lib/types/image';
 
   export let id: string;
   export let prompt: string;
@@ -25,7 +25,7 @@
 
   $: {
     const rec = $images.find(img => img.id === id);
-    price = rec && rec.quality && rec.size && PRICING[rec.quality]?.[rec.size] ? PRICING[rec.quality][rec.size] : 0.01;
+    price = rec && rec.quality && rec.size && PRICING[rec.model as ImageModel][rec.quality]?.[rec.size] ? PRICING[rec.model as ImageModel][rec.quality][rec.size] : 0.01;
   }
 
   function formatDate(timestamp: number): string {
@@ -78,7 +78,7 @@
     {#if showControls}
       <div
         transition:fade={{ duration: 150 }}
-        class="absolute inset-0 bg-gradient-to-t from-dark-300/90 via-dark-300/40 to-transparent flex flex-col justify-end p-3"
+        class="absolute inset-0 bg-linear-to-t from-dark-300/90 via-dark-300/40 to-transparent flex flex-col justify-end p-3"
       >
         <div class="flex justify-between items-center mb-2">
           <button
