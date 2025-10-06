@@ -313,15 +313,17 @@
     <div class="flex bg-gray-800 rounded-lg p-1">
       <button
         type="button"
-        class="cursor-pointer flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {mode === 'generate' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}"
-        on:click={() => mode = 'generate'}
+        class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {isGenerating ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-500' : (mode === 'generate' ? 'cursor-pointer bg-purple-600 text-white hover:bg-purple-700' : 'cursor-pointer text-gray-400 hover:text-white hover:bg-gray-700')}"
+        on:click={() => !isGenerating && (mode = 'generate')}
+        disabled={isGenerating}
       >
         Generate
       </button>
       <button
         type="button"
-        class="cursor-pointer flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {mode === 'edit' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}"
-        on:click={() => mode = 'edit'}
+        class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {isGenerating ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-500' : (mode === 'edit' ? 'cursor-pointer bg-purple-600 text-white hover:bg-purple-700' : 'cursor-pointer text-gray-400 hover:text-white hover:bg-gray-700')}"
+        on:click={() => !isGenerating && (mode = 'edit')}
+        disabled={isGenerating}
       >
         Edit
       </button>
@@ -356,8 +358,9 @@
           {#if inputImages.length > 0}
             <button
               type="button"
-              class="px-3 py-2 text-sm text-red-400 hover:text-red-300 transition-colors"
-              on:click={clearAllImages}
+              class="px-3 py-2 text-sm transition-colors {isGenerating ? 'text-gray-500 cursor-not-allowed opacity-50' : 'text-red-400 hover:text-red-300 cursor-pointer'}"
+              on:click={() => !isGenerating && clearAllImages()}
+              disabled={isGenerating}
             >
               Clear All
             </button>
@@ -371,8 +374,9 @@
                 <img src={preview} alt="Preview {index + 1}" class="w-full h-16 object-cover rounded-lg" />
                 <button
                   type="button"
-                  class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 rounded-full p-1"
-                  on:click={() => removeImage(index)}
+                  class="absolute -top-2 -right-2 rounded-full p-1 {isGenerating ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
+                  on:click={() => !isGenerating && removeImage(index)}
+                  disabled={isGenerating}
                 >
                   <X class="h-3 w-3" />
                 </button>
@@ -475,8 +479,9 @@
     <div class="border-t border-gray-700 pt-4">
       <button
         type="button"
-        class="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors cursor-pointer"
-        on:click={() => showAdvanced = !showAdvanced}
+        class="flex items-center gap-2 text-sm font-medium transition-colors {isGenerating ? 'text-gray-500 cursor-not-allowed opacity-50' : 'text-gray-300 hover:text-white cursor-pointer'}"
+        on:click={() => !isGenerating && (showAdvanced = !showAdvanced)}
+        disabled={isGenerating}
       >
         {#if showAdvanced}
           <ChevronDown class="h-4 w-4" />
@@ -597,8 +602,9 @@
                   <img src={maskPreview} alt="Mask Preview" class="w-16 h-16 object-cover rounded-lg" />
                   <button
                     type="button"
-                    class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 rounded-full p-1"
-                    on:click={removeMask}
+                    class="absolute -top-2 -right-2 rounded-full p-1 {isGenerating ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
+                    on:click={() => !isGenerating && removeMask()}
+                    disabled={isGenerating}
                   >
                     <X class="h-3 w-3" />
                   </button>
@@ -615,7 +621,7 @@
 
     <button
       type="submit"
-      class="btn group bg-linear-to-r ring-transparent ring-2 duration-300 hover:ring-white from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2"
+      class="btn group bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2 {isGenerating || !$apiKey || (mode === 'edit' && inputImages.length === 0) ? 'opacity-50 cursor-not-allowed' : 'hover:ring-white cursor-pointer'}"
       disabled={isGenerating || !$apiKey || (mode === 'edit' && inputImages.length === 0)}
     >
       {#if isGenerating}
