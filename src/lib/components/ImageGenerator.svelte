@@ -55,7 +55,7 @@
 	let { prompt = $bindable(''), imageToEdit = $bindable(null) }: Props = $props();
 	let isGenerating = $state(false);
 	let error: string | null = $state(null);
-	let selectedModel: ImageModel = $state('gpt-image-1');
+	let selectedModel: ImageModel = $state('gpt-image-1.5');
 	let selectedQuality: ImageQuality = $state('low');
 	let selectedSize: ImageSize = $state('1024x1024');
 	let imageCount = $state(1);

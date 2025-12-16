@@ -1,5 +1,5 @@
 // Common types for image generation and editing
-export type ImageModel = 'gpt-image-1' | 'gpt-image-1-mini';
+export type ImageModel = 'gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5';
 export type ImageQuality = 'low' | 'medium' | 'high';
 export type ImageSize = '1024x1024' | '1024x1536' | '1536x1024';
 export type InputFidelity = 'low' | 'high';
@@ -9,7 +9,8 @@ export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 
 export const MODEL_OPTIONS = {
 	'gpt-image-1': { label: 'GPT Image 1', description: 'High quality images' },
-	'gpt-image-1-mini': { label: 'GPT Image 1 Mini', description: 'Fast and cost-effective' }
+	'gpt-image-1-mini': { label: 'GPT Image 1 Mini', description: 'Fast and cost-effective' },
+	'gpt-image-1.5': { label: 'GPT Image 1.5', description: 'Latest model with improved quality' }
 } as const;
 
 export const QUALITY_OPTIONS = {
@@ -51,7 +52,8 @@ const TOKEN_COUNTS: Record<ImageQuality, Record<ImageSize, number>> = {
 // Cost per 1M output tokens
 const COST_PER_MILLION_TOKENS = {
 	'gpt-image-1': 40.00,
-	'gpt-image-1-mini': 8.00
+	'gpt-image-1-mini': 8.00,
+	'gpt-image-1.5': 32.00
 };
 
 // Calculate pricing based on token counts and cost per million tokens
@@ -65,6 +67,11 @@ export const PRICING: Record<ImageModel, Record<ImageQuality, Record<ImageSize, 
 		low: { '1024x1024': 0.002176, '1024x1536': 0.003264, '1536x1024': 0.0032 },
 		medium: { '1024x1024': 0.008448, '1024x1536': 0.012672, '1536x1024': 0.012544 },
 		high: { '1024x1024': 0.03328, '1024x1536': 0.04992, '1536x1024': 0.049664 }
+	},
+	'gpt-image-1.5': {
+		low: { '1024x1024': 0.008704, '1024x1536': 0.013056, '1536x1024': 0.013056 },
+		medium: { '1024x1024': 0.033792, '1024x1536': 0.050688, '1536x1024': 0.050176 },
+		high: { '1024x1024': 0.13248, '1024x1536': 0.19968, '1536x1024': 0.198528 }
 	}
 };
 
