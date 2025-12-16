@@ -270,19 +270,19 @@
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" onclick={closeLargeImage} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeImage()}>
+		<div class="relative h-full w-full">
 			{#key currentImage.id}
 				<div
-					class="absolute inset-0 flex items-center justify-center"
+					class="flex items-center justify-center"
 					in:fly={{ x: 30, duration: 300, easing: quintOut }}
-					onclick={(e) => e.stopPropagation()}
 					onkeydown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
 					role="button"
 					tabindex="0"
 				>
 					<img
 						alt={currentImage.prompt}
-						class="max-h-[90vh] max-w-[80vw] object-contain"
+						class="max-h-[90vh] max-w-[80vw] object-contain isolate"
+						onclick={(e) => e.stopPropagation()}
 						src={currentImage.imageData}
 					/>
 				</div>
