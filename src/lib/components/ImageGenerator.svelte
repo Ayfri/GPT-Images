@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run, preventDefault } from 'svelte/legacy';
-
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { Send, Loader2, Upload, X, ChevronDown, ChevronRight } from 'lucide-svelte';
@@ -84,12 +82,12 @@
 	});
 
 	// Save options whenever they change
-	run(() => {
-		saveFormOptions(), [selectedModel, selectedQuality, selectedSize, imageCount, inputFidelity, outputCompression, outputFormat, selectedBackground]
+	$effect(() => {
+		saveFormOptions();
 	});
 
 	// Reactively set prompt and image for editing
-	run(() => {
+	$effect(() => {
 		if (imageToEdit) {
 			prompt = imageToEdit.prompt;
 			mode = 'edit';
@@ -340,7 +338,7 @@
 		</div>
 	</div>
 
-	<form onsubmit={preventDefault(handleGenerate)} class="space-y-4">
+	<form onsubmit={(e) => { e.preventDefault(); handleGenerate(); }} class="space-y-4">
 		<!-- Image Upload Section (only for edit mode) -->
 		{#if mode === 'edit'}
 			<div>

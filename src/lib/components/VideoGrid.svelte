@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { run, stopPropagation, self, createBubbler } from 'svelte/legacy';
-
-	const bubble = createBubbler();
 	import { onMount, onDestroy } from 'svelte';
 	import { tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
@@ -28,8 +25,6 @@
 	let loading = $state(true);
 	let loadingMore = $state(false);
 	let largeViewIndex: number | null = $state(null);
-	let currentVideo: VideoRecord | null = $state(null);
-	let currentVideoPrice = $state(0);
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: 'duration' | 'price' | 'prompt' | 'resolution' | 'timestamp' = $state('timestamp');
 
@@ -77,19 +72,9 @@
 		return 0;
 	}));
 
-	run(() => {
-		if (largeViewIndex !== null) {
-			currentVideo = sortedVideos[largeViewIndex];
-		} else {
-			currentVideo = null;
-		}
-	});
+	let currentVideo = $derived(largeViewIndex !== null ? sortedVideos[largeViewIndex] : null);
 
-	run(() => {
-		if (currentVideo) {
-			currentVideoPrice = getVideoPrice(currentVideo);
-		}
-	});
+	let currentVideoPrice = $derived(currentVideo ? getVideoPrice(currentVideo) : 0);
 
 	onMount(async () => {
 		await initVideoStore();
@@ -144,7 +129,7 @@
 	}
 
 	// Setup observer after loading more videos
-	run(() => {
+	$effect(() => {
 		if (!loadingMore && sortedVideos.length > 0) {
 			setupObserver();
 		}
@@ -279,13 +264,13 @@
 	>
 		<button
 			class="btn-ghost absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			onclick={stopPropagation(showPrev)}
+			onclick={(e) => { e.stopPropagation(); showPrev(); }}
 			aria-label="Previous video"
 		>
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" onclick={self(closeLargeVideo)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeVideo()}>
+		<div class="relative h-full w-full" onclick={closeLargeVideo} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeVideo()}>
 			{#key currentVideo.id}
 				<div
 					class="absolute inset-0 flex items-center justify-center"
@@ -297,7 +282,7 @@
 						controls
 						autoplay
 						loop
-						onclick={stopPropagation(bubble('click'))}
+						onclick={(e) => e.stopPropagation()}
 					>
 						<track kind="captions" />
 					</video>
@@ -316,7 +301,7 @@
 
 		<button
 			class="btn-ghost absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			onclick={stopPropagation(showNext)}
+			onclick={(e) => { e.stopPropagation(); showNext(); }}
 			aria-label="Next video"
 		>
 			<ChevronRight class="h-8 w-8 text-white" />

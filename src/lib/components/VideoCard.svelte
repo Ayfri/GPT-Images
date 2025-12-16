@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run, stopPropagation } from 'svelte/legacy';
-
 	import { Copy, Download, RefreshCw, Sparkles, Trash2 } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { deleteVideo } from '$lib/db/videoStore';
@@ -39,7 +37,7 @@
 	let showControls = $state(false);
 	let price: number | undefined = $state();
 
-	run(() => {
+	$effect(() => {
 		const rec = $videos.find(vid => vid.id === id);
 		if (rec) {
 			price = calculateVideoPrice(rec.model, rec.resolution, rec.duration);
@@ -125,7 +123,7 @@
 			>
 				<div class="flex justify-between items-center mb-2">
 					<button
-						onclick={stopPropagation(handleDelete)}
+						onclick={(e) => { e.stopPropagation(); handleDelete(); }}
 						class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
 						aria-label="Delete video"
 						title="Delete video"
@@ -135,7 +133,7 @@
 
 					<div class="flex space-x-1">
 						<button
-							onclick={stopPropagation(copyPrompt)}
+							onclick={(e) => { e.stopPropagation(); copyPrompt(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-primary-700/30"
 							aria-label="Copy prompt"
 							title="Copy prompt"
@@ -144,7 +142,7 @@
 						</button>
 
 						<button
-							onclick={stopPropagation(handleDownload)}
+							onclick={(e) => { e.stopPropagation(); handleDownload(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-secondary-700/30"
 							aria-label="Download video"
 							title="Download video"
@@ -153,7 +151,7 @@
 						</button>
 
 						<button
-							onclick={stopPropagation(handleRemix)}
+							onclick={(e) => { e.stopPropagation(); handleRemix(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-purple-700/30"
 							aria-label="Remix this video"
 							title="Remix this video"
@@ -162,7 +160,7 @@
 						</button>
 
 						<button
-							onclick={stopPropagation(handleRegenerate)}
+							onclick={(e) => { e.stopPropagation(); handleRegenerate(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-accent-700/30"
 							aria-label="Regenerate with this prompt"
 							title="Regenerate with this prompt"

@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run, stopPropagation } from 'svelte/legacy';
-
 	import { Download, Copy, Pencil, Trash2, RefreshCw } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { downloadImage } from '$lib/utils/downloadImage';
@@ -34,7 +32,7 @@
 	let showControls = $state(false);
 	let price: number | undefined = $state();
 
-	run(() => {
+	$effect(() => {
 		const rec = $images.find(img => img.id === id);
 		price = rec && rec.quality && rec.size && PRICING[rec.model as ImageModel][rec.quality]?.[rec.size] ? PRICING[rec.model as ImageModel][rec.quality][rec.size] : 0.01;
 	});
@@ -100,7 +98,7 @@
 			>
 				<div class="flex justify-between items-center mb-2">
 					<button
-						onclick={stopPropagation(handleDelete)}
+						onclick={(e) => { e.stopPropagation(); handleDelete(); }}
 						class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
 						aria-label="Delete image"
 						title="Delete image"
@@ -110,7 +108,7 @@
 
 					<div class="flex space-x-1">
 						<button
-							onclick={stopPropagation(copyPrompt)}
+							onclick={(e) => { e.stopPropagation(); copyPrompt(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-primary-700/30"
 							aria-label="Copy prompt"
 							title="Copy prompt"
@@ -119,7 +117,7 @@
 						</button>
 
 						<button
-							onclick={stopPropagation(handleDownload)}
+							onclick={(e) => { e.stopPropagation(); handleDownload(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-secondary-700/30"
 							aria-label="Download image"
 							title="Download image"
@@ -128,7 +126,7 @@
 						</button>
 
 						<button
-							onclick={stopPropagation(handleRegenerate)}
+							onclick={(e) => { e.stopPropagation(); handleRegenerate(); }}
 							class="btn-ghost p-2 rounded-full hover:bg-accent-700/30"
 							aria-label="Regenerate with this prompt"
 							title="Regenerate with this prompt"
@@ -136,7 +134,7 @@
 							<RefreshCw class="w-4 h-4 text-accent-400" />
 						</button>
 						<button
-							onclick={stopPropagation(() => onEdit?.(id))}
+							onclick={(e) => { e.stopPropagation(); onEdit?.(id); }}
 							class="btn-ghost p-2 rounded-full hover:bg-blue-700/30"
 							aria-label="Edit image"
 							title="Edit image"

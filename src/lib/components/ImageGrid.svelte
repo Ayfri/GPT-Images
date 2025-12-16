@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { run, stopPropagation, self, createBubbler } from 'svelte/legacy';
-
-	const bubble = createBubbler();
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import {
@@ -28,8 +25,6 @@
 	let loading = $state(true);
 	let loadingMore = $state(false); // New state for loading more images
 	let largeViewIndex: number | null = $state(null);
-	let currentImage: ImageRecord | null = $state(null);
-	let currentImagePrice = $state(0);
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = $state('timestamp');
 
@@ -82,23 +77,14 @@
 		return 0;
 	}));
 
-	run(() => {
-		if (largeViewIndex !== null) {
-			currentImage = sortedImages[largeViewIndex];
-		} else {
-			currentImage = null;
-		}
-	});
+	let currentImage = $derived(largeViewIndex !== null ? sortedImages[largeViewIndex] : null);
 
-	run(() => {
-		if (currentImage) {
-			const model = (currentImage.model || 'gpt-image-1') as ImageModel;
-			currentImagePrice =
-				currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
-					? PRICING[model][currentImage.quality][currentImage.size]
-					: 0.01;
-		}
-	});
+	let currentImagePrice = $derived(currentImage ? (() => {
+		const model = (currentImage.model || 'gpt-image-1') as ImageModel;
+		return currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
+			? PRICING[model][currentImage.quality][currentImage.size]
+			: 0.01;
+	})() : 0);
 
 
 	onMount(async () => {
@@ -136,7 +122,7 @@
 	});
 
 	// Reactively observe the last element when sortedImages changes
-	run(() => {
+	$effect(() => {
 		if (sortedImages.length > 0 && imageGridRef && observer) {
 			// Disconnect old observer if it exists
 			observer.disconnect();
@@ -278,13 +264,13 @@
 	>
 		<button
 			class="btn-ghost absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			onclick={stopPropagation(showPrev)}
+			onclick={(e) => { e.stopPropagation(); showPrev(); }}
 			aria-label="Previous image"
 		>
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" onclick={self(closeLargeImage)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeImage()}>
+		<div class="relative h-full w-full" onclick={closeLargeImage} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeImage()}>
 			{#key currentImage.id}
 				<div
 					class="absolute inset-0 flex items-center justify-center"
@@ -326,7 +312,7 @@
 
 		<button
 			class="btn-ghost absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			onclick={stopPropagation(showNext)}
+			onclick={(e) => { e.stopPropagation(); showNext(); }}
 			aria-label="Next image"
 		>
 			<ChevronRight class="h-8 w-8 text-white" />

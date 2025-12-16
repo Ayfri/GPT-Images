@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run, preventDefault } from 'svelte/legacy';
-
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { ImagePlus, Loader2, Send, Sparkles, X } from 'lucide-svelte';
@@ -330,7 +328,7 @@
 	// Available resolutions for selected model
 	let availableResolutions = $derived(RESOLUTION_OPTIONS_BY_MODEL[selectedModel]);
 	// Auto-select first available resolution when model changes
-	run(() => {
+	$effect(() => {
 		if (selectedModel && availableResolutions && !(selectedResolution in availableResolutions)) {
 			selectedResolution = Object.keys(availableResolutions)[0] as VideoResolution;
 		}
@@ -344,11 +342,11 @@
 		return 0;
 	})());
 	// Save options whenever they change
-	run(() => {
-		saveFormOptions(), [selectedModel, selectedResolution, selectedDuration];
+	$effect(() => {
+		saveFormOptions();
 	});
 	// Re-process image if resolution changes
-	run(() => {
+	$effect(() => {
 		if (sourceImageFile && selectedResolution !== lastProcessedResolution && !isProcessingImage) {
 			processImage(sourceImageFile);
 		}
@@ -383,7 +381,7 @@
 		</div>
 	{/if}
 
-	<form onsubmit={preventDefault(handleGenerate)} class="space-y-4">
+	<form onsubmit={(e) => { e.preventDefault(); handleGenerate(); }} class="space-y-4">
 		<div>
 			<label for="prompt" class="block text-sm font-medium text-gray-300 mb-2">
 				Prompt
