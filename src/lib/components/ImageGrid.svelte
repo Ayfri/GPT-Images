@@ -33,8 +33,8 @@
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = $state('timestamp');
 
-	let observer: IntersectionObserver = $state();
-	let imageGridRef: HTMLElement = $state();
+	let observer: IntersectionObserver | undefined = $state();
+	let imageGridRef: HTMLElement | undefined = $state();
 
 	const qualityOrder = { high: 3, low: 1, medium: 2 };
 
@@ -137,11 +137,9 @@
 
 	// Reactively observe the last element when sortedImages changes
 	run(() => {
-		if (sortedImages.length > 0 && imageGridRef) {
+		if (sortedImages.length > 0 && imageGridRef && observer) {
 			// Disconnect old observer if it exists
-			if (observer) {
-				observer.disconnect();
-			}
+			observer.disconnect();
 			// Re-observe the new last element
 			const lastCard = imageGridRef.lastElementChild;
 			if (lastCard) {
@@ -269,9 +267,14 @@
 
 {#if currentImage}
 	<div
+		aria-label="Image viewer"
+		aria-modal="true"
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-		transition:fade={{ duration: 150 }}
 		onclick={closeLargeImage}
+		onkeydown={(e) => e.key === 'Escape' && closeLargeImage()}
+		role="dialog"
+		tabindex="-1"
+		transition:fade={{ duration: 150 }}
 	>
 		<button
 			class="btn-ghost absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
@@ -281,17 +284,20 @@
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" onclick={self(closeLargeImage)}>
+		<div class="relative h-full w-full" onclick={self(closeLargeImage)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeImage()}>
 			{#key currentImage.id}
 				<div
 					class="absolute inset-0 flex items-center justify-center"
 					in:fly={{ x: 30, duration: 300, easing: quintOut }}
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+					role="button"
+					tabindex="0"
 				>
 					<img
 						alt={currentImage.prompt}
 						class="max-h-[90vh] max-w-[80vw] object-contain"
 						src={currentImage.imageData}
-						onclick={stopPropagation(bubble('click'))}
 					/>
 				</div>
 			{/key}

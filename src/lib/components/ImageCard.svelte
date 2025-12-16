@@ -32,7 +32,7 @@
 
 	let copied = $state(false);
 	let showControls = $state(false);
-	let price: number = $state();
+	let price: number | undefined = $state();
 
 	run(() => {
 		const rec = $images.find(img => img.id === id);
@@ -79,17 +79,24 @@
 	role="article"
 	aria-label="Generated image card"
 >
-	<div class="relative aspect-square cursor-pointer overflow-hidden" onclick={handleView}>
+	<div
+		aria-label="View image"
+		class="relative aspect-square cursor-pointer overflow-hidden"
+		onclick={handleView}
+		onkeydown={(e) => e.key === 'Enter' && handleView()}
+		role="button"
+		tabindex="0"
+	>
 		<img
-			src={imageData}
 			alt={prompt}
 			class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+			src={imageData}
 		/>
 
 		{#if showControls}
 			<div
-				transition:fade={{ duration: 150 }}
 				class="absolute inset-0 bg-linear-to-t from-dark-300/90 via-dark-300/40 to-transparent flex flex-col justify-end p-3"
+				transition:fade={{ duration: 150 }}
 			>
 				<div class="flex justify-between items-center mb-2">
 					<button
@@ -143,9 +150,9 @@
 
 		{#if copied}
 			<div
+				class="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-primary-800 text-white text-xs py-1 px-3 rounded-full"
 				in:fly={{ y: 20, duration: 200 }}
 				out:fade={{ duration: 150 }}
-				class="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-primary-800 text-white text-xs py-1 px-3 rounded-full"
 			>
 				Copied!
 			</div>
@@ -158,7 +165,7 @@
 		</p>
 		<p class="text-xs text-gray-500 flex justify-between items-center">
 			<span>{formatDate(timestamp)}</span>
-			<span class="text-gray-400">${price.toFixed(3)}</span>
+			<span class="text-gray-400">${(price ?? 0).toFixed(3)}</span>
 		</p>
 	</div>
 </div>

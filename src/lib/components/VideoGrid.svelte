@@ -33,8 +33,8 @@
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: 'duration' | 'price' | 'prompt' | 'resolution' | 'timestamp' = $state('timestamp');
 
-	let observer: IntersectionObserver;
-	let videoGridRef: HTMLElement = $state();
+	let observer: IntersectionObserver | undefined = $state();
+	let videoGridRef: HTMLElement | undefined = $state();
 
 	function getVideoPrice(video: VideoRecord): number {
 		return calculateVideoPrice(video.model, video.resolution, video.duration);
@@ -268,9 +268,14 @@
 
 {#if currentVideo}
 	<div
+		aria-label="Video viewer"
+		aria-modal="true"
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-		transition:fade={{ duration: 150 }}
 		onclick={closeLargeVideo}
+		onkeydown={(e) => e.key === 'Escape' && closeLargeVideo()}
+		role="dialog"
+		tabindex="-1"
+		transition:fade={{ duration: 150 }}
 	>
 		<button
 			class="btn-ghost absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
@@ -280,7 +285,7 @@
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" onclick={self(closeLargeVideo)}>
+		<div class="relative h-full w-full" onclick={self(closeLargeVideo)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Escape' && closeLargeVideo()}>
 			{#key currentVideo.id}
 				<div
 					class="absolute inset-0 flex items-center justify-center"

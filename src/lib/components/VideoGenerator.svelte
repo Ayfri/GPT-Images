@@ -48,14 +48,14 @@
 	let error: string | null = $state(null);
 	let generationProgress = $state(0);
 	let generationStatus = $state('');
-	let imageDropZone: HTMLDivElement = $state();
+	let imageDropZone: HTMLDivElement | undefined = $state();
 	let inputImage: File | null = null;
 	let inputImagePreview: string | null = $state(null);
 	let isDragging = $state(false);
 	let isGenerating = $state(false);
 	let isProcessingImage = $state(false);
 	let lastProcessedResolution: string | null = $state(null);
-	let pollingInterval: NodeJS.Timeout | null = null;
+	let pollingInterval: ReturnType<typeof setTimeout> | null = null;
 	let selectedDuration: VideoDuration = $state(4);
 	let selectedModel: VideoModel = $state('sora-2');
 	let selectedResolution: VideoResolution = $state('720x1280');
@@ -423,13 +423,15 @@
 				{:else}
 					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 					<div
+						aria-label="Image drop zone"
 						bind:this={imageDropZone}
-						ondrop={handleDrop}
-						ondragover={handleDragOver}
-						ondragleave={handleDragLeave}
-						onpaste={handlePaste}
 						class="border-2 border-dashed rounded-lg p-3 transition-colors {isDragging ? 'border-primary-500 bg-primary-900/10' : 'border-gray-700'}"
 						class:opacity-50={isProcessingImage}
+						ondragleave={handleDragLeave}
+						ondragover={handleDragOver}
+						ondrop={handleDrop}
+						onpaste={handlePaste}
+						role="region"
 						tabindex="0"
 					>
 						<div class="flex items-center gap-3">
