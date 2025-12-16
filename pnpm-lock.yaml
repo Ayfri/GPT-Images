@@ -15,8 +15,8 @@ importers:
         specifier: ^0.561.0
         version: 0.561.0(svelte@5.46.0)
       openai:
-        specifier: ^6.2.0
-        version: 6.2.0(ws@8.18.0)
+        specifier: ^6.14.0
+        version: 6.14.0(ws@8.18.0)
     devDependencies:
       '@fontsource/inter':
         specifier: ^5.2.8
@@ -1073,8 +1073,8 @@ packages:
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
-  openai@6.2.0:
-    resolution: {integrity: sha512-qqjzHls7F5xkXNGy9P1Ei1rorI5LWupUUFWP66zPU8FlZbiITX8SFcHMKNZg/NATJ0LpIZcMUFxSwQmdeQPwSw==}
+  openai@6.14.0:
+    resolution: {integrity: sha512-ZPD9MG5/sPpyGZ0idRoDK0P5MWEMuXe0Max/S55vuvoxqyEVkN94m9jSpE3YgNgz3WoESFvozs57dxWqAco31w==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0
@@ -2061,7 +2061,7 @@ snapshots:
 
   ohash@2.0.11: {}
 
-  openai@6.2.0(ws@8.18.0):
+  openai@6.14.0(ws@8.18.0):
     optionalDependencies:
       ws: 8.18.0
 
