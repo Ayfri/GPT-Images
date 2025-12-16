@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { run, stopPropagation, self, createBubbler } from 'svelte/legacy';
+
+	const bubble = createBubbler();
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import {
@@ -15,19 +18,23 @@
 	import { quintOut } from 'svelte/easing';
 	import { flip } from 'svelte/animate';
 
-	export let onRegenerate: (prompt: string) => void;
-	export let onEditImage: (image: ImageRecord) => void; // New prop for editing
+	interface Props {
+		onRegenerate: (prompt: string) => void;
+		onEditImage: (image: ImageRecord) => void;
+	}
 
-	let loading = true;
-	let loadingMore = false; // New state for loading more images
-	let largeViewIndex: number | null = null;
-	let currentImage: ImageRecord | null = null;
-	let currentImagePrice = 0;
-	let sortDirection: 'asc' | 'desc' = 'desc';
-	let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = 'timestamp';
+	let { onRegenerate, onEditImage }: Props = $props();
 
-	let observer: IntersectionObserver;
-	let imageGridRef: HTMLElement;
+	let loading = $state(true);
+	let loadingMore = $state(false); // New state for loading more images
+	let largeViewIndex: number | null = $state(null);
+	let currentImage: ImageRecord | null = $state(null);
+	let currentImagePrice = $state(0);
+	let sortDirection: 'asc' | 'desc' = $state('desc');
+	let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = $state('timestamp');
+
+	let observer: IntersectionObserver = $state();
+	let imageGridRef: HTMLElement = $state();
 
 	const qualityOrder = { high: 3, low: 1, medium: 2 };
 
@@ -62,7 +69,7 @@
 		}
 	}
 
-	$: sortedImages = [...$images].sort((a, b) => {
+	let sortedImages = $derived([...$images].sort((a, b) => {
 		const aValue = getSortValue(a, sortField);
 		const bValue = getSortValue(b, sortField);
 
@@ -73,21 +80,25 @@
 			return sortDirection === 'asc' ? 1 : -1;
 		}
 		return 0;
+	}));
+
+	run(() => {
+		if (largeViewIndex !== null) {
+			currentImage = sortedImages[largeViewIndex];
+		} else {
+			currentImage = null;
+		}
 	});
 
-	$: if (largeViewIndex !== null) {
-		currentImage = sortedImages[largeViewIndex];
-	} else {
-		currentImage = null;
-	}
-
-	$: if (currentImage) {
-		const model = (currentImage.model || 'gpt-image-1') as ImageModel;
-		currentImagePrice =
-			currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
-				? PRICING[model][currentImage.quality][currentImage.size]
-				: 0.01;
-	}
+	run(() => {
+		if (currentImage) {
+			const model = (currentImage.model || 'gpt-image-1') as ImageModel;
+			currentImagePrice =
+				currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
+					? PRICING[model][currentImage.quality][currentImage.size]
+					: 0.01;
+		}
+	});
 
 
 	onMount(async () => {
@@ -125,29 +136,29 @@
 	});
 
 	// Reactively observe the last element when sortedImages changes
-	$: if (sortedImages.length > 0 && imageGridRef) {
-		// Disconnect old observer if it exists
-		if (observer) {
-			observer.disconnect();
+	run(() => {
+		if (sortedImages.length > 0 && imageGridRef) {
+			// Disconnect old observer if it exists
+			if (observer) {
+				observer.disconnect();
+			}
+			// Re-observe the new last element
+			const lastCard = imageGridRef.lastElementChild;
+			if (lastCard) {
+				observer.observe(lastCard);
+			}
 		}
-		// Re-observe the new last element
-		const lastCard = imageGridRef.lastElementChild;
-		if (lastCard) {
-			observer.observe(lastCard);
-		}
+	});
+
+	function handleRegenerate(prompt: string) {
+		onRegenerate(prompt);
 	}
 
-	function handleRegenerate(event: CustomEvent<{ prompt: string }>) {
-		onRegenerate(event.detail.prompt);
-	}
-
-	function handleView(event: CustomEvent<{ id: string }>) {
-		const imageId = event.detail.id;
+	function handleView(imageId: string) {
 		largeViewIndex = sortedImages.findIndex(img => img.id === imageId);
 	}
 
-	function handleEdit(event: CustomEvent<{ id: string }>) {
-		const imageId = event.detail.id;
+	function handleEdit(imageId: string) {
 		const imageToEdit = sortedImages.find(img => img.id === imageId);
 		if (imageToEdit) {
 			onEditImage(imageToEdit);
@@ -178,7 +189,7 @@
 	}
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <div>
 	<div class="mb-6 flex items-center justify-between">
@@ -200,7 +211,7 @@
 			</div>
 			<button
 				class="cursor-pointer rounded-md border border-gray-700 bg-gray-800 p-1.5 text-white hover:bg-gray-700"
-				on:click={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+				onclick={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
 			>
 				{#if sortDirection === 'asc'}
 					<ArrowUp class="h-4 w-4" />
@@ -235,9 +246,9 @@
 						prompt={image.prompt}
 						imageData={image.imageData}
 						timestamp={image.timestamp}
-						on:regenerate={handleRegenerate}
-						on:view={handleView}
-						on:edit={handleEdit}
+						onRegenerate={handleRegenerate}
+						onView={handleView}
+						onEdit={handleEdit}
 					/>
 				</div>
 			{/each}
@@ -260,17 +271,17 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
 		transition:fade={{ duration: 150 }}
-		on:click={closeLargeImage}
+		onclick={closeLargeImage}
 	>
 		<button
 			class="btn-ghost absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			on:click|stopPropagation={showPrev}
+			onclick={stopPropagation(showPrev)}
 			aria-label="Previous image"
 		>
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" on:click|self={closeLargeImage}>
+		<div class="relative h-full w-full" onclick={self(closeLargeImage)}>
 			{#key currentImage.id}
 				<div
 					class="absolute inset-0 flex items-center justify-center"
@@ -280,7 +291,7 @@
 						alt={currentImage.prompt}
 						class="max-h-[90vh] max-w-[80vw] object-contain"
 						src={currentImage.imageData}
-						on:click|stopPropagation
+						onclick={stopPropagation(bubble('click'))}
 					/>
 				</div>
 			{/key}
@@ -309,7 +320,7 @@
 
 		<button
 			class="btn-ghost absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			on:click|stopPropagation={showNext}
+			onclick={stopPropagation(showNext)}
 			aria-label="Next image"
 		>
 			<ChevronRight class="h-8 w-8 text-white" />

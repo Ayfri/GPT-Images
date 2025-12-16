@@ -1,32 +1,43 @@
 <script lang="ts">
+	import { run, stopPropagation } from 'svelte/legacy';
+
 	import { Download, Copy, Pencil, Trash2, RefreshCw } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { downloadImage } from '$lib/utils/downloadImage';
 	import { deleteImage } from '$lib/db/imageStore';
 	import { images } from '$lib/stores/imageStore';
-	import { createEventDispatcher } from 'svelte';
 	import { PRICING, type ImageModel } from '$lib/types/image';
 
-	export let id: string;
-	export let prompt: string;
-	export let imageData: string;
-	export let timestamp: number;
+	interface Props {
+		id: string;
+		prompt: string;
+		imageData: string;
+		timestamp: number;
+		onRegenerate?: (prompt: string) => void;
+		onDeleted?: (id: string) => void;
+		onView?: (id: string) => void;
+		onEdit?: (id: string) => void;
+	}
 
-	const dispatch = createEventDispatcher<{
-		regenerate: { prompt: string };
-		deleted: { id: string };
-		view: { id: string };
-		edit: { id: string }; // New edit event
-	}>();
+	let {
+		id,
+		prompt,
+		imageData,
+		timestamp,
+		onRegenerate,
+		onDeleted,
+		onView,
+		onEdit
+	}: Props = $props();
 
-	let copied = false;
-	let showControls = false;
-	let price: number;
+	let copied = $state(false);
+	let showControls = $state(false);
+	let price: number = $state();
 
-	$: {
+	run(() => {
 		const rec = $images.find(img => img.id === id);
 		price = rec && rec.quality && rec.size && PRICING[rec.model as ImageModel][rec.quality]?.[rec.size] ? PRICING[rec.model as ImageModel][rec.quality][rec.size] : 0.01;
-	}
+	});
 
 	function formatDate(timestamp: number): string {
 		return new Date(timestamp).toLocaleString();
@@ -42,7 +53,7 @@
 		if (confirm('Are you sure you want to delete this image?')) {
 			await deleteImage(id);
 			images.update(imgs => imgs.filter(img => img.id !== id));
-			dispatch('deleted', { id });
+			onDeleted?.(id);
 		}
 	}
 
@@ -51,24 +62,24 @@
 	}
 
 	function handleRegenerate() {
-		dispatch('regenerate', { prompt });
+		onRegenerate?.(prompt);
 	}
 
 	function handleView() {
-		dispatch('view', { id });
+		onView?.(id);
 	}
 </script>
 
 <div
 	class="card group relative overflow-hidden transition-all duration-300"
-	on:mouseenter={() => showControls = true}
-	on:mouseleave={() => showControls = false}
-	on:focusin={() => showControls = true}
-	on:focusout={() => showControls = false}
+	onmouseenter={() => showControls = true}
+	onmouseleave={() => showControls = false}
+	onfocusin={() => showControls = true}
+	onfocusout={() => showControls = false}
 	role="article"
 	aria-label="Generated image card"
 >
-	<div class="relative aspect-square cursor-pointer overflow-hidden" on:click={handleView}>
+	<div class="relative aspect-square cursor-pointer overflow-hidden" onclick={handleView}>
 		<img
 			src={imageData}
 			alt={prompt}
@@ -82,7 +93,7 @@
 			>
 				<div class="flex justify-between items-center mb-2">
 					<button
-						on:click|stopPropagation={handleDelete}
+						onclick={stopPropagation(handleDelete)}
 						class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
 						aria-label="Delete image"
 						title="Delete image"
@@ -92,7 +103,7 @@
 
 					<div class="flex space-x-1">
 						<button
-							on:click|stopPropagation={copyPrompt}
+							onclick={stopPropagation(copyPrompt)}
 							class="btn-ghost p-2 rounded-full hover:bg-primary-700/30"
 							aria-label="Copy prompt"
 							title="Copy prompt"
@@ -101,7 +112,7 @@
 						</button>
 
 						<button
-							on:click|stopPropagation={handleDownload}
+							onclick={stopPropagation(handleDownload)}
 							class="btn-ghost p-2 rounded-full hover:bg-secondary-700/30"
 							aria-label="Download image"
 							title="Download image"
@@ -110,7 +121,7 @@
 						</button>
 
 						<button
-							on:click|stopPropagation={handleRegenerate}
+							onclick={stopPropagation(handleRegenerate)}
 							class="btn-ghost p-2 rounded-full hover:bg-accent-700/30"
 							aria-label="Regenerate with this prompt"
 							title="Regenerate with this prompt"
@@ -118,7 +129,7 @@
 							<RefreshCw class="w-4 h-4 text-accent-400" />
 						</button>
 						<button
-							on:click|stopPropagation={() => dispatch('edit', { id })}
+							onclick={stopPropagation(() => onEdit?.(id))}
 							class="btn-ghost p-2 rounded-full hover:bg-blue-700/30"
 							aria-label="Edit image"
 							title="Edit image"

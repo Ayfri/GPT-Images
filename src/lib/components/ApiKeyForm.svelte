@@ -3,8 +3,8 @@
 	import { Key, Eye, EyeOff } from 'lucide-svelte';
 	import { fly } from 'svelte/transition';
 
-	let showApiKey = false;
-	let keyInput = $apiKey;
+	let showApiKey = $state(false);
+	let keyInput = $state($apiKey);
 
 	function toggleVisibility() {
 		showApiKey = !showApiKey;
@@ -45,7 +45,7 @@
 			<button
 				type="button"
 				class="absolute inset-y-0 right-0 px-3 flex items-center cursor-pointer"
-				on:click={toggleVisibility}
+				onclick={toggleVisibility}
 				aria-label={showApiKey ? "Hide API key" : "Show API key"}
 			>
 				{#if showApiKey}
@@ -59,7 +59,7 @@
 		<button
 			type="button"
 			class="btn btn-primary w-full"
-			on:click={saveApiKey}
+			onclick={saveApiKey}
 			disabled={!keyInput || keyInput === $apiKey}
 		>
 			Save API Key

@@ -4,8 +4,8 @@
 	import VideoGenerator from '$lib/components/VideoGenerator.svelte';
 	import VideoGrid from '$lib/components/VideoGrid.svelte';
 
-	let currentPrompt = '';
-	let remixVideoId: string | null = null;
+	let currentPrompt = $state('');
+	let remixVideoId: string | null = $state(null);
 
 	function handleRegenerate(newPrompt: string) {
 		currentPrompt = newPrompt;

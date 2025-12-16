@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { run, stopPropagation, self, createBubbler } from 'svelte/legacy';
+
+	const bubble = createBubbler();
 	import { onMount, onDestroy } from 'svelte';
 	import { tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
@@ -15,19 +18,23 @@
 	import { flip } from 'svelte/animate';
 	import { calculateVideoPrice } from '$lib/utils/videoPrice';
 
-	export let onRegenerate: (prompt: string) => void;
-	export let onRemix: (id: string, prompt: string) => void;
+	interface Props {
+		onRegenerate: (prompt: string) => void;
+		onRemix: (id: string, prompt: string) => void;
+	}
 
-	let loading = true;
-	let loadingMore = false;
-	let largeViewIndex: number | null = null;
-	let currentVideo: VideoRecord | null = null;
-	let currentVideoPrice = 0;
-	let sortDirection: 'asc' | 'desc' = 'desc';
-	let sortField: 'duration' | 'price' | 'prompt' | 'resolution' | 'timestamp' = 'timestamp';
+	let { onRegenerate, onRemix }: Props = $props();
+
+	let loading = $state(true);
+	let loadingMore = $state(false);
+	let largeViewIndex: number | null = $state(null);
+	let currentVideo: VideoRecord | null = $state(null);
+	let currentVideoPrice = $state(0);
+	let sortDirection: 'asc' | 'desc' = $state('desc');
+	let sortField: 'duration' | 'price' | 'prompt' | 'resolution' | 'timestamp' = $state('timestamp');
 
 	let observer: IntersectionObserver;
-	let videoGridRef: HTMLElement;
+	let videoGridRef: HTMLElement = $state();
 
 	function getVideoPrice(video: VideoRecord): number {
 		return calculateVideoPrice(video.model, video.resolution, video.duration);
@@ -57,7 +64,7 @@
 		}
 	}
 
-	$: sortedVideos = [...$videos].sort((a, b) => {
+	let sortedVideos = $derived([...$videos].sort((a, b) => {
 		const aValue = getSortValue(a, sortField);
 		const bValue = getSortValue(b, sortField);
 
@@ -68,17 +75,21 @@
 			return sortDirection === 'asc' ? 1 : -1;
 		}
 		return 0;
+	}));
+
+	run(() => {
+		if (largeViewIndex !== null) {
+			currentVideo = sortedVideos[largeViewIndex];
+		} else {
+			currentVideo = null;
+		}
 	});
 
-	$: if (largeViewIndex !== null) {
-		currentVideo = sortedVideos[largeViewIndex];
-	} else {
-		currentVideo = null;
-	}
-
-	$: if (currentVideo) {
-		currentVideoPrice = getVideoPrice(currentVideo);
-	}
+	run(() => {
+		if (currentVideo) {
+			currentVideoPrice = getVideoPrice(currentVideo);
+		}
+	});
 
 	onMount(async () => {
 		await initVideoStore();
@@ -133,20 +144,21 @@
 	}
 
 	// Setup observer after loading more videos
-	$: if (!loadingMore && sortedVideos.length > 0) {
-		setupObserver();
+	run(() => {
+		if (!loadingMore && sortedVideos.length > 0) {
+			setupObserver();
+		}
+	});
+
+	function handleRegenerate(prompt: string) {
+		onRegenerate(prompt);
 	}
 
-	function handleRegenerate(event: CustomEvent<{ prompt: string }>) {
-		onRegenerate(event.detail.prompt);
+	function handleRemix(id: string, prompt: string) {
+		onRemix(id, prompt);
 	}
 
-	function handleRemix(event: CustomEvent<{ id: string; prompt: string }>) {
-		onRemix(event.detail.id, event.detail.prompt);
-	}
-
-	function handleView(event: CustomEvent<{ id: string }>) {
-		const videoId = event.detail.id;
+	function handleView(videoId: string) {
 		largeViewIndex = sortedVideos.findIndex(vid => vid.id === videoId);
 	}
 
@@ -173,7 +185,7 @@
 	}
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <div>
 	<div class="mb-6 flex items-center justify-between">
@@ -195,7 +207,7 @@
 			</div>
 			<button
 				class="cursor-pointer rounded-md border border-gray-700 bg-gray-800 p-1.5 text-white hover:bg-gray-700"
-				on:click={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+				onclick={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
 			>
 				{#if sortDirection === 'asc'}
 					<ArrowUp class="h-4 w-4" />
@@ -233,9 +245,9 @@
 						resolution={video.resolution}
 						timestamp={video.timestamp}
 						videoData={video.videoData}
-						on:regenerate={handleRegenerate}
-						on:remix={handleRemix}
-						on:view={handleView}
+						onRegenerate={handleRegenerate}
+						onRemix={handleRemix}
+						onView={handleView}
 					/>
 				</div>
 			{/each}
@@ -258,17 +270,17 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
 		transition:fade={{ duration: 150 }}
-		on:click={closeLargeVideo}
+		onclick={closeLargeVideo}
 	>
 		<button
 			class="btn-ghost absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			on:click|stopPropagation={showPrev}
+			onclick={stopPropagation(showPrev)}
 			aria-label="Previous video"
 		>
 			<ChevronLeft class="h-8 w-8 text-white" />
 		</button>
 
-		<div class="relative h-full w-full" on:click|self={closeLargeVideo}>
+		<div class="relative h-full w-full" onclick={self(closeLargeVideo)}>
 			{#key currentVideo.id}
 				<div
 					class="absolute inset-0 flex items-center justify-center"
@@ -280,7 +292,7 @@
 						controls
 						autoplay
 						loop
-						on:click|stopPropagation
+						onclick={stopPropagation(bubble('click'))}
 					>
 						<track kind="captions" />
 					</video>
@@ -299,7 +311,7 @@
 
 		<button
 			class="btn-ghost absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 hover:bg-white/20"
-			on:click|stopPropagation={showNext}
+			onclick={stopPropagation(showNext)}
 			aria-label="Next video"
 		>
 			<ChevronRight class="h-8 w-8 text-white" />

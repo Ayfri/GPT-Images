@@ -1,38 +1,52 @@
 <script lang="ts">
+	import { run, stopPropagation } from 'svelte/legacy';
+
 	import { Copy, Download, RefreshCw, Sparkles, Trash2 } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { deleteVideo } from '$lib/db/videoStore';
 	import { videos } from '$lib/stores/videoStore';
-	import { createEventDispatcher } from 'svelte';
 	import { calculateVideoPrice } from '$lib/utils/videoPrice';
 
-	export let duration: number | undefined;
-	export let id: string;
-	export let model: string | undefined;
-	export let prompt: string;
-	export let resolution: string | undefined;
-	export let timestamp: number;
-	export let videoData: string;
+	interface Props {
+		duration: number | undefined;
+		id: string;
+		model: string | undefined;
+		prompt: string;
+		resolution: string | undefined;
+		timestamp: number;
+		videoData: string;
+		onDeleted?: (id: string) => void;
+		onRegenerate?: (prompt: string) => void;
+		onRemix?: (id: string, prompt: string) => void;
+		onView?: (id: string) => void;
+	}
 
-	const dispatch = createEventDispatcher<{
-		deleted: { id: string };
-		regenerate: { prompt: string };
-		remix: { id: string; prompt: string };
-		view: { id: string };
-	}>();
+	let {
+		duration,
+		id,
+		model,
+		prompt,
+		resolution,
+		timestamp,
+		videoData,
+		onDeleted,
+		onRegenerate,
+		onRemix,
+		onView
+	}: Props = $props();
 
-	let copied = false;
-	let showControls = false;
-	let price: number;
+	let copied = $state(false);
+	let showControls = $state(false);
+	let price: number = $state();
 
-	$: {
+	run(() => {
 		const rec = $videos.find(vid => vid.id === id);
 		if (rec) {
 			price = calculateVideoPrice(rec.model, rec.resolution, rec.duration);
 		} else {
 			price = 1.0;
 		}
-	}
+	});
 
 	function formatDate(timestamp: number): string {
 		return new Date(timestamp).toLocaleString();
@@ -48,7 +62,7 @@
 		if (confirm('Are you sure you want to delete this video?')) {
 			await deleteVideo(id);
 			videos.update(vids => vids.filter(vid => vid.id !== id));
-			dispatch('deleted', { id });
+			onDeleted?.(id);
 		}
 	}
 
@@ -63,36 +77,36 @@
 	}
 
 	function handleRegenerate() {
-		dispatch('regenerate', { prompt });
+		onRegenerate?.(prompt);
 	}
 
 	function handleRemix() {
-		dispatch('remix', { id, prompt });
+		onRemix?.(id, prompt);
 	}
 
 	function handleView() {
-		dispatch('view', { id });
+		onView?.(id);
 	}
 </script>
 
 <div
 	class="card group relative overflow-hidden transition-all duration-300"
-	on:mouseenter={() => showControls = true}
-	on:mouseleave={() => showControls = false}
-	on:focusin={() => showControls = true}
-	on:focusout={() => showControls = false}
+	onmouseenter={() => showControls = true}
+	onmouseleave={() => showControls = false}
+	onfocusin={() => showControls = true}
+	onfocusout={() => showControls = false}
 	role="article"
 	aria-label="Generated video card"
 >
-	<div class="relative aspect-video cursor-pointer overflow-hidden" on:click={handleView}>
+	<div class="relative aspect-video cursor-pointer overflow-hidden" onclick={handleView}>
 		<video
 			src={videoData}
 			class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
 			muted
 			loop
 			playsinline
-			on:mouseenter={(e) => e.currentTarget.play()}
-			on:mouseleave={(e) => e.currentTarget.pause()}
+			onmouseenter={(e) => e.currentTarget.play()}
+			onmouseleave={(e) => e.currentTarget.pause()}
 		>
 			<track kind="captions" />
 		</video>
@@ -104,7 +118,7 @@
 			>
 				<div class="flex justify-between items-center mb-2">
 					<button
-						on:click|stopPropagation={handleDelete}
+						onclick={stopPropagation(handleDelete)}
 						class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
 						aria-label="Delete video"
 						title="Delete video"
@@ -114,7 +128,7 @@
 
 					<div class="flex space-x-1">
 						<button
-							on:click|stopPropagation={copyPrompt}
+							onclick={stopPropagation(copyPrompt)}
 							class="btn-ghost p-2 rounded-full hover:bg-primary-700/30"
 							aria-label="Copy prompt"
 							title="Copy prompt"
@@ -123,7 +137,7 @@
 						</button>
 
 						<button
-							on:click|stopPropagation={handleDownload}
+							onclick={stopPropagation(handleDownload)}
 							class="btn-ghost p-2 rounded-full hover:bg-secondary-700/30"
 							aria-label="Download video"
 							title="Download video"
@@ -132,7 +146,7 @@
 						</button>
 
 						<button
-							on:click|stopPropagation={handleRemix}
+							onclick={stopPropagation(handleRemix)}
 							class="btn-ghost p-2 rounded-full hover:bg-purple-700/30"
 							aria-label="Remix this video"
 							title="Remix this video"
@@ -141,7 +155,7 @@
 						</button>
 
 						<button
-							on:click|stopPropagation={handleRegenerate}
+							onclick={stopPropagation(handleRegenerate)}
 							class="btn-ghost p-2 rounded-full hover:bg-accent-700/30"
 							aria-label="Regenerate with this prompt"
 							title="Regenerate with this prompt"

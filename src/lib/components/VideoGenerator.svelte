@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run, preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { ImagePlus, Loader2, Send, Sparkles, X } from 'lucide-svelte';
@@ -36,42 +38,32 @@
 		localStorage.setItem(FORM_OPTIONS_KEY, JSON.stringify(opts));
 	}
 
-	export let prompt = '';
-	export let remixVideoId: string | null = null;
-
-	let error: string | null = null;
-	let generationProgress = 0;
-	let generationStatus = '';
-	let imageDropZone: HTMLDivElement;
-	let inputImage: File | null = null;
-	let inputImagePreview: string | null = null;
-	let isDragging = false;
-	let isGenerating = false;
-	let isProcessingImage = false;
-	let lastProcessedResolution: string | null = null;
-	let pollingInterval: NodeJS.Timeout | null = null;
-	let selectedDuration: VideoDuration = 4;
-	let selectedModel: VideoModel = 'sora-2';
-	let selectedResolution: VideoResolution = '720x1280';
-	let sourceImageFile: File | string | null = null;
-	let urlInput = '';
-
-	// Available resolutions for selected model
-	$: availableResolutions = RESOLUTION_OPTIONS_BY_MODEL[selectedModel];
-
-	// Auto-select first available resolution when model changes
-	$: if (selectedModel && availableResolutions && !(selectedResolution in availableResolutions)) {
-		selectedResolution = Object.keys(availableResolutions)[0] as VideoResolution;
+	interface Props {
+		prompt?: string;
+		remixVideoId?: string | null;
 	}
 
-	// Calculate price dynamically
-	$: currentPrice = (() => {
-		const modelPricing = PRICING[selectedModel]?.['standard'];
-		if (modelPricing && selectedResolution in modelPricing) {
-			return modelPricing[selectedResolution as keyof typeof modelPricing][selectedDuration] || 0;
-		}
-		return 0;
-	})();
+	let { prompt = $bindable(''), remixVideoId = $bindable(null) }: Props = $props();
+
+	let error: string | null = $state(null);
+	let generationProgress = $state(0);
+	let generationStatus = $state('');
+	let imageDropZone: HTMLDivElement = $state();
+	let inputImage: File | null = null;
+	let inputImagePreview: string | null = $state(null);
+	let isDragging = $state(false);
+	let isGenerating = $state(false);
+	let isProcessingImage = $state(false);
+	let lastProcessedResolution: string | null = $state(null);
+	let pollingInterval: NodeJS.Timeout | null = null;
+	let selectedDuration: VideoDuration = $state(4);
+	let selectedModel: VideoModel = $state('sora-2');
+	let selectedResolution: VideoResolution = $state('720x1280');
+	let sourceImageFile: File | string | null = $state(null);
+	let urlInput = $state('');
+
+
+
 
 	onMount(() => {
 		loadFormOptions();
@@ -88,13 +80,7 @@
 		};
 	});
 
-	// Save options whenever they change
-	$: saveFormOptions(), [selectedModel, selectedResolution, selectedDuration];
 
-	// Re-process image if resolution changes
-	$: if (sourceImageFile && selectedResolution !== lastProcessedResolution && !isProcessingImage) {
-		processImage(sourceImageFile);
-	}
 
 	async function pollVideoStatus(videoId: string) {
 		try {
@@ -341,6 +327,32 @@
 			generationStatus = '';
 		}
 	}
+	// Available resolutions for selected model
+	let availableResolutions = $derived(RESOLUTION_OPTIONS_BY_MODEL[selectedModel]);
+	// Auto-select first available resolution when model changes
+	run(() => {
+		if (selectedModel && availableResolutions && !(selectedResolution in availableResolutions)) {
+			selectedResolution = Object.keys(availableResolutions)[0] as VideoResolution;
+		}
+	});
+	// Calculate price dynamically
+	let currentPrice = $derived((() => {
+		const modelPricing = PRICING[selectedModel]?.['standard'];
+		if (modelPricing && selectedResolution in modelPricing) {
+			return modelPricing[selectedResolution as keyof typeof modelPricing][selectedDuration] || 0;
+		}
+		return 0;
+	})());
+	// Save options whenever they change
+	run(() => {
+		saveFormOptions(), [selectedModel, selectedResolution, selectedDuration];
+	});
+	// Re-process image if resolution changes
+	run(() => {
+		if (sourceImageFile && selectedResolution !== lastProcessedResolution && !isProcessingImage) {
+			processImage(sourceImageFile);
+		}
+	});
 </script>
 
 <div class="glass-effect p-5 rounded-xl">
@@ -351,7 +363,7 @@
 		{#if remixVideoId}
 			<button
 				type="button"
-				on:click={clearRemixMode}
+				onclick={clearRemixMode}
 				class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
 				aria-label="Cancel remix"
 				title="Cancel remix"
@@ -371,7 +383,7 @@
 		</div>
 	{/if}
 
-	<form on:submit|preventDefault={handleGenerate} class="space-y-4">
+	<form onsubmit={preventDefault(handleGenerate)} class="space-y-4">
 		<div>
 			<label for="prompt" class="block text-sm font-medium text-gray-300 mb-2">
 				Prompt
@@ -401,7 +413,7 @@
 						/>
 						<button
 							type="button"
-							on:click={removeImage}
+							onclick={removeImage}
 							class="absolute -top-2 -right-2 bg-error-600 hover:bg-error-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
 							aria-label="Remove image"
 						>
@@ -409,13 +421,13 @@
 						</button>
 					</div>
 				{:else}
-					<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 					<div
 						bind:this={imageDropZone}
-						on:drop={handleDrop}
-						on:dragover={handleDragOver}
-						on:dragleave={handleDragLeave}
-						on:paste={handlePaste}
+						ondrop={handleDrop}
+						ondragover={handleDragOver}
+						ondragleave={handleDragLeave}
+						onpaste={handlePaste}
 						class="border-2 border-dashed rounded-lg p-3 transition-colors {isDragging ? 'border-primary-500 bg-primary-900/10' : 'border-gray-700'}"
 						class:opacity-50={isProcessingImage}
 						tabindex="0"
@@ -432,7 +444,7 @@
 								id="input-image"
 								type="file"
 								accept="image/jpeg,image/png,image/webp"
-								on:change={handleImageUpload}
+								onchange={handleImageUpload}
 								class="hidden"
 								disabled={isGenerating || isProcessingImage}
 							/>
@@ -442,14 +454,14 @@
 									type="text"
 									bind:value={urlInput}
 									placeholder="or paste image URL"
-									on:keydown={(e) => e.key === 'Enter' && handleUrlSubmit()}
+									onkeydown={(e) => e.key === 'Enter' && handleUrlSubmit()}
 									class="flex-1 bg-transparent border-0 text-sm text-gray-400 placeholder-gray-600 focus:outline-none"
 									disabled={isGenerating || isProcessingImage}
 								/>
 								{#if urlInput}
 									<button
 										type="button"
-										on:click={handleUrlSubmit}
+										onclick={handleUrlSubmit}
 										class="text-xs text-primary-400 hover:text-primary-300"
 										disabled={isProcessingImage}
 									>

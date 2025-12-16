@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run, preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { Send, Loader2, Upload, X, ChevronDown, ChevronRight } from 'lucide-svelte';
@@ -47,29 +49,33 @@
 		localStorage.setItem(FORM_OPTIONS_KEY, JSON.stringify(opts))
 	}
 
-	export let prompt = '';
-	export let imageToEdit: ImageRecord | null = null; // New prop to receive image for editing
-	let isGenerating = false;
-	let error: string | null = null;
-	let selectedModel: ImageModel = 'gpt-image-1';
-	let selectedQuality: ImageQuality = 'low';
-	let selectedSize: ImageSize = '1024x1024';
-	let imageCount = 1;
-	let mode: 'generate' | 'edit' = 'generate';
-	let inputImages: File[] = [];
-	let imagePreviews: string[] = [];
-	let inputMask: File | null = null;
-	let maskPreview: string | null = null;
+	interface Props {
+		prompt?: string;
+		imageToEdit?: ImageRecord | null;
+	}
+
+	let { prompt = $bindable(''), imageToEdit = $bindable(null) }: Props = $props();
+	let isGenerating = $state(false);
+	let error: string | null = $state(null);
+	let selectedModel: ImageModel = $state('gpt-image-1');
+	let selectedQuality: ImageQuality = $state('low');
+	let selectedSize: ImageSize = $state('1024x1024');
+	let imageCount = $state(1);
+	let mode: 'generate' | 'edit' = $state('generate');
+	let inputImages: File[] = $state([]);
+	let imagePreviews: string[] = $state([]);
+	let inputMask: File | null = $state(null);
+	let maskPreview: string | null = $state(null);
 
 	// Advanced options
-	let showAdvanced = false;
-	let inputFidelity: InputFidelity = 'low';
-	let outputCompression = 100;
-	let outputFormat: OutputFormat = 'png';
-	let selectedBackground: ImageBackground = 'auto';
+	let showAdvanced = $state(false);
+	let inputFidelity: InputFidelity = $state('low');
+	let outputCompression = $state(100);
+	let outputFormat: OutputFormat = $state('png');
+	let selectedBackground: ImageBackground = $state('auto');
 
 	// Calculate price dynamically
-	$: currentPrice = PRICING[selectedModel][selectedQuality][selectedSize] * imageCount;
+	let currentPrice = $derived(PRICING[selectedModel][selectedQuality][selectedSize] * imageCount);
 
 	onMount(() => {
 		loadFormOptions()
@@ -78,34 +84,38 @@
 	});
 
 	// Save options whenever they change
-	$: saveFormOptions(), [selectedModel, selectedQuality, selectedSize, imageCount, inputFidelity, outputCompression, outputFormat, selectedBackground]
+	run(() => {
+		saveFormOptions(), [selectedModel, selectedQuality, selectedSize, imageCount, inputFidelity, outputCompression, outputFormat, selectedBackground]
+	});
 
 	// Reactively set prompt and image for editing
-	$: if (imageToEdit) {
-		prompt = imageToEdit.prompt;
-		mode = 'edit';
-		// Convert base64 image data URL to a File object for inputImages
-		fetch(imageToEdit.imageData)
-			.then(res => res.blob())
-			.then(blob => {
-				const filename = `edited_image_${imageToEdit?.id}.png`;
-				const file = new File([blob], filename, { type: blob.type });
-				inputImages = [file];
-				imagePreviews = [imageToEdit!.imageData];
-			})
-			.catch(e => console.error("Error converting image data to File:", e));
-
-		// Set other image properties if available
+	run(() => {
 		if (imageToEdit) {
-			selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-1';
-			selectedQuality = imageToEdit.quality ?? 'low';
-			selectedSize = imageToEdit.size ?? '1024x1024';
-			inputFidelity = imageToEdit.input_fidelity ?? 'low';
-			outputCompression = imageToEdit.output_compression ?? 100;
-			outputFormat = imageToEdit.output_format ?? 'png';
-			selectedBackground = imageToEdit.background ?? 'auto';
+			prompt = imageToEdit.prompt;
+			mode = 'edit';
+			// Convert base64 image data URL to a File object for inputImages
+			fetch(imageToEdit.imageData)
+				.then(res => res.blob())
+				.then(blob => {
+					const filename = `edited_image_${imageToEdit?.id}.png`;
+					const file = new File([blob], filename, { type: blob.type });
+					inputImages = [file];
+					imagePreviews = [imageToEdit!.imageData];
+				})
+				.catch(e => console.error("Error converting image data to File:", e));
+
+			// Set other image properties if available
+			if (imageToEdit) {
+				selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-1';
+				selectedQuality = imageToEdit.quality ?? 'low';
+				selectedSize = imageToEdit.size ?? '1024x1024';
+				inputFidelity = imageToEdit.input_fidelity ?? 'low';
+				outputCompression = imageToEdit.output_compression ?? 100;
+				outputFormat = imageToEdit.output_format ?? 'png';
+				selectedBackground = imageToEdit.background ?? 'auto';
+			}
 		}
-	}
+	});
 
 	function validateImageFile(file: File): string | null {
 		// Check file size
@@ -314,7 +324,7 @@
 			<button
 				type="button"
 				class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {isGenerating ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-500' : (mode === 'generate' ? 'cursor-pointer bg-purple-600 text-white hover:bg-purple-700' : 'cursor-pointer text-gray-400 hover:text-white hover:bg-gray-700')}"
-				on:click={() => !isGenerating && (mode = 'generate')}
+				onclick={() => !isGenerating && (mode = 'generate')}
 				disabled={isGenerating}
 			>
 				Generate
@@ -322,7 +332,7 @@
 			<button
 				type="button"
 				class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {isGenerating ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-500' : (mode === 'edit' ? 'cursor-pointer bg-purple-600 text-white hover:bg-purple-700' : 'cursor-pointer text-gray-400 hover:text-white hover:bg-gray-700')}"
-				on:click={() => !isGenerating && (mode = 'edit')}
+				onclick={() => !isGenerating && (mode = 'edit')}
 				disabled={isGenerating}
 			>
 				Edit
@@ -330,7 +340,7 @@
 		</div>
 	</div>
 
-	<form on:submit|preventDefault={handleGenerate} class="space-y-4">
+	<form onsubmit={preventDefault(handleGenerate)} class="space-y-4">
 		<!-- Image Upload Section (only for edit mode) -->
 		{#if mode === 'edit'}
 			<div>
@@ -346,7 +356,7 @@
 							accept={IMAGE_UPLOAD_LIMITS.acceptedExtensions}
 							class="hidden"
 							multiple
-							on:change={handleImageUpload}
+							onchange={handleImageUpload}
 							disabled={isGenerating || inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages}
 						/>
 						<div class="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors {inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages ? 'opacity-50 cursor-not-allowed' : ''}">
@@ -359,7 +369,7 @@
 						<button
 							type="button"
 							class="px-3 py-2 text-sm transition-colors {isGenerating ? 'text-gray-500 cursor-not-allowed opacity-50' : 'text-red-400 hover:text-red-300 cursor-pointer'}"
-							on:click={() => !isGenerating && clearAllImages()}
+							onclick={() => !isGenerating && clearAllImages()}
 							disabled={isGenerating}
 						>
 							Clear All
@@ -375,7 +385,7 @@
 								<button
 									type="button"
 									class="absolute -top-2 -right-2 rounded-full p-1 {isGenerating ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
-									on:click={() => !isGenerating && removeImage(index)}
+									onclick={() => !isGenerating && removeImage(index)}
 									disabled={isGenerating}
 								>
 									<X class="h-3 w-3" />
@@ -480,7 +490,7 @@
 			<button
 				type="button"
 				class="flex items-center gap-2 text-sm font-medium transition-colors {isGenerating ? 'text-gray-500 cursor-not-allowed opacity-50' : 'text-gray-300 hover:text-white cursor-pointer'}"
-				on:click={() => !isGenerating && (showAdvanced = !showAdvanced)}
+				onclick={() => !isGenerating && (showAdvanced = !showAdvanced)}
 				disabled={isGenerating}
 			>
 				{#if showAdvanced}
@@ -588,7 +598,7 @@
 									type="file"
 									accept=".png"
 									class="hidden"
-									on:change={handleMaskUpload}
+									onchange={handleMaskUpload}
 									disabled={isGenerating || inputMask !== null}
 								/>
 								<div class="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors {inputMask !== null ? 'opacity-50 cursor-not-allowed' : ''}">
@@ -603,7 +613,7 @@
 									<button
 										type="button"
 										class="absolute -top-2 -right-2 rounded-full p-1 {isGenerating ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
-										on:click={() => !isGenerating && removeMask()}
+										onclick={() => !isGenerating && removeMask()}
 										disabled={isGenerating}
 									>
 										<X class="h-3 w-3" />

@@ -5,8 +5,8 @@
 	import UsageStats from '$lib/components/UsageStats.svelte';
 	import type { ImageRecord } from '$lib/stores/imageStore';
 
-	let currentPrompt = '';
-	let imageForEdit: ImageRecord | null = null; // New state variable
+	let currentPrompt = $state('');
+	let imageForEdit: ImageRecord | null = $state(null); // New state variable
 
 	function handleRegenerate(newPrompt: string) {
 		currentPrompt = newPrompt;
