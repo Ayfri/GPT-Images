@@ -24,6 +24,7 @@
 			if (opts.selectedModel) selectedModel = opts.selectedModel;
 			if (opts.selectedResolution) selectedResolution = opts.selectedResolution;
 			if (opts.selectedDuration) selectedDuration = opts.selectedDuration;
+			if (opts.prompt) prompt = opts.prompt;
 		} catch {}
 	}
 
@@ -32,7 +33,8 @@
 		const opts = {
 			selectedDuration,
 			selectedModel,
-			selectedResolution
+			selectedResolution,
+			prompt
 		};
 		localStorage.setItem(FORM_OPTIONS_KEY, JSON.stringify(opts));
 	}
@@ -127,8 +129,7 @@
 					// Determine status message before clearing
 					const wasRemix = remixVideoId !== null;
 
-					// Clear the form
-					prompt = '';
+					// Clear the form (but keep the prompt)
 					remixVideoId = null;
 					inputImages = [];
 					inputImagePreviews = [];

@@ -30,6 +30,7 @@
 			if (opts.outputCompression !== undefined) outputCompression = opts.outputCompression
 			if (opts.outputFormat) outputFormat = opts.outputFormat
 			if (opts.selectedBackground) selectedBackground = opts.selectedBackground
+			if (opts.prompt) prompt = opts.prompt
 		} catch {}
 	}
 
@@ -43,7 +44,8 @@
 			inputFidelity,
 			outputCompression,
 			outputFormat,
-			selectedBackground
+			selectedBackground,
+			prompt
 		}
 		localStorage.setItem(FORM_OPTIONS_KEY, JSON.stringify(opts))
 	}
@@ -78,7 +80,9 @@
 
 	onMount(() => {
 		loadFormOptions()
-		prompt = "A cyberpunk city at night with neon lights and flying cars";
+		if (!prompt) {
+			prompt = "A cyberpunk city at night with neon lights and flying cars";
+		}
 		error = null;
 	});
 
@@ -245,8 +249,7 @@
 			// Refresh the image store
 			await refreshImageStore();
 
-			// Clear the prompt and images if editing
-			prompt = '';
+			// Clear images if editing (but keep the prompt)
 			if (mode === 'edit') {
 				inputImages = [];
 				imagePreviews = [];
