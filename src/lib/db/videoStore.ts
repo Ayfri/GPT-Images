@@ -47,13 +47,11 @@ export async function addVideo(
 	prompt: string,
 	resolution: VideoResolution,
 	videoData: string
-): Promise<string> {
+): Promise<GeneratedVideo> {
 	const db = await getDb();
-	const id = crypto.randomUUID();
-
 	const video: GeneratedVideo = {
 		duration,
-		id,
+		id: crypto.randomUUID(),
 		model,
 		prompt,
 		resolution,
@@ -62,7 +60,7 @@ export async function addVideo(
 	};
 
 	await db.add('generated-videos', video);
-	return id;
+	return video;
 }
 
 export async function getVideos(
@@ -202,26 +200,24 @@ export async function addVideoWithCleanup(
 	prompt: string,
 	resolution: VideoResolution,
 	videoData: string
-): Promise<{ id: string; cleanedCount: number }> {
+): Promise<{ video: GeneratedVideo; cleanedCount: number }> {
 	const newVideoSize = estimateDataUrlSize(videoData);
 	const currentSize = await getTotalStorageSize();
-	let totalCleanedCount = 0;
+	let cleanedCount = 0;
 
 	// Check if adding this video would exceed the limit
 	if (currentSize + newVideoSize >= MAX_STORAGE_SIZE_MB * 1024 * 1024) {
 		// Clean up old videos first, targeting 60MB to leave room for the new video
-		const cleanedCount1 = await cleanupOldVideos(60);
-		totalCleanedCount += cleanedCount1;
+		cleanedCount = await cleanupOldVideos(60);
 
 		// If cleanup wasn't enough, clean up more aggressively
 		const newSize = await getTotalStorageSize();
 		if (newSize + newVideoSize >= MAX_STORAGE_SIZE_MB * 1024 * 1024) {
-			const cleanedCount2 = await cleanupOldVideos(40);
-			totalCleanedCount += cleanedCount2;
+			cleanedCount += await cleanupOldVideos(40);
 		}
 	}
 
-	// Add the new video
-	const id = await addVideo(duration, model, prompt, resolution, videoData);
-	return { id, cleanedCount: totalCleanedCount };
+	// Add the new video and return it
+	const video = await addVideo(duration, model, prompt, resolution, videoData);
+	return { video, cleanedCount };
 }

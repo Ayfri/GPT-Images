@@ -109,7 +109,7 @@
 
 				if (status.video_data) {
 					// Store the video with automatic cleanup if needed
-					const { id: videoId, cleanedCount } = await addVideoWithStorageManagement(
+					const { cleanedCount } = await addVideoWithStorageManagement(
 						selectedDuration,
 						selectedModel,
 						prompt,

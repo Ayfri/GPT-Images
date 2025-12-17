@@ -140,31 +140,25 @@ export const addVideoWithStorageManagement = async (
 	resolution: VideoResolution,
 	videoData: string
 ): Promise<{ id: string; cleanedCount: number }> => {
-	const result = await addVideoWithCleanup(duration, model, prompt, resolution, videoData);
+	const { video, cleanedCount } = await addVideoWithCleanup(duration, model, prompt, resolution, videoData);
 
 	// Reset cache since videos may have been added/deleted
 	resetCachedSize();
 
-	// Smart refresh: update counts and reload current visible videos
+	// Add the new video to the top of the list
+	videos.update(current => [video as VideoRecord, ...current]);
+	currentVideoOffset.update(offset => offset + 1);
+	totalVideoCount.update(count => count + 1);
+
+	// Update storage status
 	try {
-		const count = await countVideos();
-		totalVideoCount.set(count);
-
-		// Get current offset to reload the same number of videos that were visible
-		const currentOffset = get(currentVideoOffset);
-		const visibleVideos = await getVideos(currentOffset, 0);
-		videos.set(visibleVideos as VideoRecord[]);
-
-		// Update storage status
 		const status = await getOptimizedStorageStatus();
 		storageStatus.set(status);
 	} catch (error) {
-		console.error('Failed to refresh store after video addition:', error);
-		// Fallback to full refresh
-		await initVideoStore();
+		console.warn('Failed to update storage status:', error);
 	}
 
-	return result;
+	return { id: video.id, cleanedCount };
 };
 
 // Function to refresh the video store
