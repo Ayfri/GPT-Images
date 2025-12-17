@@ -9,6 +9,7 @@
 	import { DURATION_OPTIONS, MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL } from '$lib/types/video';
 	import { browser } from '$app/environment';
 	import { resizeImageToResolution } from '$lib/utils/imageResize';
+	import ImageUploadZone from './ImageUploadZone.svelte';
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'video-generator-options';
@@ -46,10 +47,8 @@
 	let error: string | null = $state(null);
 	let generationProgress = $state(0);
 	let generationStatus = $state('');
-	let imageDropZone: HTMLDivElement | undefined = $state();
-	let inputImage: File | null = null;
-	let inputImagePreview: string | null = $state(null);
-	let isDragging = $state(false);
+	let inputImages: File[] = $state([]);
+	let inputImagePreviews: string[] = $state([]);
 	let isGenerating = $state(false);
 	let isProcessingImage = $state(false);
 	let lastProcessedResolution: string | null = $state(null);
@@ -58,7 +57,6 @@
 	let selectedModel: VideoModel = $state('sora-2');
 	let selectedResolution: VideoResolution = $state('720x1280');
 	let sourceImageFile: File | string | null = $state(null);
-	let urlInput = $state('');
 
 
 
@@ -132,11 +130,10 @@
 					// Clear the form
 					prompt = '';
 					remixVideoId = null;
-					inputImage = null;
-					inputImagePreview = null;
+					inputImages = [];
+					inputImagePreviews = [];
 					lastProcessedResolution = null;
 					sourceImageFile = null;
-					urlInput = '';
 					isGenerating = false;
 					generationStatus = wasRemix ? 'Remix completed!' : 'Video completed!';
 					generationProgress = 100;
@@ -185,13 +182,13 @@
 
 			// Resize image to match target resolution
 			const resizedFile = await resizeImageToResolution(file, selectedResolution);
-			inputImage = resizedFile;
+			inputImages = [resizedFile];
 			lastProcessedResolution = selectedResolution;
 
 			// Create preview
 			const reader = new FileReader();
 			reader.onload = (e) => {
-				inputImagePreview = e.target?.result as string;
+				inputImagePreviews = [e.target?.result as string];
 				isProcessingImage = false;
 			};
 			reader.readAsDataURL(resizedFile);
@@ -202,76 +199,16 @@
 		}
 	}
 
-	async function handleImageUpload(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const file = target.files?.[0];
-
-		if (file) {
-			await processImage(file);
-		}
-	}
-
-	async function handleDrop(event: DragEvent) {
-		event.preventDefault();
-		isDragging = false;
-
-		const file = event.dataTransfer?.files[0];
-		if (file && file.type.startsWith('image/')) {
-			await processImage(file);
-		}
-	}
-
-	function handleDragOver(event: DragEvent) {
-		event.preventDefault();
-		isDragging = true;
-	}
-
-	function handleDragLeave() {
-		isDragging = false;
-	}
-
-	async function handleUrlSubmit() {
-		if (!urlInput.trim()) return;
-
-		await processImage(urlInput.trim());
-		urlInput = '';
-	}
-
-	async function handlePaste(event: ClipboardEvent) {
-		// Check for image file
-		const items = event.clipboardData?.items;
-		if (items) {
-			for (let i = 0; i < items.length; i++) {
-				if (items[i].type.startsWith('image/')) {
-					const file = items[i].getAsFile();
-					if (file) {
-						event.preventDefault();
-						await processImage(file);
-						return;
-					}
-				}
-			}
-		}
-
-		// Check for URL
-		const text = event.clipboardData?.getData('text');
-		if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
-			event.preventDefault();
-			urlInput = text;
-			await handleUrlSubmit();
-		}
-	}
-
 	function removeImage() {
-		inputImage = null;
-		inputImagePreview = null;
+		inputImages = [];
+		inputImagePreviews = [];
 		lastProcessedResolution = null;
 		sourceImageFile = null;
-		urlInput = '';
 	}
 
 	function clearRemixMode() {
 		remixVideoId = null;
+		removeImage();
 	}
 
 	async function handleGenerate() {
@@ -303,7 +240,7 @@
 				// Regular generation mode
 				videoId = await generateVideo($apiKey, {
 					duration: selectedDuration,
-					inputReference: inputImage || undefined,
+					inputReference: inputImages[0] || undefined,
 					model: selectedModel,
 					prompt,
 					resolution: selectedResolution
@@ -402,10 +339,10 @@
 					Input Image (Optional)
 				</label>
 
-				{#if inputImagePreview}
+				{#if inputImagePreviews.length > 0}
 					<div class="relative group inline-block mb-2">
 						<img
-							src={inputImagePreview}
+							src={inputImagePreviews[0]}
 							alt="Input preview"
 							class="w-24 h-24 object-cover rounded-lg border-2 border-gray-700"
 						/>
@@ -418,63 +355,27 @@
 							<X class="w-4 h-4" />
 						</button>
 					</div>
-				{:else}
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-					<div
-						aria-label="Image drop zone"
-						bind:this={imageDropZone}
-						class="border-2 border-dashed rounded-lg p-3 transition-colors {isDragging ? 'border-primary-500 bg-primary-900/10' : 'border-gray-700'}"
-						class:opacity-50={isProcessingImage}
-						ondragleave={handleDragLeave}
-						ondragover={handleDragOver}
-						ondrop={handleDrop}
-						onpaste={handlePaste}
-						role="region"
-						tabindex="0"
-					>
-						<div class="flex items-center gap-3">
-							<label
-								for="input-image"
-								class="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded cursor-pointer transition-colors"
-							>
-								<ImagePlus class="w-4 h-4" />
-								Choose
-							</label>
-							<input
-								id="input-image"
-								type="file"
-								accept="image/jpeg,image/png,image/webp"
-								onchange={handleImageUpload}
-								class="hidden"
-								disabled={isGenerating || isProcessingImage}
-							/>
-
-							<div class="flex-1 flex items-center gap-2">
-								<input
-									type="text"
-									bind:value={urlInput}
-									placeholder="or paste image URL"
-									onkeydown={(e) => e.key === 'Enter' && handleUrlSubmit()}
-									class="flex-1 bg-transparent border-0 text-sm text-gray-400 placeholder-gray-600 focus:outline-none"
-									disabled={isGenerating || isProcessingImage}
-								/>
-								{#if urlInput}
-									<button
-										type="button"
-										onclick={handleUrlSubmit}
-										class="text-xs text-primary-400 hover:text-primary-300"
-										disabled={isProcessingImage}
-									>
-										Load
-									</button>
-								{/if}
-							</div>
-						</div>
-						<p class="text-xs text-gray-600 mt-2">
-							Drop image, paste URL/image (Ctrl+V), or click to browse
-						</p>
-					</div>
 				{/if}
+
+				<ImageUploadZone
+					images={inputImages}
+					imagePreviews={inputImagePreviews}
+					maxImages={1}
+					acceptedExtensions="image/jpeg,image/png,image/webp"
+					isGenerating={isGenerating || isProcessingImage}
+					singleImage={true}
+					onImagesChange={(images, previews) => {
+						inputImages = images;
+						inputImagePreviews = previews;
+						if (images.length > 0) {
+							sourceImageFile = images[0];
+							lastProcessedResolution = selectedResolution;
+						} else {
+							sourceImageFile = null;
+							lastProcessedResolution = null;
+						}
+					}}
+				/>
 
 				{#if isProcessingImage}
 					<p class="text-xs text-blue-400 mt-1">Processing image...</p>

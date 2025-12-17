@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { Send, Loader2, Upload, X, ChevronDown, ChevronRight } from 'lucide-svelte';
+	import { Upload, X, ChevronDown, ChevronRight, Loader2, Send } from 'lucide-svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addImage } from '$lib/db/imageStore';
 	import { images, refreshImageStore } from '$lib/stores/imageStore';
@@ -10,6 +10,7 @@
 	import type { ImageRecord } from '$lib/stores/imageStore';
 	import { MODEL_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
 	import { browser } from '$app/environment';
+	import ImageUploadZone from './ImageUploadZone.svelte';
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'image-generator-options';
@@ -129,45 +130,6 @@
 		return null;
 	}
 
-	function handleImageUpload(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const files = Array.from(target.files || []);
-
-		if (files.length === 0) return;
-
-		// Check if adding these files would exceed the limit
-		if (inputImages.length + files.length > IMAGE_UPLOAD_LIMITS.maxImages) {
-			error = `You can upload up to ${IMAGE_UPLOAD_LIMITS.maxImages} images maximum.`;
-			return;
-		}
-
-		// Validate each file
-		for (const file of files) {
-			const validationError = validateImageFile(file);
-			if (validationError) {
-				error = validationError;
-				return;
-			}
-		}
-
-		// Clear any previous errors
-		error = null;
-
-		// Add files and create previews
-		files.forEach((file) => {
-			inputImages = [...inputImages, file];
-
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				imagePreviews = [...imagePreviews, e.target?.result as string];
-			};
-			reader.readAsDataURL(file);
-		});
-
-		// Clear the input
-		target.value = '';
-	}
-
 	function handleMaskUpload(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
@@ -199,18 +161,6 @@
 	}
 
 	function removeMask() {
-		inputMask = null;
-		maskPreview = null;
-	}
-
-	function removeImage(index: number) {
-		inputImages = inputImages.filter((_, i) => i !== index);
-		imagePreviews = imagePreviews.filter((_, i) => i !== index);
-	}
-
-	function clearAllImages() {
-		inputImages = [];
-		imagePreviews = [];
 		inputMask = null;
 		maskPreview = null;
 	}
@@ -298,13 +248,9 @@
 			// Clear the prompt and images if editing
 			prompt = '';
 			if (mode === 'edit') {
-				clearAllImages();
-				imageToEdit = null; // Clear the imageToEdit prop after successful edit
+				inputImages = [];
+				imagePreviews = [];
 			}
-
-		} catch (err) {
-			console.error('Error generating image:', err);
-			error = err instanceof Error ? err.message : 'Failed to generate image';
 		} finally {
 			isGenerating = false;
 		}
@@ -346,55 +292,21 @@
 					Images ({inputImages.length}/{IMAGE_UPLOAD_LIMITS.maxImages})
 				</label>
 
-				<div class="flex items-center gap-4 mb-3">
-					<label class="cursor-pointer">
-						<input
-							id="image-upload"
-							type="file"
-							accept={IMAGE_UPLOAD_LIMITS.acceptedExtensions}
-							class="hidden"
-							multiple
-							onchange={handleImageUpload}
-							disabled={isGenerating || inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages}
-						/>
-						<div class="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors {inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages ? 'opacity-50 cursor-not-allowed' : ''}">
-							<Upload class="h-4 w-4" />
-							<span class="text-sm">Upload Images</span>
-						</div>
-					</label>
+				<ImageUploadZone
+					acceptedExtensions={IMAGE_UPLOAD_LIMITS.acceptedExtensions}
+					{isGenerating}
+					images={inputImages}
+					imagePreviews={imagePreviews}
+					maxImages={IMAGE_UPLOAD_LIMITS.maxImages}
+					onImagesChange={(images, previews) => {
+						inputImages = images;
+						imagePreviews = previews;
+					}}
+					validateFile={validateImageFile}
+				/>
 
-					{#if inputImages.length > 0}
-						<button
-							type="button"
-							class="px-3 py-2 text-sm transition-colors {isGenerating ? 'text-gray-500 cursor-not-allowed opacity-50' : 'text-red-400 hover:text-red-300 cursor-pointer'}"
-							onclick={() => !isGenerating && clearAllImages()}
-							disabled={isGenerating}
-						>
-							Clear All
-						</button>
-					{/if}
-				</div>
-
-				{#if imagePreviews.length > 0}
-					<div class="grid grid-cols-4 gap-2 mb-3">
-						{#each imagePreviews as preview, index (index)}
-							<div class="relative">
-								<img src={preview} alt="Preview {index + 1}" class="w-full h-16 object-cover rounded-lg" />
-								<button
-									type="button"
-									class="absolute -top-2 -right-2 rounded-full p-1 {isGenerating ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
-									onclick={() => !isGenerating && removeImage(index)}
-									disabled={isGenerating}
-								>
-									<X class="h-3 w-3" />
-								</button>
-							</div>
-						{/each}
-					</div>
-				{/if}
-
-				<p class="text-xs text-gray-500">
-					PNG, WEBP, or JPEG files, up to 50MB each. You can upload up to 16 images.
+				<p class="text-xs text-gray-500 mt-1">
+					PNG, WEBP, or JPEG files, up to 50MB each. You can upload up to {IMAGE_UPLOAD_LIMITS.maxImages} images.
 				</p>
 			</div>
 		{/if}
