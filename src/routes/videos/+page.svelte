@@ -34,7 +34,7 @@
 		</span>
 	</h1>
 	<p class="text-gray-400 text-center max-w-2xl mx-auto">
-		Generate stunning videos using OpenAI's GPT-Video models. Simply enter your API key, provide a prompt, and watch AI bring your ideas to life.
+		Generate videos from text - or attach a reference image to guide the visual style and composition.
 	</p>
 </div>
 
