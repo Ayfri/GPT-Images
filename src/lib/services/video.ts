@@ -1,4 +1,4 @@
-import type { RemixVideoParams, VideoDuration, VideoModel, VideoQuality, VideoResolution } from '$lib/types/video';
+import type { RemixVideoParams, VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import OpenAI from 'openai';
 
 /**
@@ -33,25 +33,13 @@ export async function generateVideo(apiKey: string, params: GenerateVideoParams)
 	});
 
 	try {
-		const createParams: any = {
-			prompt: params.prompt
-		};
-
-		// Add optional parameters if defined
-		if (params.model !== undefined) {
-			createParams.model = params.model;
-		}
-		if (params.resolution !== undefined) {
-			createParams.size = params.resolution;
-		}
-		if (params.duration !== undefined) {
-			createParams.seconds = params.duration.toString();
-		}
-		if (params.inputReference !== undefined) {
-			createParams.input_reference = params.inputReference;
-		}
-
-		const response = await client.videos.create(createParams);
+		const response = await client.videos.create({
+			prompt: params.prompt,
+			...(params.model !== undefined && { model: params.model }),
+			...(params.resolution !== undefined && { size: params.resolution }),
+			...(params.duration !== undefined && { seconds: params.duration.toString() }),
+			...(params.inputReference !== undefined && { input_reference: params.inputReference }),
+		} as any);
 
 		// Return the video ID which will be used to poll for completion
 		return response.id;
@@ -106,7 +94,6 @@ export async function getVideoStatus(apiKey: string, videoId: string): Promise<{
 			try {
 				const content = await client.videos.downloadContent(videoId);
 				const arrayBuffer = await content.arrayBuffer();
-				const buffer = new Uint8Array(arrayBuffer);
 				// Convert to base64 data URL using chunked approach to avoid stack overflow
 				const base64 = arrayBufferToBase64(arrayBuffer);
 				const videoDataUrl = `data:video/mp4;base64,${base64}`;

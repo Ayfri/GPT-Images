@@ -23,26 +23,16 @@ export async function generateImage(apiKey: string, params: GenerateImageParams)
 	});
 
 	try {
-		const generateParams: ImageGenerateParamsNonStreaming = {
+		const response = await client.images.generate({
 			model: params.model,
 			prompt: params.prompt,
 			quality: params.quality,
 			size: params.size,
 			n: params.n,
-		};
-
-		// Ajouter les paramètres optionnels seulement s'ils sont définis
-		if (params.background !== undefined) {
-			generateParams.background = params.background;
-		}
-		if (params.output_compression !== undefined) {
-			generateParams.output_compression = params.output_compression;
-		}
-		if (params.output_format !== undefined) {
-			generateParams.output_format = params.output_format;
-		}
-
-		const response = await client.images.generate(generateParams);
+			...(params.background !== undefined && { background: params.background }),
+			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
+			...(params.output_format !== undefined && { output_format: params.output_format }),
+		} as ImageGenerateParamsNonStreaming);
 
 		if (!response.data || response.data.length === 0) {
 			throw new Error('API did not return image data');
@@ -90,33 +80,19 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 			throw new Error('At least one image is required for editing');
 		}
 
-		const editParams: ImageEditParamsNonStreaming = {
+		const response = await client.images.edit({
 			model: params.model,
 			image: imageFile,
 			prompt: params.prompt,
 			size: params.size,
 			n: params.n,
 			quality: params.quality,
-		};
-
-		// Add optional parameters that are valid for editing
-		if (params.input_fidelity !== undefined) {
-			editParams.input_fidelity = params.input_fidelity;
-		}
-		if (params.output_compression !== undefined) {
-			editParams.output_compression = params.output_compression;
-		}
-		if (params.output_format !== undefined) {
-			editParams.output_format = params.output_format;
-		}
-		if (params.background !== undefined) {
-			editParams.background = params.background;
-		}
-		if (params.mask) {
-			editParams.mask = params.mask;
-		}
-
-		const response = await client.images.edit(editParams);
+			...(params.input_fidelity !== undefined && { input_fidelity: params.input_fidelity }),
+			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
+			...(params.output_format !== undefined && { output_format: params.output_format }),
+			...(params.background !== undefined && { background: params.background }),
+			...(params.mask && { mask: params.mask }),
+		} as ImageEditParamsNonStreaming);
 
 		if (!response.data || response.data.length === 0) {
 			throw new Error('API did not return image data');

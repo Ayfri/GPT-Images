@@ -2,9 +2,9 @@ import type { VideoModel, VideoDuration, VideoResolution } from '$lib/types/vide
 import { PRICING } from '$lib/types/video';
 
 export function calculateVideoPrice(
-	model: VideoModel | string | undefined,
-	resolution: VideoResolution | string | undefined,
-	duration: VideoDuration | number | undefined
+	model: string | undefined,
+	resolution: string | undefined,
+	duration: number | undefined
 ): number {
 	const videoModel = (model || 'sora-2') as VideoModel;
 
@@ -13,14 +13,11 @@ export function calculateVideoPrice(
 	}
 
 	try {
-		const modelPricing = PRICING[videoModel]?.['standard'];
-		if (modelPricing && resolution in modelPricing) {
-			const resolutionPricing = (modelPricing as any)[resolution];
-			if (resolutionPricing && duration in resolutionPricing) {
-				return resolutionPricing[duration] || 1.0;
-			}
+		const resolutionPricing = PRICING[videoModel]?.[resolution as VideoResolution];
+		if (resolutionPricing && duration in resolutionPricing) {
+			return resolutionPricing[duration as VideoDuration] ?? 1.0;
 		}
-	} catch (e) {
+	} catch {
 		// Fallback on error
 	}
 

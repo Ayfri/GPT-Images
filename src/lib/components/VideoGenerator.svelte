@@ -59,13 +59,7 @@
 	let availableResolutions = $derived(RESOLUTION_OPTIONS_BY_MODEL[selectedModel]);
 
 	let currentPrice = $derived(
-		(() => {
-			const modelPricing = PRICING[selectedModel]?.['standard'];
-			if (modelPricing && selectedResolution in modelPricing) {
-				return modelPricing[selectedResolution as keyof typeof modelPricing][selectedDuration] || 0;
-			}
-			return 0;
-		})(),
+		PRICING[selectedModel]?.[selectedResolution]?.[selectedDuration] ?? 0
 	);
 
 	$effect(() => {
