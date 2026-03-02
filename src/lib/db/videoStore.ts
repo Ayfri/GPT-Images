@@ -28,12 +28,9 @@ let db: IDBPDatabase<VideoDB> | null = null;
 export async function getDb() {
 	if (!db) {
 		db = await openDB<VideoDB>('gpt-video-generator', 1, {
-			upgrade(db, oldVersion, newVersion, transaction) {
+			upgrade(db, oldVersion) {
 				if (oldVersion < 1) {
-					// First time setup
-					const store = db.createObjectStore('generated-videos', {
-						keyPath: 'id'
-					});
+					const store = db.createObjectStore('generated-videos', { keyPath: 'id' });
 					store.createIndex('by-timestamp', 'timestamp');
 				}
 			}
@@ -64,21 +61,11 @@ export async function addVideo(
 	return video;
 }
 
-export async function getVideos(
-	limit: number,
-	offset: number
-): Promise<GeneratedVideo[]> {
+export async function getVideos(limit: number, offset: number): Promise<GeneratedVideo[]> {
 	const db = await getDb();
-	const tx = db.transaction('generated-videos', 'readonly');
-	const index = tx.objectStore('generated-videos').index('by-timestamp');
-
+	const index = db.transaction('generated-videos', 'readonly').objectStore('generated-videos').index('by-timestamp');
 	let cursor = await index.openCursor(null, 'prev');
-
-	// Skip offset records in one IDB call instead of iterating one by one
-	if (offset > 0 && cursor) {
-		cursor = await cursor.advance(offset);
-	}
-
+	if (offset > 0 && cursor) cursor = await cursor.advance(offset);
 	const videos: GeneratedVideo[] = [];
 	while (cursor && videos.length < limit) {
 		videos.push(cursor.value);
@@ -109,49 +96,31 @@ export async function clearVideos(): Promise<void> {
 	await db.clear('generated-videos');
 }
 
-// ---------------------------------------------------------------------------
-// Cost stats cache (localStorage) — mirrors the image cost cache pattern
-// ---------------------------------------------------------------------------
-
 const VIDEO_COST_CACHE_KEY = 'gpt-video-cost-cache';
-
-interface VideoCostCache {
-	totalCost: number;
-	count: number;
-}
+type VideoCostCache = { totalCost: number; count: number };
 
 export function getVideoCostCache(): VideoCostCache | null {
 	try {
 		const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(VIDEO_COST_CACHE_KEY) : null;
-		return raw ? (JSON.parse(raw) as VideoCostCache) : null;
-	} catch {
-		return null;
-	}
+		return raw ? JSON.parse(raw) : null;
+	} catch { return null; }
 }
 
 export function setVideoCostCache(totalCost: number, count: number): void {
 	try {
-		if (typeof localStorage !== 'undefined') {
-			localStorage.setItem(VIDEO_COST_CACHE_KEY, JSON.stringify({ totalCost, count } satisfies VideoCostCache));
-		}
-	} catch { /* storage quota — ignore */ }
-}
-
-export function invalidateVideoCostCache(): void {
-	try {
-		if (typeof localStorage !== 'undefined') localStorage.removeItem(VIDEO_COST_CACHE_KEY);
+		if (typeof localStorage !== 'undefined')
+			localStorage.setItem(VIDEO_COST_CACHE_KEY, JSON.stringify({ totalCost, count }));
 	} catch { /* ignore */ }
 }
 
-/**
- * Compute total cost for all videos using cursor iteration.
- * videoData blobs are received but immediately discarded.
- */
+export function invalidateVideoCostCache(): void {
+	try { if (typeof localStorage !== 'undefined') localStorage.removeItem(VIDEO_COST_CACHE_KEY); }
+	catch { /* ignore */ }
+}
+
 export async function computeVideoCostTotal(): Promise<number> {
 	const db = await getDb();
-	const tx = db.transaction('generated-videos', 'readonly');
-	const store = tx.objectStore('generated-videos');
-
+	const store = db.transaction('generated-videos', 'readonly').objectStore('generated-videos');
 	let totalCost = 0;
 	let cursor = await store.openCursor();
 	while (cursor) {
@@ -162,56 +131,27 @@ export async function computeVideoCostTotal(): Promise<number> {
 	return totalCost;
 }
 
-// Storage management constants
 const MAX_STORAGE_SIZE_MB = 100;
-const STORAGE_WARNING_THRESHOLD_MB = 80; // Warn when approaching 80MB
+const STORAGE_WARNING_THRESHOLD_MB = 80;
 
-/**
- * Estimate the size of a base64 data URL in bytes
- */
 function estimateDataUrlSize(dataUrl: string): number {
-	// Remove the data URL prefix (e.g., "data:video/mp4;base64,")
 	const base64Data = dataUrl.split(',')[1];
 	if (!base64Data) return 0;
-
-	// Base64 encodes 3 bytes as 4 characters, so size is approximately (length * 3) / 4
 	return Math.ceil((base64Data.length * 3) / 4);
 }
 
-/**
- * Calculate total storage size of all videos in bytes
- */
 export async function getTotalStorageSize(): Promise<number> {
 	const videos = await getAllVideos();
-	let totalSize = 0;
-
-	for (const video of videos) {
-		totalSize += estimateDataUrlSize(video.videoData);
-	}
-
-	return totalSize;
+	return videos.reduce((total, v) => total + estimateDataUrlSize(v.videoData), 0);
 }
 
-/**
- * Get storage size in MB
- */
 export async function getStorageSizeMB(): Promise<number> {
-	const bytes = await getTotalStorageSize();
-	return bytes / (1024 * 1024);
+	return (await getTotalStorageSize()) / (1024 * 1024);
 }
 
-/**
- * Check if storage is approaching the limit
- */
-export async function getStorageStatus(): Promise<{
-	sizeMB: number;
-	isNearLimit: boolean;
-	isOverLimit: boolean;
-	percentage: number;
-}> {
+export async function getStorageStatus() {
 	const sizeMB = await getStorageSizeMB();
 	const percentage = (sizeMB / MAX_STORAGE_SIZE_MB) * 100;
-
 	return {
 		sizeMB: Math.round(sizeMB * 100) / 100,
 		isNearLimit: sizeMB >= STORAGE_WARNING_THRESHOLD_MB,
@@ -220,34 +160,21 @@ export async function getStorageStatus(): Promise<{
 	};
 }
 
-/**
- * Clean up oldest videos to free up space
- * @param targetSizeMB Target size to reach (defaults to 70MB to leave some buffer)
- */
-export async function cleanupOldVideos(targetSizeMB: number = 70): Promise<number> {
+export async function cleanupOldVideos(targetSizeMB = 70): Promise<number> {
 	const db = await getDb();
-	const videos = await getAllVideos(); // Already sorted by timestamp (newest first)
+	const videos = await getAllVideos();
 	const targetSizeBytes = targetSizeMB * 1024 * 1024;
-
 	let currentSize = await getTotalStorageSize();
 	let deletedCount = 0;
-
-	// Start deleting from the oldest videos (end of the array)
 	for (let i = videos.length - 1; i >= 0 && currentSize > targetSizeBytes; i--) {
 		const video = videos[i];
-		const videoSize = estimateDataUrlSize(video.videoData);
-
 		await db.delete('generated-videos', video.id);
-		currentSize -= videoSize;
+		currentSize -= estimateDataUrlSize(video.videoData);
 		deletedCount++;
 	}
-
 	return deletedCount;
 }
 
-/**
- * Add video with automatic cleanup if storage limit is exceeded
- */
 export async function addVideoWithCleanup(
 	duration: VideoDuration,
 	model: VideoModel,
@@ -258,20 +185,12 @@ export async function addVideoWithCleanup(
 	const newVideoSize = estimateDataUrlSize(videoData);
 	const currentSize = await getTotalStorageSize();
 	let cleanedCount = 0;
-
-	// Check if adding this video would exceed the limit
 	if (currentSize + newVideoSize >= MAX_STORAGE_SIZE_MB * 1024 * 1024) {
-		// Clean up old videos first, targeting 60MB to leave room for the new video
 		cleanedCount = await cleanupOldVideos(60);
-
-		// If cleanup wasn't enough, clean up more aggressively
 		const newSize = await getTotalStorageSize();
-		if (newSize + newVideoSize >= MAX_STORAGE_SIZE_MB * 1024 * 1024) {
+		if (newSize + newVideoSize >= MAX_STORAGE_SIZE_MB * 1024 * 1024)
 			cleanedCount += await cleanupOldVideos(40);
-		}
 	}
-
-	// Add the new video and return it
 	const video = await addVideo(duration, model, prompt, resolution, videoData);
 	return { video, cleanedCount };
 }

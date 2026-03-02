@@ -34,58 +34,43 @@ export async function getDb() {
 		db = await openDB<ImageDB>('gpt-image-generator', 4, {
 			upgrade(db, oldVersion, newVersion, transaction) {
 				if (oldVersion < 1) {
-					// First time setup
-					const store = db.createObjectStore('generated-images', {
-						keyPath: 'id'
-					});
+					const store = db.createObjectStore('generated-images', { keyPath: 'id' });
 					store.createIndex('by-timestamp', 'timestamp');
 				}
 
-				// Migrate from version 1 to 2 to add new fields
 				if (oldVersion < 2) {
-					// Get all existing records
 					const tx = transaction.objectStore('generated-images');
 					tx.openCursor().then(function updateRecords(cursor): Promise<void> | void {
 						if (!cursor) return;
-
-						// Add new fields to existing records
-						const updatedRecord = { ...cursor.value };
-						if (!updatedRecord.model) updatedRecord.model = 'gpt-image-1';
-						if (!updatedRecord.quality) updatedRecord.quality = 'low';
-						if (!updatedRecord.size) updatedRecord.size = '1024x1024';
-
-						cursor.update(updatedRecord);
+						const r = { ...cursor.value };
+						if (!r.model) r.model = 'gpt-image-1';
+						if (!r.quality) r.quality = 'low';
+						if (!r.size) r.size = '1024x1024';
+						cursor.update(r);
 						return cursor.continue().then(updateRecords);
 					});
 				}
 
-				// Migrate from version 2 to 3 to add advanced options
 				if (oldVersion < 3) {
 					const tx = transaction.objectStore('generated-images');
 					tx.openCursor().then(function updateRecords(cursor): Promise<void> | void {
 						if (!cursor) return;
-
-						// Add new advanced options fields to existing records
-						const updatedRecord = { ...cursor.value };
-						if (!updatedRecord.input_fidelity) updatedRecord.input_fidelity = 'low';
-						if (!updatedRecord.output_compression) updatedRecord.output_compression = 100;
-						if (!updatedRecord.output_format) updatedRecord.output_format = 'png';
-
-						cursor.update(updatedRecord);
+						const r = { ...cursor.value };
+						if (!r.input_fidelity) r.input_fidelity = 'low';
+						if (!r.output_compression) r.output_compression = 100;
+						if (!r.output_format) r.output_format = 'png';
+						cursor.update(r);
 						return cursor.continue().then(updateRecords);
 					});
 				}
 
-				// Migrate from version 3 to 4 to add background option
 				if (oldVersion < 4) {
 					const tx = transaction.objectStore('generated-images');
 					tx.openCursor().then(function updateRecords(cursor): Promise<void> | void {
 						if (!cursor) return;
-
-						const updatedRecord = { ...cursor.value };
-						if (!updatedRecord.background) updatedRecord.background = 'auto';
-
-						cursor.update(updatedRecord);
+						const r = { ...cursor.value };
+						if (!r.background) r.background = 'auto';
+						cursor.update(r);
 						return cursor.continue().then(updateRecords);
 					});
 				}
@@ -127,21 +112,11 @@ export async function addImage(
 	return id;
 }
 
-export async function getImages(
-	offset: number,
-	limit: number
-): Promise<GeneratedImage[]> {
+export async function getImages(offset: number, limit: number): Promise<GeneratedImage[]> {
 	const db = await getDb();
-	const tx = db.transaction('generated-images', 'readonly');
-	const index = tx.objectStore('generated-images').index('by-timestamp');
-
+	const index = db.transaction('generated-images', 'readonly').objectStore('generated-images').index('by-timestamp');
 	let cursor = await index.openCursor(null, 'prev');
-
-	// Skip offset records in one IDB call instead of iterating one by one
-	if (offset > 0 && cursor) {
-		cursor = await cursor.advance(offset);
-	}
-
+	if (offset > 0 && cursor) cursor = await cursor.advance(offset);
 	const images: GeneratedImage[] = [];
 	while (cursor && images.length < limit) {
 		images.push(cursor.value);
@@ -172,62 +147,37 @@ export async function clearImages(): Promise<void> {
 	await db.clear('generated-images');
 }
 
-// ---------------------------------------------------------------------------
-// Cost stats cache (localStorage) — avoids loading all base64 blobs just for
-// the stats panel. Cache is keyed by the total image count so it auto-invalidates
-// whenever the count changes (add / delete).
-// ---------------------------------------------------------------------------
-
 const COST_CACHE_KEY = 'gpt-image-cost-cache';
-
-interface CostCache {
-	totalCost: number;
-	count: number;
-}
+type CostCache = { totalCost: number; count: number };
 
 export function getCostCache(): CostCache | null {
 	try {
 		const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(COST_CACHE_KEY) : null;
-		return raw ? (JSON.parse(raw) as CostCache) : null;
-	} catch {
-		return null;
-	}
+		return raw ? JSON.parse(raw) : null;
+	} catch { return null; }
 }
 
 export function setCostCache(totalCost: number, count: number): void {
 	try {
-		if (typeof localStorage !== 'undefined') {
-			localStorage.setItem(COST_CACHE_KEY, JSON.stringify({ totalCost, count } satisfies CostCache));
-		}
-	} catch { /* storage quota — ignore */ }
-}
-
-export function invalidateCostCache(): void {
-	try {
-		if (typeof localStorage !== 'undefined') localStorage.removeItem(COST_CACHE_KEY);
+		if (typeof localStorage !== 'undefined')
+			localStorage.setItem(COST_CACHE_KEY, JSON.stringify({ totalCost, count }));
 	} catch { /* ignore */ }
 }
 
-/**
- * Compute total cost by iterating all records with a cursor.
- * imageData blobs are received from IDB but immediately discarded — only
- * the small metadata fields (model/quality/size) are used.
- * Falls back to 0.01 per image when metadata is missing.
- */
+export function invalidateCostCache(): void {
+	try { if (typeof localStorage !== 'undefined') localStorage.removeItem(COST_CACHE_KEY); }
+	catch { /* ignore */ }
+}
+
 export async function computeImageCostTotal(): Promise<number> {
 	const db = await getDb();
-	const tx = db.transaction('generated-images', 'readonly');
-	const store = tx.objectStore('generated-images');
-
+	const store = db.transaction('generated-images', 'readonly').objectStore('generated-images');
 	let totalCost = 0;
 	let cursor = await store.openCursor();
 	while (cursor) {
 		const { model = 'gpt-image-1', quality, size } = cursor.value;
 		const m = model as ImageModel;
-		totalCost +=
-			quality && size && PRICING[m]?.[quality]?.[size]
-				? PRICING[m][quality][size]
-				: 0.01;
+		totalCost += quality && size && PRICING[m]?.[quality]?.[size] ? PRICING[m][quality][size] : 0.01;
 		cursor = await cursor.continue();
 	}
 	return totalCost;

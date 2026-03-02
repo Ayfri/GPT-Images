@@ -1,16 +1,8 @@
 import { writable, get } from 'svelte/store';
-import {
-	countImages,
-	getImages,
-	getCostCache,
-	setCostCache,
-	invalidateCostCache,
-	computeImageCostTotal
-} from '$lib/db/imageStore';
+import { countImages, getImages, getCostCache, setCostCache, invalidateCostCache, computeImageCostTotal } from '$lib/db/imageStore';
 import type { Writable } from 'svelte/store';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
 
-// Define the interface for our image records
 export interface ImageRecord {
 	id: string;
 	prompt: string;
@@ -25,36 +17,29 @@ export interface ImageRecord {
 	background?: ImageBackground;
 }
 
-// Create a store to hold our image records
 export const images: Writable<ImageRecord[]> = writable([]);
 export const totalImageCount: Writable<number> = writable(0);
-/** Total cost computed from ALL records in IndexedDB (not just loaded page) */
 export const totalCostAll: Writable<number> = writable(0);
 export const currentImageOffset: Writable<number> = writable(0);
 const PAGE_SIZE = 12;
 
-// Initialize the store with data from IndexedDB
+const idle = typeof requestIdleCallback !== 'undefined'
+	? (cb: () => void) => requestIdleCallback(cb)
+	: (cb: () => void) => setTimeout(cb, 50);
+
 export const initImageStore = async () => {
 	try {
 		const count = await countImages();
 		totalImageCount.set(count);
-
 		const initialImages = await getImages(0, PAGE_SIZE);
 		images.set(initialImages as ImageRecord[]);
 		currentImageOffset.set(initialImages.length);
 
-		// --- Cost stats: try cache first, then compute in background ---
 		const cached = getCostCache();
 		if (cached && cached.count === count) {
 			totalCostAll.set(cached.totalCost);
 		} else {
-			// Compute lazily so it doesn't block the initial render
-			const schedule =
-				typeof requestIdleCallback !== 'undefined'
-					? (cb: () => void) => requestIdleCallback(cb)
-					: (cb: () => void) => setTimeout(cb, 50);
-
-			schedule(async () => {
+			idle(async () => {
 				try {
 					const cost = await computeImageCostTotal();
 					totalCostAll.set(cost);
@@ -73,20 +58,13 @@ export const initImageStore = async () => {
 	}
 };
 
-// Function to load more images
 export const loadMoreImages = async () => {
-	const currentOffset = get(currentImageOffset);
-	const newImages = await getImages(currentOffset, PAGE_SIZE);
-	images.update((existingImages) => [...existingImages, ...newImages] as ImageRecord[]);
-	currentImageOffset.update((offset) => offset + newImages.length);
+	const offset = get(currentImageOffset);
+	const newImages = await getImages(offset, PAGE_SIZE);
+	images.update(existing => [...existing, ...newImages] as ImageRecord[]);
+	currentImageOffset.update(o => o + newImages.length);
 };
 
-// Function to refresh the image store
-export const refreshImageStore = async () => {
-	await initImageStore();
-};
+export const refreshImageStore = () => initImageStore();
 
-/** Call after adding or deleting an image to keep count + cost in sync */
-export const invalidateImageStats = () => {
-	invalidateCostCache();
-};
+export const invalidateImageStats = () => invalidateCostCache();
