@@ -27,13 +27,11 @@
 	}
 </script>
 
-<div class="mb-6">
-	<h1 class="text-3xl font-bold mb-2 text-center">
-		<span class="bg-linear-to-r from-accent-400 via-primary-400 to-secondary-400 bg-clip-text text-transparent">
-			GPT Video Generator
-		</span>
+<div class="mb-10 text-center animate-slide-up">
+	<h1 class="text-4xl sm:text-5xl font-bold mb-4 tracking-tight">
+		<span class="gradient-text">Video Generator</span>
 	</h1>
-	<p class="text-gray-400 text-center max-w-2xl mx-auto">
+	<p class="text-gray-400 max-w-xl mx-auto leading-relaxed">
 		Generate videos from text - or attach a reference image to guide the visual style and composition.
 	</p>
 </div>

@@ -322,7 +322,7 @@
 	}
 </script>
 
-<div class="glass-effect rounded-xl overflow-hidden">
+<div class="glass-panel rounded-2xl overflow-hidden">
 	<!-- Header -->
 	<div class="px-5 pt-5 pb-4 border-b border-white/5 flex items-center justify-between">
 		<div class="flex items-center gap-2">
@@ -564,14 +564,30 @@
 		<!-- Submit -->
 		<button
 			type="submit"
-			class="btn group bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2 {isGenerating || !$apiKey ? 'opacity-50 cursor-not-allowed' : 'hover:ring-white cursor-pointer'}"
+			class="btn group relative bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 via-violet-600 to-cyan-600 w-full flex items-center justify-center gap-2 py-3 font-semibold text-white shadow-lg shadow-purple-950/60 overflow-hidden
+				{isGenerating
+					? 'cursor-not-allowed'
+					: !$apiKey
+					? 'opacity-50 cursor-not-allowed'
+					: 'hover:ring-white/70 hover:shadow-purple-600/50 hover:scale-[1.01] hover:from-purple-600 hover:via-violet-500 hover:to-cyan-500 cursor-pointer'}"
 			disabled={isGenerating || !$apiKey}
 		>
 			{#if isGenerating}
-				<Loader2 class="h-4 w-4 animate-spin" />
-				{mode === 'generate' ? 'Generating…' : 'Generating with references…'}
+				<!-- Sheen sweep -->
+				<span class="pointer-events-none absolute inset-0 overflow-hidden">
+					<span class="absolute top-0 bottom-0 w-20 bg-linear-to-r from-transparent via-white/20 to-transparent animate-sheen"></span>
+				</span>
+				<Loader2 class="relative z-10 h-4 w-4 animate-spin shrink-0" />
+				<span class="relative z-10 flex items-center gap-2">
+					{mode === 'generate' ? 'Generating' : 'Generating from references'}
+					<span class="flex items-end gap-0.5 pb-px">
+						<span class="block h-1 w-1 rounded-full bg-white/80 animate-bounce [animation-delay:0ms]"></span>
+						<span class="block h-1 w-1 rounded-full bg-white/80 animate-bounce [animation-delay:150ms]"></span>
+						<span class="block h-1 w-1 rounded-full bg-white/80 animate-bounce [animation-delay:300ms]"></span>
+					</span>
+				</span>
 			{:else}
-				<Sparkles class="h-4 w-4" />
+				<Sparkles class="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
 				{mode === 'generate'
 					? `Generate ${imageCount > 1 ? `${imageCount} images` : 'image'}`
 					: `Generate ${imageCount > 1 ? `${imageCount} images` : 'image'} from references`}

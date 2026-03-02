@@ -7,86 +7,80 @@
 	const durations = Object.keys(DURATION_OPTIONS).map(Number) as (keyof typeof DURATION_OPTIONS)[];
 </script>
 
-<div class="glass-effect p-5 rounded-xl">
-	<div class="flex items-center mb-4">
-		<BarChart3 class="h-5 w-5 text-primary-400 mr-2" />
-		<h2 class="text-lg font-medium text-gray-100">Usage Statistics</h2>
+<div class="glass-panel p-5 rounded-2xl">
+	<div class="flex items-center gap-3 mb-5">
+		<div class="flex items-center justify-center w-8 h-8 rounded-xl bg-accent-500/15 border border-accent-500/20">
+			<BarChart3 class="h-4 w-4 text-accent-400" />
+		</div>
+		<h2 class="text-sm font-semibold text-gray-100">Usage Statistics</h2>
 	</div>
 
 	<div class="space-y-4">
-		<div class="grid grid-cols-2 gap-4">
-			<div class="bg-dark-100/50 rounded-lg p-4">
-				<div class="text-xs text-gray-400 mb-1">Generated Videos</div>
-				<div class="text-2xl font-semibold text-gray-100">{$totalVideoCount}</div>
+		<!-- Stats row -->
+		<div class="grid grid-cols-2 gap-3">
+			<div class="rounded-xl bg-white/3 border border-white/6 p-3.5">
+				<div class="text-xs text-gray-500 mb-1.5">Videos generated</div>
+				<div class="text-2xl font-bold text-gray-100 tabular-nums">{$totalVideoCount}</div>
 			</div>
 
-			<div class="bg-dark-100/50 rounded-lg p-4">
-				<div class="text-xs text-gray-400 mb-1">Total Cost</div>
-				<div class="text-2xl font-semibold text-gray-100">${$totalCostAll.toFixed(2)}</div>
+			<div class="rounded-xl bg-white/3 border border-white/6 p-3.5">
+				<div class="text-xs text-gray-500 mb-1.5">Total cost</div>
+				<div class="text-2xl font-bold text-gray-100 tabular-nums">${$totalCostAll.toFixed(2)}</div>
 			</div>
 		</div>
 
 		<!-- Storage Section -->
 		{#if $storageStatus}
-			<div class="bg-dark-100/50 rounded-lg p-4">
-				<div class="flex items-center mb-3">
-					<HardDrive class="h-4 w-4 text-info-400 mr-2" />
-					<div class="text-xs text-gray-400">Storage Usage</div>
-					<div class="ml-auto text-xs text-gray-500">{$storageStatus.sizeMB.toFixed(1)}MB / 100MB</div>
+			<div class="rounded-xl bg-white/3 border border-white/6 p-4">
+				<div class="flex items-center gap-2 mb-3">
+					<HardDrive class="h-3.5 w-3.5 text-blue-400" />
+					<span class="text-xs font-medium text-gray-400">Storage</span>
+					<span class="ml-auto text-xs text-gray-600">{$storageStatus.sizeMB.toFixed(1)} MB / 100 MB</span>
 				</div>
 
 				<div class="space-y-2">
-					<div class="w-full bg-dark-200/60 rounded-full h-2">
+					<div class="w-full bg-dark-300/80 rounded-full h-1.5 overflow-hidden">
 						<div
-							class="h-2 rounded-full transition-all duration-300 {$storageStatus.isOverLimit ? 'bg-error-500' : $storageStatus.isNearLimit ? 'bg-warning-500' : 'bg-success-500'}"
+							class="h-1.5 rounded-full transition-all duration-500 {$storageStatus.isOverLimit ? 'bg-error-500' : $storageStatus.isNearLimit ? 'bg-warning-400' : 'bg-success-400'}"
 							style="width: {$storageStatus.percentage}%"
 						></div>
 					</div>
 
 					{#if $storageStatus.isNearLimit}
-						<div class="text-xs text-warning-400 flex items-center">
-							⚠️ Approaching storage limit ({$storageStatus.percentage.toFixed(1)}%)
-						</div>
+						<p class="text-xs text-warning-400">Approaching limit ({$storageStatus.percentage.toFixed(1)}%)</p>
 					{:else if $storageStatus.isOverLimit}
-						<div class="text-xs text-error-400 flex items-center">
-							🚨 Storage limit exceeded! Old videos will be automatically deleted.
-						</div>
+						<p class="text-xs text-error-400">Storage limit exceeded - old videos will be auto-deleted.</p>
 					{:else}
-						<div class="text-xs text-gray-500">
-							{$storageStatus.percentage.toFixed(1)}% used
-						</div>
+						<p class="text-xs text-gray-600">{$storageStatus.percentage.toFixed(1)}% used</p>
 					{/if}
 				</div>
 			</div>
 		{/if}
 
 		<!-- Pricing Section -->
-		<div class="bg-dark-100/50 rounded-lg p-4">
-			<div class="flex items-center mb-3">
-				<Coins class="h-4 w-4 text-warning-400 mr-2" />
-				<div class="text-xs text-gray-400">Video Generation Pricing</div>
-				<div class="ml-auto text-xs text-gray-500">Per video</div>
+		<div class="rounded-xl bg-white/3 border border-white/6 p-4">
+			<div class="flex items-center gap-2 mb-4">
+				<Coins class="h-3.5 w-3.5 text-warning-400" />
+				<span class="text-xs font-medium text-gray-400">Pricing per video</span>
 			</div>
 
 			<div class="space-y-5">
 				{#each models as modelKey}
 					{@const resolutions = Object.keys(RESOLUTION_OPTIONS_BY_MODEL[modelKey]) as (keyof typeof PRICING[typeof modelKey])[]}
 					<div class="space-y-2">
-						<div class="text-sm font-medium text-gray-300">{MODEL_OPTIONS[modelKey].label}</div>
-						<!-- Header row -->
-						<div class="grid gap-1.5 text-xs text-gray-500" style="grid-template-columns: auto repeat({durations.length}, 1fr)">
+						<div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">{MODEL_OPTIONS[modelKey].label}</div>
+						<div class="grid gap-1" style="grid-template-columns: 5rem repeat({durations.length}, 1fr)">
 							<div></div>
 							{#each durations as d}
-								<div class="text-center">{DURATION_OPTIONS[d].label}</div>
+								<div class="text-center text-[10px] text-gray-600 uppercase tracking-wider">{DURATION_OPTIONS[d].label}</div>
 							{/each}
 						</div>
-						<!-- Data rows -->
 						{#each resolutions as res}
-							<div class="grid gap-1.5" style="grid-template-columns: auto repeat({durations.length}, 1fr)">
-								<div class="text-xs text-gray-400 flex items-center">{(RESOLUTION_OPTIONS_BY_MODEL[modelKey] as any)[res].label}</div>
+							<div class="grid gap-1" style="grid-template-columns: 5rem repeat({durations.length}, 1fr)">
+								<div class="text-xs text-gray-500 flex items-center">{(RESOLUTION_OPTIONS_BY_MODEL[modelKey] as any)[res].label}</div>
 								{#each durations as d}
-									<div class="bg-dark-200/60 rounded-sm p-2 text-center">
-										<span class="text-sm font-semibold text-gray-100">
+									<div class="rounded-lg bg-dark-300/60 border border-white/4 p-1.5 text-center">
+										<span class="text-xs font-semibold text-gray-200">
 											${(PRICING[modelKey][res]?.[d] ?? 0).toFixed(2)}
 										</span>
 									</div>

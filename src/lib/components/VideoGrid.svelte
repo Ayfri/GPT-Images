@@ -143,13 +143,17 @@
 
 <div>
 	<div class="mb-6 flex items-center justify-between">
-		<h2 class="text-xl font-medium text-gray-100">Video History</h2>
-		<div class="flex items-center gap-4">
-			<div class="flex items-center gap-2">
-				<label class="text-sm text-gray-400" for="sort-by">Sort by</label>
+		<div>
+			<h2 class="text-base font-semibold text-gray-100">Video History</h2>
+			<p class="text-xs text-gray-600 mt-0.5">{$totalVideoCount} video{$totalVideoCount !== 1 ? 's' : ''} generated</p>
+		</div>
+		<div class="flex items-center gap-2">
+			<div class="flex items-center gap-2 glass-panel px-3 py-1.5">
+				<label class="text-xs text-gray-500" for="sort-by">Sort</label>
 				<select
 					bind:value={sortField}
-					class="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm text-white focus:border-blue-500 focus:ring-blue-500"
+					class="bg-dark-100 text-sm text-gray-200 focus:outline-none cursor-pointer appearance-none pr-1 rounded"
+					style="color-scheme: dark"
 					id="sort-by"
 				>
 					<option value="timestamp">Date</option>
@@ -160,8 +164,9 @@
 				</select>
 			</div>
 			<button
-				class="cursor-pointer rounded-md border border-gray-700 bg-gray-800 p-1.5 text-white hover:bg-gray-700"
+				class="glass-panel p-1.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/8 transition-all duration-200 cursor-pointer"
 				onclick={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+				title={sortDirection === 'asc' ? 'Sort descending' : 'Sort ascending'}
 			>
 				{#if sortDirection === 'asc'}
 					<ArrowUp class="h-4 w-4" />
@@ -178,13 +183,16 @@
 		</div>
 	{:else if $videos.length === 0}
 		<div
-			in:fly={{ y: 20, duration: 300 }}
-			class="text-center py-10 px-4 border border-dashed border-gray-700 rounded-xl"
+			in:fly={{ y: 20, duration: 400 }}
+			class="text-center py-16 px-6 rounded-2xl border border-dashed border-white/8 bg-white/2"
 		>
-			<VideoIcon class="h-10 w-10 text-gray-600 mx-auto mb-3" />
-			<h3 class="text-lg font-medium text-gray-400">No videos yet</h3>
-			<p class="text-gray-500 text-sm mt-1">
-				Generate your first video to see it here
+			<div class="relative inline-flex items-center justify-center w-16 h-16 mb-4">
+				<div class="absolute inset-0 rounded-2xl bg-secondary-500/10 animate-pulse"></div>
+				<VideoIcon class="h-8 w-8 text-secondary-400/60 relative" />
+			</div>
+			<h3 class="text-base font-semibold text-gray-300 mb-1">No videos yet</h3>
+			<p class="text-sm text-gray-600 max-w-xs mx-auto">
+				Generate your first video above and it will appear here
 			</p>
 		</div>
 	{:else}
@@ -207,7 +215,7 @@
 			{/each}
 		</div>
 
-		<!-- Sentinel for infinite scroll — always rendered at bottom, unaffected by sorting -->
+		<!-- Sentinel for infinite scroll - always rendered at bottom, unaffected by sorting -->
 		{#if $videos.length < $totalVideoCount}
 			<div bind:this={sentinelRef} class="mt-8 flex justify-center min-h-px">
 				{#if loadingMore}

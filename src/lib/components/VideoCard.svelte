@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Copy, Download, RefreshCw, Sparkles, Trash2 } from 'lucide-svelte';
-	import { fade, fly } from 'svelte/transition';
+	import { Sparkles } from 'lucide-svelte';
 	import { deleteVideo } from '$lib/db/videoStore';
 	import { videos, totalVideoCount, totalCostAll, invalidateVideoStats } from '$lib/stores/videoStore';
 	import { calculateVideoPrice } from '$lib/utils/videoPrice';
+	import MediaCard from './MediaCard.svelte';
 
 	interface Props {
 		duration: number | undefined;
@@ -30,50 +30,43 @@
 		onDeleted,
 		onRegenerate,
 		onRemix,
-		onView
+		onView,
 	}: Props = $props();
 
 	let copied = $state(false);
-	let showControls = $state(false);
-	let price: number | undefined = $state();
+	let price = $state(1.0);
+	let videoElement: HTMLVideoElement | undefined = $state();
 
 	$effect(() => {
-		const rec = $videos.find(vid => vid.id === id);
-		if (rec) {
-			price = calculateVideoPrice(rec.model, rec.resolution, rec.duration);
-		} else {
-			price = 1.0;
-		}
+		const rec = $videos.find((vid) => vid.id === id);
+		price = rec ? calculateVideoPrice(rec.model, rec.resolution, rec.duration) : 1.0;
 	});
 
-	function formatDate(timestamp: number): string {
-		return new Date(timestamp).toLocaleString();
-	}
-
-	async function copyPrompt() {
+	async function handleCopy() {
 		await navigator.clipboard.writeText(prompt);
 		copied = true;
-		setTimeout(() => { copied = false; }, 2000);
+		setTimeout(() => {
+			copied = false;
+		}, 2000);
 	}
 
 	async function handleDelete() {
 		if (confirm('Are you sure you want to delete this video?')) {
-			// Subtract this video’s cost before removing it from the store
-			const rec = $videos.find(vid => vid.id === id);
+			const rec = $videos.find((vid) => vid.id === id);
 			if (rec) {
-				const deletedCost = calculateVideoPrice(rec.model, rec.resolution, rec.duration);
-				totalCostAll.update(c => Math.max(0, c - deletedCost));
+				totalCostAll.update((c) =>
+					Math.max(0, c - calculateVideoPrice(rec.model, rec.resolution, rec.duration)),
+				);
 			}
 			await deleteVideo(id);
-			videos.update(vids => vids.filter(vid => vid.id !== id));
-			totalVideoCount.update(n => Math.max(0, n - 1));
+			videos.update((vids) => vids.filter((vid) => vid.id !== id));
+			totalVideoCount.update((n) => Math.max(0, n - 1));
 			invalidateVideoStats();
 			onDeleted?.(id);
 		}
 	}
 
 	function handleDownload() {
-		// Create a link to download the video
 		const a = document.createElement('a');
 		a.href = videoData;
 		a.download = `video-${Date.now()}.mp4`;
@@ -82,122 +75,56 @@
 		document.body.removeChild(a);
 	}
 
-	function handleRegenerate() {
-		onRegenerate?.(prompt);
-	}
-
-	function handleRemix() {
-		onRemix?.(id, prompt);
-	}
-
-	function handleView() {
-		onView?.(id);
+	function handleCardHover(hovering: boolean) {
+		if (videoElement) {
+			if (hovering) {
+				videoElement.play().catch(() => {});
+			} else {
+				videoElement.pause();
+				videoElement.currentTime = 0;
+			}
+		}
 	}
 </script>
 
-<div
-	class="card group relative overflow-hidden transition-all duration-300"
-	onmouseenter={() => showControls = true}
-	onmouseleave={() => showControls = false}
-	onfocusin={() => showControls = true}
-	onfocusout={() => showControls = false}
-	role="article"
-	aria-label="Generated video card"
+<MediaCard
+	{prompt}
+	{price}
+	priceDecimals={2}
+	{timestamp}
+	aspectClass="aspect-video"
+	{copied}
+	onDelete={handleDelete}
+	onCopy={handleCopy}
+	onDownload={handleDownload}
+	onRegenerate={() => onRegenerate?.(prompt)}
+	onView={() => onView?.(id)}
+	onCardHoverChange={handleCardHover}
 >
-	<div
-		aria-label="View video"
-		class="relative aspect-video cursor-pointer overflow-hidden"
-		onclick={handleView}
-		onkeydown={(e) => e.key === 'Enter' && handleView()}
-		role="button"
-		tabindex="0"
-	>
+	{#snippet media()}
 		<video
-			class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+			bind:this={videoElement}
+			class="w-full h-full object-cover transition-transform duration-400 group-hover:scale-110"
 			loop
 			muted
-			onmouseenter={(e) => e.currentTarget.play()}
-			onmouseleave={(e) => e.currentTarget.pause()}
 			playsinline
 			src={videoData}
 		>
 			<track kind="captions" />
 		</video>
+	{/snippet}
 
-		{#if showControls}
-			<div
-				transition:fade={{ duration: 150 }}
-				class="absolute inset-0 bg-linear-to-t from-dark-300/90 via-dark-300/40 to-transparent flex flex-col justify-end p-3"
-			>
-				<div class="flex justify-between items-center mb-2">
-					<button
-						onclick={(e) => { e.stopPropagation(); handleDelete(); }}
-						class="btn-ghost p-2 rounded-full hover:bg-error-700/30"
-						aria-label="Delete video"
-						title="Delete video"
-					>
-						<Trash2 class="w-4 h-4 text-error-400" />
-					</button>
-
-					<div class="flex space-x-1">
-						<button
-							onclick={(e) => { e.stopPropagation(); copyPrompt(); }}
-							class="btn-ghost p-2 rounded-full hover:bg-primary-700/30"
-							aria-label="Copy prompt"
-							title="Copy prompt"
-						>
-							<Copy class="w-4 h-4 text-primary-400" />
-						</button>
-
-						<button
-							onclick={(e) => { e.stopPropagation(); handleDownload(); }}
-							class="btn-ghost p-2 rounded-full hover:bg-secondary-700/30"
-							aria-label="Download video"
-							title="Download video"
-						>
-							<Download class="w-4 h-4 text-secondary-400" />
-						</button>
-
-						<button
-							onclick={(e) => { e.stopPropagation(); handleRemix(); }}
-							class="btn-ghost p-2 rounded-full hover:bg-purple-700/30"
-							aria-label="Remix this video"
-							title="Remix this video"
-						>
-							<Sparkles class="w-4 h-4 text-purple-400" />
-						</button>
-
-						<button
-							onclick={(e) => { e.stopPropagation(); handleRegenerate(); }}
-							class="btn-ghost p-2 rounded-full hover:bg-accent-700/30"
-							aria-label="Regenerate with this prompt"
-							title="Regenerate with this prompt"
-						>
-							<RefreshCw class="w-4 h-4 text-accent-400" />
-						</button>
-					</div>
-				</div>
-			</div>
-		{/if}
-
-		{#if copied}
-			<div
-				class="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-primary-800 text-white text-xs py-1 px-3 rounded-full"
-				in:fly={{ y: 20, duration: 200 }}
-				out:fade={{ duration: 150 }}
-			>
-				Copied!
-			</div>
-		{/if}
-	</div>
-
-	<div class="p-4">
-		<p class="text-sm text-gray-300 line-clamp-2 mb-2" title={prompt}>
-			{prompt}
-		</p>
-		<p class="text-xs text-gray-500 flex justify-between items-center">
-			<span>{formatDate(timestamp)}</span>
-			<span class="text-gray-400">${(price ?? 0).toFixed(2)}</span>
-		</p>
-	</div>
-</div>
+	{#snippet extraAction()}
+		<button
+			onclick={(e) => {
+				e.stopPropagation();
+				onRemix?.(id, prompt);
+			}}
+			class="btn-ghost p-2 rounded-xl hover:bg-purple-700/25 group/remix"
+			aria-label="Remix this video"
+			title="Remix this video"
+		>
+			<Sparkles class="w-4 h-4 text-purple-300 group-hover/remix:scale-110 transition-transform" />
+		</button>
+	{/snippet}
+</MediaCard>
