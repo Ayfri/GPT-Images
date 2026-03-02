@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { BarChart3, Coins } from 'lucide-svelte';
-	import { images, totalCost } from '$lib/stores/imageStore';
+	import { totalImageCount, totalCostAll } from '$lib/stores/imageStore';
 	import { MODEL_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS, PRICING } from '$lib/types/image';
 
 	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
@@ -18,11 +18,11 @@
 		<div class="grid grid-cols-2 gap-4">
 			<div class="bg-dark-100/50 rounded-lg p-4">
 				<div class="text-xs text-gray-400 mb-1">Generated Images</div>
-				<div class="text-2xl font-semibold text-gray-100">{$images.length}</div>
+				<div class="text-2xl font-semibold text-gray-100">{$totalImageCount}</div>
 			</div>
 			<div class="bg-dark-100/50 rounded-lg p-4">
 				<div class="text-xs text-gray-400 mb-1">Total Cost</div>
-				<div class="text-2xl font-semibold text-gray-100">${$totalCost.toFixed(2)}</div>
+				<div class="text-2xl font-semibold text-gray-100">${$totalCostAll.toFixed(2)}</div>
 			</div>
 		</div>
 

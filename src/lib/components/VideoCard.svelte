@@ -2,7 +2,7 @@
 	import { Copy, Download, RefreshCw, Sparkles, Trash2 } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { deleteVideo } from '$lib/db/videoStore';
-	import { videos } from '$lib/stores/videoStore';
+	import { videos, totalVideoCount, totalCostAll, invalidateVideoStats } from '$lib/stores/videoStore';
 	import { calculateVideoPrice } from '$lib/utils/videoPrice';
 
 	interface Props {
@@ -58,8 +58,16 @@
 
 	async function handleDelete() {
 		if (confirm('Are you sure you want to delete this video?')) {
+			// Subtract this video’s cost before removing it from the store
+			const rec = $videos.find(vid => vid.id === id);
+			if (rec) {
+				const deletedCost = calculateVideoPrice(rec.model, rec.resolution, rec.duration);
+				totalCostAll.update(c => Math.max(0, c - deletedCost));
+			}
 			await deleteVideo(id);
 			videos.update(vids => vids.filter(vid => vid.id !== id));
+			totalVideoCount.update(n => Math.max(0, n - 1));
+			invalidateVideoStats();
 			onDeleted?.(id);
 		}
 	}

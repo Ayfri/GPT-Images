@@ -1,8 +1,14 @@
-import { writable, derived, get } from 'svelte/store';
-import { countImages, getImages } from '$lib/db/imageStore';
-import type { Writable, Readable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
+import {
+	countImages,
+	getImages,
+	getCostCache,
+	setCostCache,
+	invalidateCostCache,
+	computeImageCostTotal
+} from '$lib/db/imageStore';
+import type { Writable } from 'svelte/store';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
-import { PRICING } from '$lib/types/image';
 
 // Define the interface for our image records
 export interface ImageRecord {
@@ -22,21 +28,10 @@ export interface ImageRecord {
 // Create a store to hold our image records
 export const images: Writable<ImageRecord[]> = writable([]);
 export const totalImageCount: Writable<number> = writable(0);
+/** Total cost computed from ALL records in IndexedDB (not just loaded page) */
+export const totalCostAll: Writable<number> = writable(0);
 export const currentImageOffset: Writable<number> = writable(0);
-const PAGE_SIZE = 12; // Adjust as needed
-
-// Create a derived store for total cost calculation
-export const totalCost: Readable<number> = derived(images, ($images) => {
-	return $images.reduce((total, image) => {
-		// If we have model, quality and size info, use specific pricing
-		const model = (image.model || 'gpt-image-1') as ImageModel;
-		if (image.quality && image.size && PRICING[model]?.[image.quality]?.[image.size]) {
-			return total + PRICING[model][image.quality][image.size];
-		}
-		// Default fallback price for images without detailed info
-		return total + 0.01;
-	}, 0);
-});
+const PAGE_SIZE = 12;
 
 // Initialize the store with data from IndexedDB
 export const initImageStore = async () => {
@@ -47,10 +42,33 @@ export const initImageStore = async () => {
 		const initialImages = await getImages(0, PAGE_SIZE);
 		images.set(initialImages as ImageRecord[]);
 		currentImageOffset.set(initialImages.length);
+
+		// --- Cost stats: try cache first, then compute in background ---
+		const cached = getCostCache();
+		if (cached && cached.count === count) {
+			totalCostAll.set(cached.totalCost);
+		} else {
+			// Compute lazily so it doesn't block the initial render
+			const schedule =
+				typeof requestIdleCallback !== 'undefined'
+					? (cb: () => void) => requestIdleCallback(cb)
+					: (cb: () => void) => setTimeout(cb, 50);
+
+			schedule(async () => {
+				try {
+					const cost = await computeImageCostTotal();
+					totalCostAll.set(cost);
+					setCostCache(cost, count);
+				} catch (e) {
+					console.warn('Failed to compute image cost total', e);
+				}
+			});
+		}
 	} catch (error) {
 		console.error('Failed to load images from IndexedDB:', error);
 		images.set([]);
 		totalImageCount.set(0);
+		totalCostAll.set(0);
 		currentImageOffset.set(0);
 	}
 };
@@ -66,4 +84,9 @@ export const loadMoreImages = async () => {
 // Function to refresh the image store
 export const refreshImageStore = async () => {
 	await initImageStore();
+};
+
+/** Call after adding or deleting an image to keep count + cost in sync */
+export const invalidateImageStats = () => {
+	invalidateCostCache();
 };

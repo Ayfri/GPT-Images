@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { downloadImage } from '$lib/utils/downloadImage';
 	import { deleteImage } from '$lib/db/imageStore';
-	import { images } from '$lib/stores/imageStore';
+	import { images, totalImageCount, totalCostAll, invalidateImageStats } from '$lib/stores/imageStore';
 	import { PRICING, type ImageModel } from '$lib/types/image';
 
 	interface Props {
@@ -49,8 +49,19 @@
 
 	async function handleDelete() {
 		if (confirm('Are you sure you want to delete this image?')) {
+			// Subtract this image’s cost before removing it from the store
+			const rec = $images.find(img => img.id === id);
+			if (rec) {
+				const deletedCost =
+					rec.quality && rec.size && PRICING[rec.model as ImageModel]?.[rec.quality]?.[rec.size]
+						? PRICING[rec.model as ImageModel][rec.quality][rec.size]
+						: 0.01;
+				totalCostAll.update(c => Math.max(0, c - deletedCost));
+			}
 			await deleteImage(id);
 			images.update(imgs => imgs.filter(img => img.id !== id));
+			totalImageCount.update(n => Math.max(0, n - 1));
+			invalidateImageStats(); // invalidate localStorage cache
 			onDeleted?.(id);
 		}
 	}
@@ -88,6 +99,8 @@
 		<img
 			alt={prompt}
 			class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+			decoding="async"
+			loading="lazy"
 			src={imageData}
 		/>
 

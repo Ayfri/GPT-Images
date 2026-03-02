@@ -1,6 +1,15 @@
-import { derived, get, writable } from 'svelte/store';
-import { countVideos, getVideos, addVideoWithCleanup, getStorageStatus } from '$lib/db/videoStore';
-import type { Readable, Writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
+import {
+	countVideos,
+	getVideos,
+	addVideoWithCleanup,
+	getVideoCostCache,
+	setVideoCostCache,
+	invalidateVideoCostCache,
+	computeVideoCostTotal,
+	getTotalStorageSize
+} from '$lib/db/videoStore';
+import type { Writable } from 'svelte/store';
 import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import { calculateVideoPrice } from '$lib/utils/videoPrice';
 
@@ -18,6 +27,8 @@ export interface VideoRecord {
 // Create a store to hold our video records
 export const videos: Writable<VideoRecord[]> = writable([]);
 export const totalVideoCount: Writable<number> = writable(0);
+/** Total cost computed from ALL records in IndexedDB (not just loaded page) */
+export const totalCostAll: Writable<number> = writable(0);
 export const currentVideoOffset: Writable<number> = writable(0);
 export const storageStatus: Writable<{
 	sizeMB: number;
@@ -35,22 +46,9 @@ let cachedTotalSizeBytes: number | null = null;
  */
 async function getCachedTotalSize(): Promise<number> {
 	if (cachedTotalSizeBytes === null) {
-		// Calculate from all videos (expensive operation)
-		const { getTotalStorageSize } = await import('$lib/db/videoStore');
 		cachedTotalSizeBytes = await getTotalStorageSize();
 	}
 	return cachedTotalSizeBytes;
-}
-
-/**
- * Update cached total size when videos are added or removed
- */
-function updateCachedSize(deltaBytes: number) {
-	if (cachedTotalSizeBytes !== null) {
-		cachedTotalSizeBytes += deltaBytes;
-		// Ensure it doesn't go negative
-		if (cachedTotalSizeBytes < 0) cachedTotalSizeBytes = 0;
-	}
 }
 
 /**
@@ -64,13 +62,6 @@ function resetCachedSize() {
 function getVideoPrice(video: VideoRecord): number {
 	return calculateVideoPrice(video.model, video.resolution, video.duration);
 }
-
-// Create a derived store for total cost calculation
-export const totalCost: Readable<number> = derived(videos, ($videos) => {
-	return $videos.reduce((total, video) => {
-		return total + getVideoPrice(video);
-	}, 0);
-});
 
 /**
  * Get optimized storage status using cached size
@@ -106,7 +97,28 @@ export const initVideoStore = async () => {
 		videos.set(initialVideos as VideoRecord[]);
 		currentVideoOffset.set(initialVideos.length);
 
-		// Load storage status using optimized method (with error handling)
+		// --- Cost stats: try cache first, then compute lazily in background ---
+		const cached = getVideoCostCache();
+		if (cached && cached.count === count) {
+			totalCostAll.set(cached.totalCost);
+		} else {
+			const schedule =
+				typeof requestIdleCallback !== 'undefined'
+					? (cb: () => void) => requestIdleCallback(cb)
+					: (cb: () => void) => setTimeout(cb, 50);
+
+			schedule(async () => {
+				try {
+					const cost = await computeVideoCostTotal();
+					totalCostAll.set(cost);
+					setVideoCostCache(cost, count);
+				} catch (e) {
+					console.warn('Failed to compute video cost total', e);
+				}
+			});
+		}
+
+		// Load storage status (with error handling)
 		try {
 			const status = await getOptimizedStorageStatus();
 			storageStatus.set(status);
@@ -118,9 +130,10 @@ export const initVideoStore = async () => {
 		console.error('Failed to load videos from IndexedDB:', error);
 		videos.set([]);
 		totalVideoCount.set(0);
+		totalCostAll.set(0);
 		currentVideoOffset.set(0);
 		storageStatus.set(null);
-		resetCachedSize(); // Reset cache on error
+		resetCachedSize();
 	}
 };
 
@@ -142,13 +155,17 @@ export const addVideoWithStorageManagement = async (
 ): Promise<{ id: string; cleanedCount: number }> => {
 	const { video, cleanedCount } = await addVideoWithCleanup(duration, model, prompt, resolution, videoData);
 
-	// Reset cache since videos may have been added/deleted
+	// Reset caches since videos may have been added/deleted
 	resetCachedSize();
+	invalidateVideoCostCache();
 
 	// Add the new video to the top of the list
 	videos.update(current => [video as VideoRecord, ...current]);
 	currentVideoOffset.update(offset => offset + 1);
 	totalVideoCount.update(count => count + 1);
+
+	// Update cost store incrementally
+	totalCostAll.update(cost => cost + getVideoPrice(video as VideoRecord));
 
 	// Update storage status
 	try {
@@ -164,4 +181,9 @@ export const addVideoWithStorageManagement = async (
 // Function to refresh the video store
 export const refreshVideoStore = async () => {
 	await initVideoStore();
+};
+
+/** Call after deleting a video to keep count + cost cache in sync */
+export const invalidateVideoStats = () => {
+	invalidateVideoCostCache();
 };

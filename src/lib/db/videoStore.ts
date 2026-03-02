@@ -1,6 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
+import { calculateVideoPrice } from '$lib/utils/videoPrice';
 
 interface GeneratedVideo {
 	duration?: VideoDuration;
@@ -69,19 +70,19 @@ export async function getVideos(
 ): Promise<GeneratedVideo[]> {
 	const db = await getDb();
 	const tx = db.transaction('generated-videos', 'readonly');
-	const store = tx.objectStore('generated-videos');
-	const index = store.index('by-timestamp');
+	const index = tx.objectStore('generated-videos').index('by-timestamp');
+
+	let cursor = await index.openCursor(null, 'prev');
+
+	// Skip offset records in one IDB call instead of iterating one by one
+	if (offset > 0 && cursor) {
+		cursor = await cursor.advance(offset);
+	}
 
 	const videos: GeneratedVideo[] = [];
-	let cursor = await index.openCursor(null, 'prev'); // 'prev' for newest first
-	let i = 0;
-
 	while (cursor && videos.length < limit) {
-		if (i >= offset) {
-			videos.push(cursor.value);
-		}
+		videos.push(cursor.value);
 		cursor = await cursor.continue();
-		i++;
 	}
 	return videos;
 }
@@ -106,6 +107,59 @@ export async function deleteVideo(id: string): Promise<void> {
 export async function clearVideos(): Promise<void> {
 	const db = await getDb();
 	await db.clear('generated-videos');
+}
+
+// ---------------------------------------------------------------------------
+// Cost stats cache (localStorage) — mirrors the image cost cache pattern
+// ---------------------------------------------------------------------------
+
+const VIDEO_COST_CACHE_KEY = 'gpt-video-cost-cache';
+
+interface VideoCostCache {
+	totalCost: number;
+	count: number;
+}
+
+export function getVideoCostCache(): VideoCostCache | null {
+	try {
+		const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(VIDEO_COST_CACHE_KEY) : null;
+		return raw ? (JSON.parse(raw) as VideoCostCache) : null;
+	} catch {
+		return null;
+	}
+}
+
+export function setVideoCostCache(totalCost: number, count: number): void {
+	try {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(VIDEO_COST_CACHE_KEY, JSON.stringify({ totalCost, count } satisfies VideoCostCache));
+		}
+	} catch { /* storage quota — ignore */ }
+}
+
+export function invalidateVideoCostCache(): void {
+	try {
+		if (typeof localStorage !== 'undefined') localStorage.removeItem(VIDEO_COST_CACHE_KEY);
+	} catch { /* ignore */ }
+}
+
+/**
+ * Compute total cost for all videos using cursor iteration.
+ * videoData blobs are received but immediately discarded.
+ */
+export async function computeVideoCostTotal(): Promise<number> {
+	const db = await getDb();
+	const tx = db.transaction('generated-videos', 'readonly');
+	const store = tx.objectStore('generated-videos');
+
+	let totalCost = 0;
+	let cursor = await store.openCursor();
+	while (cursor) {
+		const { model, resolution, duration } = cursor.value;
+		totalCost += calculateVideoPrice(model, resolution, duration);
+		cursor = await cursor.continue();
+	}
+	return totalCost;
 }
 
 // Storage management constants

@@ -1,6 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
+import { PRICING } from '$lib/types/image';
 
 interface GeneratedImage {
 	background?: ImageBackground;
@@ -132,19 +133,19 @@ export async function getImages(
 ): Promise<GeneratedImage[]> {
 	const db = await getDb();
 	const tx = db.transaction('generated-images', 'readonly');
-	const store = tx.objectStore('generated-images');
-	const index = store.index('by-timestamp');
+	const index = tx.objectStore('generated-images').index('by-timestamp');
+
+	let cursor = await index.openCursor(null, 'prev');
+
+	// Skip offset records in one IDB call instead of iterating one by one
+	if (offset > 0 && cursor) {
+		cursor = await cursor.advance(offset);
+	}
 
 	const images: GeneratedImage[] = [];
-	let cursor = await index.openCursor(null, 'prev'); // 'prev' for newest first
-	let i = 0;
-
 	while (cursor && images.length < limit) {
-		if (i >= offset) {
-			images.push(cursor.value);
-		}
+		images.push(cursor.value);
 		cursor = await cursor.continue();
-		i++;
 	}
 	return images;
 }
@@ -169,4 +170,65 @@ export async function deleteImage(id: string): Promise<void> {
 export async function clearImages(): Promise<void> {
 	const db = await getDb();
 	await db.clear('generated-images');
+}
+
+// ---------------------------------------------------------------------------
+// Cost stats cache (localStorage) — avoids loading all base64 blobs just for
+// the stats panel. Cache is keyed by the total image count so it auto-invalidates
+// whenever the count changes (add / delete).
+// ---------------------------------------------------------------------------
+
+const COST_CACHE_KEY = 'gpt-image-cost-cache';
+
+interface CostCache {
+	totalCost: number;
+	count: number;
+}
+
+export function getCostCache(): CostCache | null {
+	try {
+		const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(COST_CACHE_KEY) : null;
+		return raw ? (JSON.parse(raw) as CostCache) : null;
+	} catch {
+		return null;
+	}
+}
+
+export function setCostCache(totalCost: number, count: number): void {
+	try {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(COST_CACHE_KEY, JSON.stringify({ totalCost, count } satisfies CostCache));
+		}
+	} catch { /* storage quota — ignore */ }
+}
+
+export function invalidateCostCache(): void {
+	try {
+		if (typeof localStorage !== 'undefined') localStorage.removeItem(COST_CACHE_KEY);
+	} catch { /* ignore */ }
+}
+
+/**
+ * Compute total cost by iterating all records with a cursor.
+ * imageData blobs are received from IDB but immediately discarded — only
+ * the small metadata fields (model/quality/size) are used.
+ * Falls back to 0.01 per image when metadata is missing.
+ */
+export async function computeImageCostTotal(): Promise<number> {
+	const db = await getDb();
+	const tx = db.transaction('generated-images', 'readonly');
+	const store = tx.objectStore('generated-images');
+
+	let totalCost = 0;
+	let cursor = await store.openCursor();
+	while (cursor) {
+		const { model = 'gpt-image-1', quality, size } = cursor.value;
+		const m = model as ImageModel;
+		totalCost +=
+			quality && size && PRICING[m]?.[quality]?.[size]
+				? PRICING[m][quality][size]
+				: 0.01;
+		cursor = await cursor.continue();
+	}
+	return totalCost;
 }

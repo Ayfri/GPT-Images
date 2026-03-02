@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import {
 		ArrowDown,
@@ -29,7 +28,7 @@
 	let sortField: 'duration' | 'price' | 'prompt' | 'resolution' | 'timestamp' = $state('timestamp');
 
 	let observer: IntersectionObserver | undefined = $state();
-	let videoGridRef: HTMLElement | undefined = $state();
+	let sentinelRef: HTMLDivElement | undefined = $state();
 
 	function getVideoPrice(video: VideoRecord): number {
 		return calculateVideoPrice(video.model, video.resolution, video.duration);
@@ -80,59 +79,29 @@
 		await initVideoStore();
 		loading = false;
 
-		// Set up intersection observer for infinite scroll
 		observer = new IntersectionObserver(
-			async (entries) => {
-				const lastVideoCard = entries[0];
-				if (lastVideoCard.isIntersecting && !loadingMore && $videos.length < $totalVideoCount) {
-					loadingMore = true;
-					try {
-						await loadMoreVideos();
-						// Re-setup observer after loading more videos
-						await setupObserver();
-					} finally {
-						loadingMore = false;
-					}
-				}
+			(entries) => {
+				if (!entries[0].isIntersecting || loadingMore || $videos.length >= $totalVideoCount) return;
+				loadingMore = true;
+
+				const schedule =
+					typeof requestIdleCallback !== 'undefined'
+						? (cb: () => void) => requestIdleCallback(cb, { timeout: 500 })
+						: (cb: () => void) => setTimeout(cb, 0);
+
+				schedule(async () => {
+					await loadMoreVideos();
+					loadingMore = false;
+				});
 			},
-			{ threshold: 0.5 }
+			{ rootMargin: '200px' }
 		);
 
-		// Observe the last element if videos are already loaded
-		if (sortedVideos.length > 0 && videoGridRef) {
-			const lastCard = videoGridRef.lastElementChild;
-			if (lastCard) {
-				observer.observe(lastCard);
-			}
-		}
+		if (sentinelRef) observer.observe(sentinelRef);
 	});
 
-	// Cleanup observer on component destroy
-	onDestroy(() => {
-		if (observer) {
-			observer.disconnect();
-		}
-	});
-
-	// Only reconnect observer after loading more videos, not when videos are added to the store
-	async function setupObserver() {
-		if (observer && videoGridRef && sortedVideos.length > 0 && $videos.length < $totalVideoCount && !loadingMore) {
-			// Wait for DOM updates
-			await tick();
-			// Disconnect and reconnect to ensure we're observing the correct last element
-			observer.disconnect();
-			const lastCard = videoGridRef.lastElementChild;
-			if (lastCard) {
-				observer.observe(lastCard);
-			}
-		}
-	}
-
-	// Setup observer after loading more videos
 	$effect(() => {
-		if (!loadingMore && sortedVideos.length > 0) {
-			setupObserver();
-		}
+		if (sentinelRef && observer) observer.observe(sentinelRef);
 	});
 
 	function handleRegenerate(prompt: string) {
@@ -219,7 +188,7 @@
 			</p>
 		</div>
 	{:else}
-		<div class="video-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" bind:this={videoGridRef}>
+		<div class="video-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 			{#each sortedVideos as video, i (video.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ y: 20, duration: 300, delay: 50 * i }}>
 					<VideoCard
@@ -238,14 +207,12 @@
 			{/each}
 		</div>
 
+		<!-- Sentinel for infinite scroll — always rendered at bottom, unaffected by sorting -->
 		{#if $videos.length < $totalVideoCount}
-			<div class="mt-8 flex justify-center">
-				<div
-					class="animate-pulse-slow text-gray-500"
-					class:hidden={!loadingMore}
-				>
-					Loading more videos...
-				</div>
+			<div bind:this={sentinelRef} class="mt-8 flex justify-center min-h-px">
+				{#if loadingMore}
+					<div class="animate-pulse-slow text-gray-500">Loading more videos...</div>
+				{/if}
 			</div>
 		{/if}
 	{/if}

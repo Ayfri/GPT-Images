@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { BarChart3, Coins, HardDrive } from 'lucide-svelte';
-	import { videos, totalCost, storageStatus } from '$lib/stores/videoStore';
+	import { totalVideoCount, totalCostAll, storageStatus } from '$lib/stores/videoStore';
 	import { MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL, DURATION_OPTIONS } from '$lib/types/video';
 
 	const models = Object.keys(MODEL_OPTIONS) as (keyof typeof MODEL_OPTIONS)[];
@@ -17,12 +17,12 @@
 		<div class="grid grid-cols-2 gap-4">
 			<div class="bg-dark-100/50 rounded-lg p-4">
 				<div class="text-xs text-gray-400 mb-1">Generated Videos</div>
-				<div class="text-2xl font-semibold text-gray-100">{$videos.length}</div>
+				<div class="text-2xl font-semibold text-gray-100">{$totalVideoCount}</div>
 			</div>
 
 			<div class="bg-dark-100/50 rounded-lg p-4">
 				<div class="text-xs text-gray-400 mb-1">Total Cost</div>
-				<div class="text-2xl font-semibold text-gray-100">${$totalCost.toFixed(2)}</div>
+				<div class="text-2xl font-semibold text-gray-100">${$totalCostAll.toFixed(2)}</div>
 			</div>
 		</div>
 

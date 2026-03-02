@@ -23,13 +23,13 @@
 	let { onRegenerate, onEditImage }: Props = $props();
 
 	let loading = $state(true);
-	let loadingMore = $state(false); // New state for loading more images
+	let loadingMore = $state(false);
 	let largeViewIndex: number | null = $state(null);
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: 'timestamp' | 'prompt' | 'quality' | 'size' | 'price' = $state('timestamp');
 
 	let observer: IntersectionObserver | undefined = $state();
-	let imageGridRef: HTMLElement | undefined = $state();
+	let sentinelRef: HTMLDivElement | undefined = $state();
 
 	const qualityOrder = { high: 3, low: 1, medium: 2 };
 
@@ -91,47 +91,32 @@
 		await initImageStore();
 		loading = false;
 
-		// Set up intersection observer for infinite scroll
+		// Observe a stable sentinel div — unaffected by sorting or adding items
 		observer = new IntersectionObserver(
-			async (entries) => {
-				const lastImageCard = entries[0];
-				if (lastImageCard.isIntersecting && !loadingMore && $images.length < $totalImageCount) {
-					loadingMore = true;
+			(entries) => {
+				if (!entries[0].isIntersecting || loadingMore || $images.length >= $totalImageCount) return;
+				loadingMore = true;
+
+				// Defer the heavy IDB read + store update so scroll stays smooth
+				const schedule =
+					typeof requestIdleCallback !== 'undefined'
+						? (cb: () => void) => requestIdleCallback(cb, { timeout: 500 })
+						: (cb: () => void) => setTimeout(cb, 0);
+
+				schedule(async () => {
 					await loadMoreImages();
 					loadingMore = false;
-				}
+				});
 			},
-			{ threshold: 0.5 }
+			{ rootMargin: '200px' }
 		);
 
-		// Observe the last element if images are already loaded
-		if (sortedImages.length > 0 && imageGridRef) {
-			const lastCard = imageGridRef.lastElementChild;
-			if (lastCard) {
-				observer.observe(lastCard);
-			}
-		}
-
+		if (sentinelRef) observer.observe(sentinelRef);
 	});
 
-	// Cleanup observer on component destroy
-	onDestroy(() => {
-		if (observer) {
-			observer.disconnect();
-		}
-	});
-
-	// Reactively observe the last element when sortedImages changes
+	// Watch for sentinelRef becoming available after first render
 	$effect(() => {
-		if (sortedImages.length > 0 && imageGridRef && observer) {
-			// Disconnect old observer if it exists
-			observer.disconnect();
-			// Re-observe the new last element
-			const lastCard = imageGridRef.lastElementChild;
-			if (lastCard) {
-				observer.observe(lastCard);
-			}
-		}
+		if (sentinelRef && observer) observer.observe(sentinelRef);
 	});
 
 	function handleRegenerate(prompt: string) {
@@ -222,7 +207,7 @@
 			</p>
 		</div>
 	{:else}
-		<div class="image-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" bind:this={imageGridRef}>
+		<div class="image-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 			{#each sortedImages as image, i (image.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ y: 20, duration: 300, delay: 50 * i }}>
 					<ImageCard
@@ -238,14 +223,12 @@
 			{/each}
 		</div>
 
+		<!-- Sentinel for infinite scroll — always rendered at bottom, not affected by sorting -->
 		{#if $images.length < $totalImageCount}
-			<div class="mt-8 flex justify-center">
-				<div
-					class="animate-pulse-slow text-gray-500"
-					class:hidden={!loadingMore}
-				>
-					Loading more images...
-				</div>
+			<div bind:this={sentinelRef} class="mt-8 flex justify-center min-h-px">
+				{#if loadingMore}
+					<div class="animate-pulse-slow text-gray-500">Loading more images...</div>
+				{/if}
 			</div>
 		{/if}
 	{/if}
