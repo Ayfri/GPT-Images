@@ -35,7 +35,7 @@
 		</span>
 	</h1>
 	<p class="text-gray-400 text-center max-w-2xl mx-auto">
-		Generate stunning images using OpenAI's latest GPT-Image-1.5 model. Simply enter your API key, provide a prompt, and watch AI bring your ideas to life.
+		Generate images from text - or drag, paste, or click to attach reference images and let AI use them as a visual guide.
 	</p>
 </div>
 

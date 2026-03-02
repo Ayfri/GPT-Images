@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
-	import { Upload, X, ChevronDown, ChevronRight, Loader2, Send } from 'lucide-svelte';
+	import { fly, fade } from 'svelte/transition';
+	import { Upload, X, ChevronDown, ChevronRight, Loader2, Sparkles, ImagePlus, ClipboardPaste } from 'lucide-svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addImage } from '$lib/db/imageStore';
 	import { images, refreshImageStore } from '$lib/stores/imageStore';
@@ -62,11 +62,14 @@
 	let selectedQuality: ImageQuality = $state('low');
 	let selectedSize: ImageSize = $state('1024x1024');
 	let imageCount = $state(1);
-	let mode: 'generate' | 'edit' = $state('generate');
 	let inputImages: File[] = $state([]);
 	let imagePreviews: string[] = $state([]);
 	let inputMask: File | null = $state(null);
 	let maskPreview: string | null = $state(null);
+	let pasteFlash = $state(false);
+
+	// Mode is auto-derived: if images are attached → edit/compose, otherwise → pure generation
+	let mode = $derived<'generate' | 'edit'>(inputImages.length > 0 ? 'edit' : 'generate');
 
 	// Advanced options
 	let showAdvanced = $state(false);
@@ -84,6 +87,66 @@
 			prompt = "A cyberpunk city at night with neon lights and flying cars";
 		}
 		error = null;
+
+		// Global paste handler: Ctrl+V anywhere on the page adds images
+		function handleGlobalPaste(e: ClipboardEvent) {
+			// Don't intercept if user is typing in a text input/textarea
+			const target = e.target as HTMLElement;
+			if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') return;
+
+			const items = e.clipboardData?.items;
+			if (!items) return;
+
+			for (let i = 0; i < items.length; i++) {
+				if (items[i].type.startsWith('image/')) {
+					const file = items[i].getAsFile();
+					if (!file) continue;
+					if (inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages) return;
+					const validationError = validateImageFile(file);
+					if (validationError) { error = validationError; return; }
+
+					const newImages = [...inputImages, file];
+					const newPreviews = [...imagePreviews];
+					const reader = new FileReader();
+					reader.onload = (ev) => {
+						newPreviews.push(ev.target?.result as string);
+						inputImages = newImages;
+						imagePreviews = newPreviews;
+						pasteFlash = true;
+						setTimeout(() => (pasteFlash = false), 1200);
+					};
+					reader.readAsDataURL(file);
+					return;
+				}
+			}
+
+			// URL paste
+			const text = e.clipboardData?.getData('text');
+			if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+				fetch(text.trim())
+					.then(r => r.blob())
+					.then(blob => {
+						if (!blob.type.startsWith('image/')) return;
+						const file = new File([blob], 'pasted-image', { type: blob.type });
+						if (inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages) return;
+						const newImages = [...inputImages, file];
+						const newPreviews = [...imagePreviews];
+						const reader = new FileReader();
+						reader.onload = (ev) => {
+							newPreviews.push(ev.target?.result as string);
+							inputImages = newImages;
+							imagePreviews = newPreviews;
+							pasteFlash = true;
+							setTimeout(() => (pasteFlash = false), 1200);
+						};
+						reader.readAsDataURL(file);
+					})
+					.catch(() => {});
+			}
+		}
+
+		document.addEventListener('paste', handleGlobalPaste);
+		return () => document.removeEventListener('paste', handleGlobalPaste);
 	});
 
 	// Save options whenever they change
@@ -95,7 +158,6 @@
 	$effect(() => {
 		if (imageToEdit) {
 			prompt = imageToEdit.prompt;
-			mode = 'edit';
 			// Convert base64 image data URL to a File object for inputImages
 			fetch(imageToEdit.imageData)
 				.then(res => res.blob())
@@ -260,119 +322,103 @@
 	}
 </script>
 
-<div class="glass-effect p-5 rounded-xl">
-	<h2 class="text-lg font-medium text-gray-100 mb-4">
-		{mode === 'generate' ? 'Generate New Image' : 'Edit Image'}
-	</h2>
-
-	<!-- Mode Toggle -->
-	<div class="mb-4">
-		<div class="flex bg-gray-800 rounded-lg p-1">
-			<button
-				type="button"
-				class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {isGenerating ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-500' : (mode === 'generate' ? 'cursor-pointer bg-purple-600 text-white hover:bg-purple-700' : 'cursor-pointer text-gray-400 hover:text-white hover:bg-gray-700')}"
-				onclick={() => !isGenerating && (mode = 'generate')}
-				disabled={isGenerating}
-			>
-				Generate
-			</button>
-			<button
-				type="button"
-				class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 {isGenerating ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-500' : (mode === 'edit' ? 'cursor-pointer bg-purple-600 text-white hover:bg-purple-700' : 'cursor-pointer text-gray-400 hover:text-white hover:bg-gray-700')}"
-				onclick={() => !isGenerating && (mode = 'edit')}
-				disabled={isGenerating}
-			>
-				Edit
-			</button>
+<div class="glass-effect rounded-xl overflow-hidden">
+	<!-- Header -->
+	<div class="px-5 pt-5 pb-4 border-b border-white/5 flex items-center justify-between">
+		<div class="flex items-center gap-2">
+			<Sparkles class="h-4 w-4 text-purple-400" />
+			<h2 class="text-sm font-semibold text-gray-100 tracking-wide uppercase">
+				{inputImages.length > 0 ? 'Generate with references' : 'Create Image'}
+			</h2>
 		</div>
+		{#if inputImages.length > 0}
+			<span
+				in:fade={{ duration: 200 }}
+				class="text-xs px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300 border border-purple-700/40"
+			>
+				{inputImages.length} reference{inputImages.length > 1 ? 's' : ''} attached
+			</span>
+		{:else}
+			<span
+				in:fade={{ duration: 200 }}
+				class="text-xs text-gray-600 flex items-center gap-1"
+			>
+				<ClipboardPaste class="h-3 w-3" />
+				Ctrl+V to attach image
+			</span>
+		{/if}
 	</div>
 
-	<form onsubmit={(e) => { e.preventDefault(); handleGenerate(); }} class="space-y-4">
-		<!-- Image Upload Section (only for edit mode) -->
-		{#if mode === 'edit'}
-			<div>
-				<label class="block text-sm font-medium text-gray-300 mb-2" for="image-upload">
-					Images ({inputImages.length}/{IMAGE_UPLOAD_LIMITS.maxImages})
-				</label>
+	<form onsubmit={(e) => { e.preventDefault(); handleGenerate(); }} class="p-5 space-y-4">
+		<!-- Prompt -->
+		<div>
+			<textarea
+				id="prompt"
+				bind:value={prompt}
+				rows="4"
+				placeholder={inputImages.length > 0
+					? 'Describe what to generate using these references - style, subject, composition…'
+					: 'Describe the image you want to create…'}
+				class="input w-full resize-none leading-relaxed"
+				disabled={isGenerating}
+			></textarea>
+		</div>
 
+		<!-- Reference images zone - always visible -->
+		<div>
+			<div class="flex items-center justify-between mb-2">
+				<label class="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5" for="image-upload">
+					<ImagePlus class="h-3.5 w-3.5" />
+					Reference images
+					<span class="text-gray-700 font-normal normal-case tracking-normal">(optional)</span>
+				</label>
+				{#if inputImages.length > 0}
+					<span class="text-xs text-gray-600">{inputImages.length}/{IMAGE_UPLOAD_LIMITS.maxImages}</span>
+				{/if}
+			</div>
+
+			<div class="{pasteFlash ? 'ring-2 ring-purple-500/60 rounded-lg' : ''}  transition-shadow duration-300">
 				<ImageUploadZone
 					acceptedExtensions={IMAGE_UPLOAD_LIMITS.acceptedExtensions}
 					{isGenerating}
 					images={inputImages}
 					imagePreviews={imagePreviews}
 					maxImages={IMAGE_UPLOAD_LIMITS.maxImages}
-					onImagesChange={(images, previews) => {
-						inputImages = images;
+					onImagesChange={(imgs, previews) => {
+						inputImages = imgs;
 						imagePreviews = previews;
 					}}
 					validateFile={validateImageFile}
 				/>
-
-				<p class="text-xs text-gray-500 mt-1">
-					PNG, WEBP, or JPEG files, up to 50MB each. You can upload up to {IMAGE_UPLOAD_LIMITS.maxImages} images.
-				</p>
 			</div>
-		{/if}
-
-		<div>
-			<label for="prompt" class="block text-sm font-medium text-gray-300 mb-2">
-				Prompt
-			</label>
-			<textarea
-				id="prompt"
-				bind:value={prompt}
-				rows="4"
-				placeholder={mode === 'generate' ? 'Describe the image you want to generate...' : 'Describe how you want to edit the image...'}
-				class="input w-full"
-				disabled={isGenerating}
-			></textarea>
+			{#if inputImages.length === 0}
+				<p class="text-xs text-gray-700 mt-1.5">
+					Drop, paste (Ctrl+V) or browse - PNG, WEBP, JPEG up to 50 MB
+				</p>
+			{/if}
 		</div>
 
-		<div>
-			<label for="model" class="block text-sm font-medium text-gray-300 mb-2">
-				Model
-			</label>
-			<select
-				id="model"
-				bind:value={selectedModel}
-				class="input w-full"
-				disabled={isGenerating}
-			>
-				{#each Object.entries(MODEL_OPTIONS) as [key, option] (key)}
-					<option value={key}>{option.label}</option>
-				{/each}
-			</select>
-			<p class="text-xs text-gray-500 mt-1">
-				{MODEL_OPTIONS[selectedModel].description}
-			</p>
-		</div>
-
-		<div class="grid grid-cols-2 gap-4">
+		<!-- Model + Quality + Size in a compact row -->
+		<div class="grid grid-cols-3 gap-3">
 			<div>
-				<label for="quality" class="block text-sm font-medium text-gray-300 mb-2">
-					Quality
-				</label>
-				<select
-					id="quality"
-					bind:value={selectedQuality}
-					class="input w-full"
-					disabled={isGenerating}
-				>
+				<label for="model" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Model</label>
+				<select id="model" bind:value={selectedModel} class="input w-full text-sm" disabled={isGenerating}>
+					{#each Object.entries(MODEL_OPTIONS) as [key, option] (key)}
+						<option value={key}>{option.label}</option>
+					{/each}
+				</select>
+			</div>
+			<div>
+				<label for="quality" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Quality</label>
+				<select id="quality" bind:value={selectedQuality} class="input w-full text-sm" disabled={isGenerating}>
 					{#each Object.entries(QUALITY_OPTIONS) as [key, option] (key)}
 						<option value={key}>{option.label}</option>
 					{/each}
 				</select>
 			</div>
 			<div>
-				<label for="size" class="block text-sm font-medium text-gray-300 mb-2">
-					Size
-				</label>
-				<select
-					id="size"
-					bind:value={selectedSize}
-					class="input w-full"
-					disabled={isGenerating}
-				>
+				<label for="size" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Size</label>
+				<select id="size" bind:value={selectedSize} class="input w-full text-sm" disabled={isGenerating}>
 					{#each Object.entries(SIZE_OPTIONS) as [key, option] (key)}
 						<option value={key}>{option.label}</option>
 					{/each}
@@ -380,179 +426,155 @@
 			</div>
 		</div>
 
-		<div>
-			<label for="imageCount" class="block text-sm font-medium text-gray-300 mb-2">
-				Number of Images: {imageCount}
+		<!-- Count slider -->
+		<div class="flex items-center gap-3">
+			<label for="imageCount" class="text-xs font-medium text-gray-500 uppercase tracking-wider shrink-0 w-20">
+				Count
 			</label>
-			<div class="flex items-center gap-2">
-				<input
-					id="imageCount"
-					type="range"
-					min="1"
-					max="10"
-					bind:value={imageCount}
-					class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-					disabled={isGenerating}
-				/>
-				<span class="text-sm text-gray-400 w-6">{imageCount}</span>
-			</div>
+			<input
+				id="imageCount"
+				type="range"
+				min="1"
+				max="10"
+				bind:value={imageCount}
+				class="flex-1 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+				disabled={isGenerating}
+			/>
+			<span class="text-sm font-medium text-gray-300 w-5 text-right">{imageCount}</span>
 		</div>
 
 		<!-- Advanced Options -->
-		<div class="border-t border-gray-700 pt-4">
+		<div class="border-t border-white/5 pt-3">
 			<button
 				type="button"
-				class="flex items-center gap-2 text-sm font-medium transition-colors {isGenerating ? 'text-gray-500 cursor-not-allowed opacity-50' : 'text-gray-300 hover:text-white cursor-pointer'}"
+				class="flex items-center gap-2 text-xs font-medium uppercase tracking-wider transition-colors {isGenerating ? 'text-gray-600 cursor-not-allowed' : 'text-gray-500 hover:text-gray-300 cursor-pointer'}"
 				onclick={() => !isGenerating && (showAdvanced = !showAdvanced)}
 				disabled={isGenerating}
 			>
 				{#if showAdvanced}
-					<ChevronDown class="h-4 w-4" />
+					<ChevronDown class="h-3.5 w-3.5" />
 				{:else}
-					<ChevronRight class="h-4 w-4" />
+					<ChevronRight class="h-3.5 w-3.5" />
 				{/if}
-				Advanced Options
+				Advanced
 			</button>
 
 			{#if showAdvanced}
-				<div class="mt-4 space-y-4 pl-6 border-l-2 border-gray-700">
+				<div class="mt-4 space-y-4 pl-4 border-l border-gray-700/60" in:fly={{ y: -6, duration: 180 }}>
 					<div class="grid grid-cols-2 gap-4">
 						{#if mode === 'edit'}
 							<div>
-								<label for="inputFidelity" class="block text-sm font-medium text-gray-300 mb-2">
+								<label for="inputFidelity" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
 									Input Fidelity
 								</label>
-								<select
-									id="inputFidelity"
-									bind:value={inputFidelity}
-									class="input w-full"
-									disabled={isGenerating}
-								>
+								<select id="inputFidelity" bind:value={inputFidelity} class="input w-full text-sm" disabled={isGenerating}>
 									{#each Object.entries(INPUT_FIDELITY_OPTIONS) as [key, option] (key)}
 										<option value={key}>{option.label}</option>
 									{/each}
 								</select>
-								<p class="text-xs text-gray-500 mt-1">
-									{INPUT_FIDELITY_OPTIONS[inputFidelity].description}
-								</p>
+								<p class="text-xs text-gray-600 mt-1">{INPUT_FIDELITY_OPTIONS[inputFidelity].description}</p>
 							</div>
 						{/if}
-
 						<div>
-							<label for="outputFormat" class="block text-sm font-medium text-gray-300 mb-2">
+							<label for="outputFormat" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
 								Output Format
 							</label>
-							<select
-								id="outputFormat"
-								bind:value={outputFormat}
-								class="input w-full"
-								disabled={isGenerating}
-							>
+							<select id="outputFormat" bind:value={outputFormat} class="input w-full text-sm" disabled={isGenerating}>
 								{#each Object.entries(OUTPUT_FORMAT_OPTIONS) as [key, option] (key)}
 									<option value={key} disabled={selectedBackground === 'transparent' && key === 'jpeg'}>{option.label}</option>
 								{/each}
 							</select>
-							<p class="text-xs text-gray-500 mt-1">
-								{OUTPUT_FORMAT_OPTIONS[outputFormat].description}
-							</p>
+							<p class="text-xs text-gray-600 mt-1">{OUTPUT_FORMAT_OPTIONS[outputFormat].description}</p>
 						</div>
 					</div>
 
 					<div>
-						<label for="background" class="block text-sm font-medium text-gray-300 mb-2">
+						<label for="background" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
 							Background
 						</label>
-						<select
-							id="background"
-							bind:value={selectedBackground}
-							class="input w-full"
-							disabled={isGenerating}
-						>
+						<select id="background" bind:value={selectedBackground} class="input w-full text-sm" disabled={isGenerating}>
 							{#each Object.entries(BACKGROUND_OPTIONS) as [key, option] (key)}
 								<option value={key}>{option.label}</option>
 							{/each}
 						</select>
-						<p class="text-xs text-gray-500 mt-1">
-							{BACKGROUND_OPTIONS[selectedBackground].description}
-						</p>
+						<p class="text-xs text-gray-600 mt-1">{BACKGROUND_OPTIONS[selectedBackground].description}</p>
 					</div>
 
 					{#if outputFormat === 'jpeg' || outputFormat === 'webp'}
 						<div>
-							<label for="outputCompression" class="block text-sm font-medium text-gray-300 mb-2">
-								Output Compression: {outputCompression}%
-							</label>
-							<div class="flex items-center gap-2">
-								<input
-									id="outputCompression"
-									type="range"
-									min="0"
-									max="100"
-									bind:value={outputCompression}
-									class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-									disabled={isGenerating}
-								/>
-								<span class="text-sm text-gray-400 w-12">{outputCompression}%</span>
+							<div class="flex items-center justify-between mb-1.5">
+								<label for="outputCompression" class="text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Compression
+								</label>
+								<span class="text-xs text-gray-400">{outputCompression}%</span>
 							</div>
-							<p class="text-xs text-gray-500 mt-1">
-								Higher values = better quality, larger file size
-							</p>
+							<input
+								id="outputCompression"
+								type="range"
+								min="0"
+								max="100"
+								bind:value={outputCompression}
+								class="w-full h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+								disabled={isGenerating}
+							/>
 						</div>
 					{/if}
 
-					<div>
-						<label class="block text-sm font-medium text-gray-300 mb-2 mt-4" for="mask-upload">
-							Mask (Optional)
-						</label>
-						<div class="flex items-center gap-4 mb-3">
-							<label class="cursor-pointer">
-								<input
-									id="mask-upload"
-									type="file"
-									accept=".png"
-									class="hidden"
-									onchange={handleMaskUpload}
-									disabled={isGenerating || inputMask !== null}
-								/>
-								<div class="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors {inputMask !== null ? 'opacity-50 cursor-not-allowed' : ''}">
-									<Upload class="h-4 w-4" />
-									<span class="text-sm">Upload Mask (PNG)</span>
-								</div>
+					{#if mode === 'edit'}
+						<div>
+							<label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider" for="mask-upload">
+								Mask (Optional)
 							</label>
-
-							{#if maskPreview}
-								<div class="relative">
-									<img src={maskPreview} alt="Mask Preview" class="w-16 h-16 object-cover rounded-lg" />
-									<button
-										type="button"
-										class="absolute -top-2 -right-2 rounded-full p-1 {isGenerating ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
-										onclick={() => !isGenerating && removeMask()}
-										disabled={isGenerating}
-									>
-										<X class="h-3 w-3" />
-									</button>
-								</div>
-							{/if}
+							<div class="flex items-center gap-3">
+								<label class="cursor-pointer">
+									<input
+										id="mask-upload"
+										type="file"
+										accept=".png"
+										class="hidden"
+										onchange={handleMaskUpload}
+										disabled={isGenerating || inputMask !== null}
+									/>
+									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors {inputMask !== null ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}">
+										<Upload class="h-3.5 w-3.5" />
+										Upload PNG mask
+									</div>
+								</label>
+								{#if maskPreview}
+									<div class="relative">
+										<img src={maskPreview} alt="Mask Preview" class="w-12 h-12 object-cover rounded-lg border border-gray-700" />
+										<button
+											type="button"
+											class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 {isGenerating ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
+											onclick={() => !isGenerating && removeMask()}
+											disabled={isGenerating}
+										>
+											<X class="h-3 w-3" />
+										</button>
+									</div>
+								{/if}
+							</div>
+							<p class="text-xs text-gray-600 mt-1">PNG only, max 4 MB. Controls editable regions on the first image.</p>
 						</div>
-						<p class="text-xs text-gray-500">
-							Optional PNG file (max 4MB) to control image editing areas. Applied to the first image.
-						</p>
-					</div>
+					{/if}
 				</div>
 			{/if}
 		</div>
 
+		<!-- Submit -->
 		<button
 			type="submit"
-			class="btn group bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2 {isGenerating || !$apiKey || (mode === 'edit' && inputImages.length === 0) ? 'opacity-50 cursor-not-allowed' : 'hover:ring-white cursor-pointer'}"
-			disabled={isGenerating || !$apiKey || (mode === 'edit' && inputImages.length === 0)}
+			class="btn group bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 to-cyan-600 w-full flex items-center justify-center gap-2 {isGenerating || !$apiKey ? 'opacity-50 cursor-not-allowed' : 'hover:ring-white cursor-pointer'}"
+			disabled={isGenerating || !$apiKey}
 		>
 			{#if isGenerating}
-				<Loader2 class="h-5 w-5 animate-spin" />
-				{mode === 'generate' ? 'Generating...' : 'Editing...'}
+				<Loader2 class="h-4 w-4 animate-spin" />
+				{mode === 'generate' ? 'Generating…' : 'Generating with references…'}
 			{:else}
-				<Send class="h-5 w-5" />
-				{mode === 'generate' ? `Generate ${imageCount > 1 ? `${imageCount} Images` : 'Image'}` : 'Edit Image'}
+				<Sparkles class="h-4 w-4" />
+				{mode === 'generate'
+					? `Generate ${imageCount > 1 ? `${imageCount} images` : 'image'}`
+					: `Generate ${imageCount > 1 ? `${imageCount} images` : 'image'} from references`}
 			{/if}
 		</button>
 
@@ -563,17 +585,14 @@
 		{/if}
 
 		{#if error}
-			<div
-				in:fly={{ y: 10, duration: 300 }}
-				class="text-sm text-error-400 bg-error-900/20 border border-error-600/20 p-2 rounded-md"
-			>
+			<div in:fly={{ y: 8, duration: 250 }} class="text-sm text-error-400 bg-error-900/20 border border-error-600/20 p-2 rounded-md">
 				{error}
 			</div>
 		{/if}
 
-		<div class="text-xs text-gray-500 flex justify-between pt-1">
-			<span>Model: {MODEL_OPTIONS[selectedModel].label}</span>
-			<span class="text-secondary-400">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
+		<div class="text-xs text-gray-600 flex justify-between pt-0.5">
+			<span>{MODEL_OPTIONS[selectedModel].label}</span>
+			<span class="text-secondary-500">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
 		</div>
 	</form>
 </div>
