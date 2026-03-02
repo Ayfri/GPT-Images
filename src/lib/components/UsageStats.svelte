@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { BarChart3, Coins } from 'lucide-svelte';
 	import { images, totalCost } from '$lib/stores/imageStore';
+	import { MODEL_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS, PRICING } from '$lib/types/image';
+
+	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
+	const qualities = Object.keys(QUALITY_OPTIONS) as (keyof typeof QUALITY_OPTIONS)[];
+	const sizes = Object.keys(SIZE_OPTIONS) as (keyof typeof SIZE_OPTIONS)[];
 </script>
 
 <div class="glass-effect p-5 rounded-xl">
@@ -15,7 +20,6 @@
 				<div class="text-xs text-gray-400 mb-1">Generated Images</div>
 				<div class="text-2xl font-semibold text-gray-100">{$images.length}</div>
 			</div>
-
 			<div class="bg-dark-100/50 rounded-lg p-4">
 				<div class="text-xs text-gray-400 mb-1">Total Cost</div>
 				<div class="text-2xl font-semibold text-gray-100">${$totalCost.toFixed(2)}</div>
@@ -30,63 +34,32 @@
 				<div class="ml-auto text-xs text-gray-500">Per image</div>
 			</div>
 
-			<div class="space-y-4">
-				<!-- Low Quality -->
-				<div class="space-y-2">
-					<div class="text-sm font-medium text-gray-300">Low Quality</div>
-					<div class="grid grid-cols-3 gap-3">
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1024x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.011</div>
+			<div class="space-y-5">
+				{#each models as [modelKey, model]}
+					<div class="space-y-2">
+						<div class="text-sm font-medium text-gray-300">{model.label}</div>
+						<!-- Header row -->
+						<div class="grid grid-cols-4 gap-1.5 text-xs text-gray-500">
+							<div></div>
+							{#each sizes as size}
+								<div class="text-center">{SIZE_OPTIONS[size].label}</div>
+							{/each}
 						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1024x1536</div>
-							<div class="text-lg font-semibold text-gray-100">$0.016</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1536x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.016</div>
-						</div>
+						<!-- Data rows -->
+						{#each qualities as quality}
+							<div class="grid grid-cols-4 gap-1.5">
+								<div class="text-xs text-gray-400 flex items-center capitalize">{quality}</div>
+								{#each sizes as size}
+									<div class="bg-dark-200/60 rounded-sm p-2 text-center">
+										<span class="text-sm font-semibold text-gray-100">
+											${PRICING[modelKey][quality][size].toFixed(3)}
+										</span>
+									</div>
+								{/each}
+							</div>
+						{/each}
 					</div>
-				</div>
-
-				<!-- Medium Quality -->
-				<div class="space-y-2">
-					<div class="text-sm font-medium text-gray-300">Medium Quality</div>
-					<div class="grid grid-cols-3 gap-3">
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1024x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.042</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1024x1536</div>
-							<div class="text-lg font-semibold text-gray-100">$0.063</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1536x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.063</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- High Quality -->
-				<div class="space-y-2">
-					<div class="text-sm font-medium text-gray-300">High Quality</div>
-					<div class="grid grid-cols-3 gap-3">
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1024x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.167</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1024x1536</div>
-							<div class="text-lg font-semibold text-gray-100">$0.25</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">1536x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.25</div>
-						</div>
-					</div>
-				</div>
+				{/each}
 			</div>
 		</div>
 	</div>

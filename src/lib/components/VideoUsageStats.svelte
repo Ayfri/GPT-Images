@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { BarChart3, Coins, HardDrive } from 'lucide-svelte';
 	import { videos, totalCost, storageStatus } from '$lib/stores/videoStore';
+	import { MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL, DURATION_OPTIONS } from '$lib/types/video';
+
+	const models = Object.keys(MODEL_OPTIONS) as (keyof typeof MODEL_OPTIONS)[];
+	const durations = Object.keys(DURATION_OPTIONS).map(Number) as (keyof typeof DURATION_OPTIONS)[];
 </script>
 
 <div class="glass-effect p-5 rounded-xl">
@@ -61,54 +65,36 @@
 			<div class="flex items-center mb-3">
 				<Coins class="h-4 w-4 text-warning-400 mr-2" />
 				<div class="text-xs text-gray-400">Video Generation Pricing</div>
-				<div class="ml-auto text-xs text-gray-500">Per second</div>
+				<div class="ml-auto text-xs text-gray-500">Per video</div>
 			</div>
 
-			<div class="space-y-4">
-				<!-- Sora-2 Model -->
-				<div class="space-y-2">
-					<div class="text-sm font-medium text-gray-300">Sora-2</div>
-					<div class="grid grid-cols-2 gap-3">
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">Portrait: 720x1280</div>
-							<div class="text-lg font-semibold text-gray-100">$0.10</div>
+			<div class="space-y-5">
+				{#each models as modelKey}
+					{@const resolutions = Object.keys(RESOLUTION_OPTIONS_BY_MODEL[modelKey]) as (keyof typeof PRICING[typeof modelKey])[]}
+					<div class="space-y-2">
+						<div class="text-sm font-medium text-gray-300">{MODEL_OPTIONS[modelKey].label}</div>
+						<!-- Header row -->
+						<div class="grid gap-1.5 text-xs text-gray-500" style="grid-template-columns: auto repeat({durations.length}, 1fr)">
+							<div></div>
+							{#each durations as d}
+								<div class="text-center">{DURATION_OPTIONS[d].label}</div>
+							{/each}
 						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">Landscape: 1280x720</div>
-							<div class="text-lg font-semibold text-gray-100">$0.10</div>
-						</div>
+						<!-- Data rows -->
+						{#each resolutions as res}
+							<div class="grid gap-1.5" style="grid-template-columns: auto repeat({durations.length}, 1fr)">
+								<div class="text-xs text-gray-400 flex items-center">{(RESOLUTION_OPTIONS_BY_MODEL[modelKey] as any)[res].label}</div>
+								{#each durations as d}
+									<div class="bg-dark-200/60 rounded-sm p-2 text-center">
+										<span class="text-sm font-semibold text-gray-100">
+											${(PRICING[modelKey][res]?.[d] ?? 0).toFixed(2)}
+										</span>
+									</div>
+								{/each}
+							</div>
+						{/each}
 					</div>
-				</div>
-
-				<!-- Sora-2-Pro Model (Standard Resolution) -->
-				<div class="space-y-2">
-					<div class="text-sm font-medium text-gray-300">Sora-2-Pro (Standard)</div>
-					<div class="grid grid-cols-2 gap-3">
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">Portrait: 720x1280</div>
-							<div class="text-lg font-semibold text-gray-100">$0.30</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">Landscape: 1280x720</div>
-							<div class="text-lg font-semibold text-gray-100">$0.30</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- Sora-2-Pro Model (High Resolution) -->
-				<div class="space-y-2">
-					<div class="text-sm font-medium text-gray-300">Sora-2-Pro (High Res)</div>
-					<div class="grid grid-cols-2 gap-3">
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">Portrait: 1024x1792</div>
-							<div class="text-lg font-semibold text-gray-100">$0.50</div>
-						</div>
-						<div class="bg-dark-200/60 rounded-sm p-3 text-center">
-							<div class="text-xs text-gray-400">Landscape: 1792x1024</div>
-							<div class="text-lg font-semibold text-gray-100">$0.50</div>
-						</div>
-					</div>
-				</div>
+				{/each}
 			</div>
 		</div>
 	</div>
