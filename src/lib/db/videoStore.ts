@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import { calculateVideoPrice } from '$lib/utils/videoPrice';
-import { clearMediaFolder, deleteMediaFile, getMediaFileSize, getTotalFolderSize, readMediaFile, writeMediaFile } from './opfsStore';
+import { clearMediaFolder, deleteMediaFile, getMediaFileSize, getTotalFolderSize, readMediaObjectUrl, revokeMediaObjectUrl, writeMediaFile } from './opfsStore';
 
 interface GeneratedVideo {
 	duration?: VideoDuration;
@@ -45,8 +45,8 @@ async function withVideoBlobs(records: GeneratedVideo[]): Promise<GeneratedVideo
 	return Promise.all(
 		records.map(async (vid) => {
 			if (vid.videoData) return vid;
-			const blob = await readMediaFile('videos', vid.id, 'video/mp4');
-			return { ...vid, videoData: blob ?? '' };
+			const url = await readMediaObjectUrl('videos', vid.id);
+			return { ...vid, videoData: url ?? '' };
 		})
 	);
 }
@@ -116,6 +116,7 @@ export async function deleteVideo(id: string): Promise<void> {
 		db.delete('generated-videos', id),
 		deleteMediaFile('videos', id)
 	]);
+	revokeMediaObjectUrl('videos', id);
 }
 
 export async function clearVideos(): Promise<void> {

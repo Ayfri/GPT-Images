@@ -108,6 +108,7 @@
 			loop
 			muted
 			playsinline
+			preload="metadata"
 			src={videoData}
 		>
 			<track kind="captions" />

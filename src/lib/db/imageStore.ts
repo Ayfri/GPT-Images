@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
 import { PRICING } from '$lib/types/image';
-import { clearMediaFolder, deleteMediaFile, readMediaFile, writeMediaFile } from './opfsStore';
+import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, revokeMediaObjectUrl, writeMediaFile } from './opfsStore';
 
 interface GeneratedImage {
 	background?: ImageBackground;
@@ -81,22 +81,13 @@ export async function getDb() {
 	return db;
 }
 
-/** Derive a MIME type from the stored output_format (default: png). */
-function imageMime(output_format: OutputFormat | undefined): string {
-	switch (output_format) {
-		case 'jpeg': return 'image/jpeg';
-		case 'webp': return 'image/webp';
-		default:     return 'image/png';
-	}
-}
-
-/** Populate imageData from OPFS for records that have an empty field. */
+/** Populate imageData from OPFS for records with empty field. */
 async function withImageBlobs(records: GeneratedImage[]): Promise<GeneratedImage[]> {
 	return Promise.all(
 		records.map(async (img) => {
 			if (img.imageData) return img;
-			const blob = await readMediaFile('images', img.id, imageMime(img.output_format));
-			return { ...img, imageData: blob ?? '' };
+			const url = await readMediaObjectUrl('images', img.id);
+			return { ...img, imageData: url ?? '' };
 		})
 	);
 }
@@ -165,6 +156,7 @@ export async function deleteImage(id: string): Promise<void> {
 		db.delete('generated-images', id),
 		deleteMediaFile('images', id)
 	]);
+	revokeMediaObjectUrl('images', id);
 }
 
 export async function clearImages(): Promise<void> {

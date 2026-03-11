@@ -30,7 +30,6 @@ const idle = typeof requestIdleCallback !== 'undefined'
 
 export const initImageStore = async () => {
 	try {
-		await runMigrations();
 		const count = await countImages();
 		totalImageCount.set(count);
 		const initialImages = await getImages(0, PAGE_SIZE);
