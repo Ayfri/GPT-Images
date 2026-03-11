@@ -4,6 +4,7 @@ import {
 	getVideoCostCache, setVideoCostCache, invalidateVideoCostCache, computeVideoCostTotal,
 	getTotalStorageSize
 } from '$lib/db/videoStore';
+import { runMigrations } from '$lib/db/migrations';
 import type { Writable } from 'svelte/store';
 import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import { calculateVideoPrice } from '$lib/utils/videoPrice';
@@ -57,6 +58,7 @@ const idle = typeof requestIdleCallback !== 'undefined'
 
 export const initVideoStore = async () => {
 	try {
+		await runMigrations();
 		const count = await countVideos();
 		totalVideoCount.set(count);
 		const initialVideos = await getVideos(PAGE_SIZE, 0);
