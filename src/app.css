@@ -251,7 +251,7 @@
 
 }
 
-/* ─── Customizable <select> — only applied when the browser supports it ──── */
+/* Customizable <select>, only applied when the browser supports it */
 @supports (appearance: base-select) {
 	/* Opt both the button and the picker into the new rendering */
 	select,
@@ -259,7 +259,7 @@
 		appearance: base-select;
 	}
 
-	/* ── Closed button ── */
+	/* Closed button */
 	select {
 		display: flex;
 		align-items: center;
@@ -362,7 +362,7 @@
 		font-weight: 500;
 	}
 
-	/* Checkmark — push to the right */
+	/* Checkmark, push to the right */
 	option::checkmark {
 		order: 1;
 		margin-left: auto;

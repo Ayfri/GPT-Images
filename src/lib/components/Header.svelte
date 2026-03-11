@@ -10,27 +10,27 @@
 	);
 </script>
 
-<header class="py-3 px-5 lg:px-6 border-b border-white/6 mb-6 sticky top-0 z-10 bg-dark-300/70 backdrop-blur-xl">
+<header class="py-2 px-3 sm:py-3 sm:px-4 md:px-5 lg:px-6 border-b border-white/6 mb-6 sticky top-0 z-10 bg-dark-300/70 backdrop-blur-xl">
 	<!-- Animated gradient underline -->
 	<div class="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-primary-500/40 to-transparent"></div>
 
-	<div class="container mx-auto flex items-center gap-10">
-		<a href="/" class="flex items-center gap-3 group shrink-0">
+	<div class="container mx-auto flex items-center gap-3 xs:gap-4 sm:gap-6 md:gap-8 lg:gap-10">
+		<a href="/" class="flex items-center gap-2 sm:gap-3 group shrink-0">
 			<div class="relative">
 				<div class="absolute inset-0 rounded-xl bg-primary-500/20 blur-md group-hover:bg-primary-500/35 transition-all duration-300"></div>
-				<div class="relative overflow-hidden h-9">
+				<div class="relative overflow-hidden h-8 sm:h-9">
 					<img src={logo} alt="logo" class="size-full object-cover"/>
 				</div>
 			</div>
 			<div>
-				<span class="text-lg font-bold gradient-text">GPT Generator</span>
+				<span class="text-base sm:text-lg font-bold gradient-text">GPT Generator</span>
 			</div>
 		</a>
 		<!-- Nav links -->
-		<nav class="flex items-center gap-1">
+		<nav class="flex items-center gap-0.5 sm:gap-1">
 			<a
 				href="/"
-				class="relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+				class="relative px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
 					{page.url.pathname === '/' ? 'text-white bg-white/8' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'}"
 			>
 				{#if page.url.pathname === '/'}
@@ -48,7 +48,7 @@
 			</a>
 			<a
 				href="/videos"
-				class="relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+				class="relative px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
 					{page.url.pathname.startsWith('/videos') ? 'text-white bg-white/8' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'}"
 			>
 				{#if page.url.pathname.startsWith('/videos')}
@@ -64,12 +64,12 @@
 		</nav>
 
 		<!-- Right side actions -->
-		<div class="flex items-center gap-3 ml-auto">
+		<div class="flex items-center gap-1 sm:gap-2 md:gap-3 ml-auto">
 			<a
 				href={docsUrl}
 				target='_blank'
 				rel='noopener noreferrer'
-				class='hidden sm:flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5'
+				class='hidden sm:flex items-center gap-1 sm:gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 sm:px-3 py-1.5 rounded-lg hover:bg-white/5'
 			>
 				<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke-linecap="round" stroke-linejoin="round"/>
