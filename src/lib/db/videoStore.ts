@@ -2,6 +2,7 @@ import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import { calculateVideoPrice } from '$lib/utils/videoPrice';
+import { clearMediaFolder, deleteMediaFile, getMediaFileSize, getTotalFolderSize, readMediaFile, writeMediaFile } from './opfsStore';
 
 interface GeneratedVideo {
 	duration?: VideoDuration;
@@ -39,6 +40,17 @@ export async function getDb() {
 	return db;
 }
 
+/** Populate videoData from OPFS for records that have an empty field. */
+async function withVideoBlobs(records: GeneratedVideo[]): Promise<GeneratedVideo[]> {
+	return Promise.all(
+		records.map(async (vid) => {
+			if (vid.videoData) return vid;
+			const blob = await readMediaFile('videos', vid.id, 'video/mp4');
+			return { ...vid, videoData: blob ?? '' };
+		})
+	);
+}
+
 export async function addVideo(
 	duration: VideoDuration,
 	model: VideoModel,
@@ -57,7 +69,11 @@ export async function addVideo(
 		videoData
 	};
 
-	await db.add('generated-videos', video);
+	// Persist binary to OPFS; only metadata goes into IDB.
+	await writeMediaFile('videos', video.id, videoData);
+	await db.add('generated-videos', { ...video, videoData: '' });
+
+	// Return the full record (with videoData) so the caller can display it immediately.
 	return video;
 }
 
@@ -66,12 +82,12 @@ export async function getVideos(limit: number, offset: number): Promise<Generate
 	const index = db.transaction('generated-videos', 'readonly').objectStore('generated-videos').index('by-timestamp');
 	let cursor = await index.openCursor(null, 'prev');
 	if (offset > 0 && cursor) cursor = await cursor.advance(offset);
-	const videos: GeneratedVideo[] = [];
-	while (cursor && videos.length < limit) {
-		videos.push(cursor.value);
+	const records: GeneratedVideo[] = [];
+	while (cursor && records.length < limit) {
+		records.push(cursor.value);
 		cursor = await cursor.continue();
 	}
-	return videos;
+	return withVideoBlobs(records);
 }
 
 export async function countVideos(): Promise<number> {
@@ -81,19 +97,33 @@ export async function countVideos(): Promise<number> {
 
 export async function getAllVideos(): Promise<GeneratedVideo[]> {
 	const db = await getDb();
-	return db.getAllFromIndex('generated-videos', 'by-timestamp').then(videos =>
-		videos.sort((a, b) => b.timestamp - a.timestamp)
-	);
+	const records = await db.getAllFromIndex('generated-videos', 'by-timestamp');
+	records.sort((a, b) => b.timestamp - a.timestamp);
+	return withVideoBlobs(records);
+}
+
+/** Returns all video records without blobs — used internally for metadata-only operations. */
+async function getAllVideosMeta(): Promise<GeneratedVideo[]> {
+	const db = await getDb();
+	const records = await db.getAllFromIndex('generated-videos', 'by-timestamp');
+	records.sort((a, b) => b.timestamp - a.timestamp);
+	return records;
 }
 
 export async function deleteVideo(id: string): Promise<void> {
 	const db = await getDb();
-	await db.delete('generated-videos', id);
+	await Promise.all([
+		db.delete('generated-videos', id),
+		deleteMediaFile('videos', id)
+	]);
 }
 
 export async function clearVideos(): Promise<void> {
 	const db = await getDb();
-	await db.clear('generated-videos');
+	await Promise.all([
+		db.clear('generated-videos'),
+		clearMediaFolder('videos')
+	]);
 }
 
 const VIDEO_COST_CACHE_KEY = 'gpt-video-cost-cache';
@@ -134,15 +164,8 @@ export async function computeVideoCostTotal(): Promise<number> {
 const MAX_STORAGE_SIZE_MB = 100;
 const STORAGE_WARNING_THRESHOLD_MB = 80;
 
-function estimateDataUrlSize(dataUrl: string): number {
-	const base64Data = dataUrl.split(',')[1];
-	if (!base64Data) return 0;
-	return Math.ceil((base64Data.length * 3) / 4);
-}
-
 export async function getTotalStorageSize(): Promise<number> {
-	const videos = await getAllVideos();
-	return videos.reduce((total, v) => total + estimateDataUrlSize(v.videoData), 0);
+	return getTotalFolderSize('videos');
 }
 
 export async function getStorageSizeMB(): Promise<number> {
@@ -162,14 +185,16 @@ export async function getStorageStatus() {
 
 export async function cleanupOldVideos(targetSizeMB = 70): Promise<number> {
 	const db = await getDb();
-	const videos = await getAllVideos();
+	const videos = await getAllVideosMeta();
 	const targetSizeBytes = targetSizeMB * 1024 * 1024;
 	let currentSize = await getTotalStorageSize();
 	let deletedCount = 0;
 	for (let i = videos.length - 1; i >= 0 && currentSize > targetSizeBytes; i--) {
 		const video = videos[i];
+		const videoSize = await getMediaFileSize('videos', video.id);
 		await db.delete('generated-videos', video.id);
-		currentSize -= estimateDataUrlSize(video.videoData);
+		await deleteMediaFile('videos', video.id);
+		currentSize -= videoSize;
 		deletedCount++;
 	}
 	return deletedCount;
@@ -182,7 +207,9 @@ export async function addVideoWithCleanup(
 	resolution: VideoResolution,
 	videoData: string
 ): Promise<{ video: GeneratedVideo; cleanedCount: number }> {
-	const newVideoSize = estimateDataUrlSize(videoData);
+	// Estimate the incoming video's binary size from the base64 payload.
+	const base64 = videoData.split(',')[1] ?? '';
+	const newVideoSize = Math.ceil((base64.length * 3) / 4);
 	const currentSize = await getTotalStorageSize();
 	let cleanedCount = 0;
 	if (currentSize + newVideoSize >= MAX_STORAGE_SIZE_MB * 1024 * 1024) {

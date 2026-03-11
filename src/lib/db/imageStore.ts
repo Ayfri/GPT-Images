@@ -2,6 +2,7 @@ import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
 import { PRICING } from '$lib/types/image';
+import { clearMediaFolder, deleteMediaFile, readMediaFile, writeMediaFile } from './opfsStore';
 
 interface GeneratedImage {
 	background?: ImageBackground;
@@ -80,6 +81,26 @@ export async function getDb() {
 	return db;
 }
 
+/** Derive a MIME type from the stored output_format (default: png). */
+function imageMime(output_format: OutputFormat | undefined): string {
+	switch (output_format) {
+		case 'jpeg': return 'image/jpeg';
+		case 'webp': return 'image/webp';
+		default:     return 'image/png';
+	}
+}
+
+/** Populate imageData from OPFS for records that have an empty field. */
+async function withImageBlobs(records: GeneratedImage[]): Promise<GeneratedImage[]> {
+	return Promise.all(
+		records.map(async (img) => {
+			if (img.imageData) return img;
+			const blob = await readMediaFile('images', img.id, imageMime(img.output_format));
+			return { ...img, imageData: blob ?? '' };
+		})
+	);
+}
+
 export async function addImage(
 	imageData: string,
 	prompt: string,
@@ -94,21 +115,22 @@ export async function addImage(
 	const db = await getDb();
 	const id = crypto.randomUUID();
 
-	const image: GeneratedImage = {
+	// Persist binary to OPFS; only metadata goes into IDB.
+	await writeMediaFile('images', id, imageData);
+
+	await db.add('generated-images', {
+		background,
 		id,
-		prompt,
-		imageData,
-		timestamp: Date.now(),
-		model,
-		quality,
-		size,
+		imageData: '',
 		input_fidelity,
+		model,
 		output_compression,
 		output_format,
-		background
-	};
-
-	await db.add('generated-images', image);
+		prompt,
+		quality,
+		size,
+		timestamp: Date.now()
+	});
 	return id;
 }
 
@@ -117,12 +139,12 @@ export async function getImages(offset: number, limit: number): Promise<Generate
 	const index = db.transaction('generated-images', 'readonly').objectStore('generated-images').index('by-timestamp');
 	let cursor = await index.openCursor(null, 'prev');
 	if (offset > 0 && cursor) cursor = await cursor.advance(offset);
-	const images: GeneratedImage[] = [];
-	while (cursor && images.length < limit) {
-		images.push(cursor.value);
+	const records: GeneratedImage[] = [];
+	while (cursor && records.length < limit) {
+		records.push(cursor.value);
 		cursor = await cursor.continue();
 	}
-	return images;
+	return withImageBlobs(records);
 }
 
 export async function countImages(): Promise<number> {
@@ -132,19 +154,25 @@ export async function countImages(): Promise<number> {
 
 export async function getAllImages(): Promise<GeneratedImage[]> {
 	const db = await getDb();
-	return db.getAllFromIndex('generated-images', 'by-timestamp').then(images =>
-		images.sort((a, b) => b.timestamp - a.timestamp)
-	);
+	const records = await db.getAllFromIndex('generated-images', 'by-timestamp');
+	records.sort((a, b) => b.timestamp - a.timestamp);
+	return withImageBlobs(records);
 }
 
 export async function deleteImage(id: string): Promise<void> {
 	const db = await getDb();
-	await db.delete('generated-images', id);
+	await Promise.all([
+		db.delete('generated-images', id),
+		deleteMediaFile('images', id)
+	]);
 }
 
 export async function clearImages(): Promise<void> {
 	const db = await getDb();
-	await db.clear('generated-images');
+	await Promise.all([
+		db.clear('generated-images'),
+		clearMediaFolder('images')
+	]);
 }
 
 const COST_CACHE_KEY = 'gpt-image-cost-cache';
