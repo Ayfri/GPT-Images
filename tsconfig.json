@@ -5,6 +5,12 @@
 		"checkJs": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
+		"lib": [
+			"ES2024",
+			"DOM",
+			"DOM.Iterable",
+			"DOM.AsyncIterable"
+		],
 		"noImplicitAny": true,
 		"noFallthroughCasesInSwitch": true,
 		"resolveJsonModule": true,
