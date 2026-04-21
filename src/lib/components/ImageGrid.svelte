@@ -11,7 +11,7 @@
 	import ImageCard from './ImageCard.svelte';
 	import { images, initImageStore, loadMoreImages, totalImageCount, type ImageRecord } from '$lib/stores/imageStore';
 	import type { ImageModel } from '$lib/types/image';
-	import { PRICING } from '$lib/types/image';
+import { MODEL_OPTIONS, PRICING } from '$lib/types/image';
 	import { quintOut } from 'svelte/easing';
 	import { flip } from 'svelte/animate';
 
@@ -85,6 +85,10 @@
 			? PRICING[model][currentImage.quality][currentImage.size]
 			: 0.01;
 	})() : 0);
+
+	let currentImageModelLabel = $derived(currentImage?.model && currentImage.model in MODEL_OPTIONS
+		? MODEL_OPTIONS[currentImage.model as keyof typeof MODEL_OPTIONS].label
+		: (currentImage?.model ?? 'N/A'));
 
 
 	onMount(async () => {
@@ -296,7 +300,7 @@
 				<span>Background: {currentImage.background}</span>
 			{/if}
 			{#if currentImage.model}
-				<span>Model: {currentImage.model}</span>
+				<span>Model: {currentImageModelLabel}</span>
 			{/if}
 			<span>Cost: ${currentImagePrice.toFixed(3)}</span>
 		</div>
