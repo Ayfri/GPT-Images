@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
-import { PRICING } from '$lib/types/image';
+import { getImagePrice } from '$lib/types/image';
 import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, revokeMediaObjectUrl, writeMediaFile } from './opfsStore';
 
 interface GeneratedImage {
@@ -95,7 +95,7 @@ async function withImageBlobs(records: GeneratedImage[]): Promise<GeneratedImage
 export async function addImage(
 	imageData: string,
 	prompt: string,
-	model: ImageModel = 'gpt-image-1',
+	model: ImageModel = 'gpt-image-2',
 	quality: ImageQuality = 'low',
 	size: ImageSize = '1024x1024',
 	input_fidelity: InputFidelity = 'low',
@@ -195,9 +195,9 @@ export async function computeImageCostTotal(): Promise<number> {
 	let totalCost = 0;
 	let cursor = await store.openCursor();
 	while (cursor) {
-		const { model = 'gpt-image-1', quality, size } = cursor.value;
+		const { model = 'gpt-image-2', quality, size } = cursor.value;
 		const m = model as ImageModel;
-		totalCost += quality && size && PRICING[m]?.[quality]?.[size] ? PRICING[m][quality][size] : 0.01;
+		totalCost += quality && size ? (getImagePrice(m, quality, size) ?? 0.01) : 0.01;
 		cursor = await cursor.continue();
 	}
 	return totalCost;
