@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { BarChart3, Coins } from 'lucide-svelte';
 	import { totalImageCount, totalCostAll } from '$lib/stores/imageStore';
-	import { MODEL_OPTIONS, PRICED_SIZE_OPTIONS, getImagePrice } from '$lib/types/image';
+	import { MODEL_OPTIONS, PRICED_SIZE_OPTIONS, QUALITY_OPTIONS, getImagePrice } from '$lib/types/image';
 
 	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
-	const qualities = ['low', 'medium', 'high'] as const;
+	const qualities = (Object.keys(QUALITY_OPTIONS) as (keyof typeof QUALITY_OPTIONS)[]).filter(
+		(quality) => quality !== 'auto'
+	);
 	const sizes = Object.keys(PRICED_SIZE_OPTIONS) as (keyof typeof PRICED_SIZE_OPTIONS)[];
 </script>
 

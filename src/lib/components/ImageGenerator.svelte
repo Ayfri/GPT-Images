@@ -25,6 +25,7 @@
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'image-generator-options';
+	const NON_CONFIGURABLE_INPUT_FIDELITY: InputFidelity = 'high';
 
 	// Load options from localStorage if available
 	function loadFormOptions() {
@@ -204,7 +205,7 @@
 			selectedBackground = 'auto';
 		}
 		if (!canConfigureInputFidelity) {
-			inputFidelity = 'high';
+			inputFidelity = NON_CONFIGURABLE_INPUT_FIDELITY;
 		}
 	});
 
@@ -288,7 +289,7 @@
 		try {
 			let imageDataArray: string[];
 
-			const optionalFormatOptions = {
+			const compressionOptions = {
 				...(outputFormat === 'jpeg' || outputFormat === 'webp'
 					? { output_compression: outputCompression }
 					: {})
@@ -303,7 +304,7 @@
 				output_format: outputFormat,
 				background: selectedBackground,
 				moderation: selectedModeration,
-				...optionalFormatOptions
+				...compressionOptions
 			};
 
 			if (mode === 'edit' && inputImages.length > 0) {
@@ -324,7 +325,7 @@
 					output_format: outputFormat,
 					background: selectedBackground,
 					moderation: selectedModeration,
-					...optionalFormatOptions
+					...compressionOptions
 				};
 				imageDataArray = await generateImage($apiKey, generationParams);
 			}
@@ -338,7 +339,7 @@
 					selectedModel,
 					selectedQuality,
 					selectedSize,
-					canConfigureInputFidelity ? inputFidelity : 'high',
+					canConfigureInputFidelity ? inputFidelity : NON_CONFIGURABLE_INPUT_FIDELITY,
 					outputCompression,
 					outputFormat,
 					selectedBackground
