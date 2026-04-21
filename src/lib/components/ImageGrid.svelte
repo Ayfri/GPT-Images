@@ -11,7 +11,7 @@
 	import ImageCard from './ImageCard.svelte';
 	import { images, initImageStore, loadMoreImages, totalImageCount, type ImageRecord } from '$lib/stores/imageStore';
 	import type { ImageModel } from '$lib/types/image';
-	import { PRICING } from '$lib/types/image';
+	import { getImagePrice as getModelPrice } from '$lib/types/image';
 	import { quintOut } from 'svelte/easing';
 	import { flip } from 'svelte/animate';
 
@@ -31,13 +31,11 @@
 	let observer: IntersectionObserver | undefined = $state();
 	let sentinelRef: HTMLDivElement | undefined = $state();
 
-	const qualityOrder = { high: 3, low: 1, medium: 2 };
+	const qualityOrder = { auto: 0, high: 3, low: 1, medium: 2 };
 
 	function getImagePrice(image: ImageRecord): number {
-		const model = (image.model || 'gpt-image-1') as ImageModel;
-		return image.quality && image.size && PRICING[model]?.[image.quality]?.[image.size]
-			? PRICING[model][image.quality][image.size]
-			: 0.01;
+		const model = (image.model || 'gpt-image-2') as ImageModel;
+		return image.quality && image.size ? (getModelPrice(model, image.quality, image.size) ?? 0.01) : 0.01;
 	}
 
 	function getImageSizeArea(size: string | undefined): number {
@@ -80,10 +78,8 @@
 	let currentImage = $derived(largeViewIndex !== null ? sortedImages[largeViewIndex] : null);
 
 	let currentImagePrice = $derived(currentImage ? (() => {
-		const model = (currentImage.model || 'gpt-image-1') as ImageModel;
-		return currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
-			? PRICING[model][currentImage.quality][currentImage.size]
-			: 0.01;
+		const model = (currentImage.model || 'gpt-image-2') as ImageModel;
+		return currentImage.quality && currentImage.size ? (getModelPrice(model, currentImage.quality, currentImage.size) ?? 0.01) : 0.01;
 	})() : 0);
 
 
