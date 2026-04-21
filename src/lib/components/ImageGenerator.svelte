@@ -171,7 +171,7 @@
 
 			// Set other image properties if available
 			if (imageToEdit) {
-				selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-1';
+				selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-1.5';
 				selectedQuality = imageToEdit.quality ?? 'low';
 				selectedSize = imageToEdit.size ?? '1024x1024';
 				inputFidelity = imageToEdit.input_fidelity ?? 'low';

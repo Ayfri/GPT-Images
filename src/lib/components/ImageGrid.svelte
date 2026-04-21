@@ -34,7 +34,7 @@
 	const qualityOrder = { high: 3, low: 1, medium: 2 };
 
 	function getImagePrice(image: ImageRecord): number {
-		const model = (image.model || 'gpt-image-1') as ImageModel;
+		const model = (image.model || 'gpt-image-1.5') as ImageModel;
 		return image.quality && image.size && PRICING[model]?.[image.quality]?.[image.size]
 			? PRICING[model][image.quality][image.size]
 			: 0.01;
@@ -80,7 +80,7 @@
 	let currentImage = $derived(largeViewIndex !== null ? sortedImages[largeViewIndex] : null);
 
 	let currentImagePrice = $derived(currentImage ? (() => {
-		const model = (currentImage.model || 'gpt-image-1') as ImageModel;
+		const model = (currentImage.model || 'gpt-image-1.5') as ImageModel;
 		return currentImage.quality && currentImage.size && PRICING[model]?.[currentImage.quality]?.[currentImage.size]
 			? PRICING[model][currentImage.quality][currentImage.size]
 			: 0.01;

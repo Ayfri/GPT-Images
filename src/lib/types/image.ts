@@ -8,9 +8,9 @@ export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 
 
 export const MODEL_OPTIONS = {
-	'gpt-image-1': { label: 'GPT Image 1', description: 'High quality images' },
-	'gpt-image-1-mini': { label: 'GPT Image 1 Mini', description: 'Fast and cost-effective' },
-	'gpt-image-1.5': { label: 'GPT Image 1.5', description: 'Latest model with improved quality' }
+	'gpt-image-1.5': { label: 'GPT Image 2', description: 'Latest model with improved quality and prompt adherence' },
+	'gpt-image-1': { label: 'GPT Image 1', description: 'Previous generation model' },
+	'gpt-image-1-mini': { label: 'GPT Image 1 Mini', description: 'Cost-efficient previous generation model' }
 } as const;
 
 export const QUALITY_OPTIONS = {
@@ -62,7 +62,7 @@ export const PRICING: Record<ImageModel, Record<ImageQuality, Record<ImageSize, 
 	}
 };
 
-// GPT Image 1 specifications for image uploads
+// GPT Image model specifications for image uploads
 export const IMAGE_UPLOAD_LIMITS = {
 	maxFileSize: 50 * 1024 * 1024, // 50MB in bytes
 	maxImages: 16,
