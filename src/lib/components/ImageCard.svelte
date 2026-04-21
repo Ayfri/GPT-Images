@@ -3,7 +3,7 @@
 	import { downloadImage } from '$lib/utils/downloadImage';
 	import { deleteImage } from '$lib/db/imageStore';
 	import { images, totalImageCount, totalCostAll, invalidateImageStats } from '$lib/stores/imageStore';
-	import { PRICING, type ImageModel } from '$lib/types/image';
+	import { getImagePrice, type ImageModel } from '$lib/types/image';
 	import MediaCard from './MediaCard.svelte';
 
 	interface Props {
@@ -24,10 +24,8 @@
 
 	$effect(() => {
 		const rec = $images.find((img) => img.id === id);
-		price =
-			rec?.quality && rec?.size && PRICING[rec.model as ImageModel]?.[rec.quality]?.[rec.size] ?
-				PRICING[rec.model as ImageModel][rec.quality][rec.size]
-			:	0.01;
+		const model = (rec?.model || 'gpt-image-2') as ImageModel;
+		price = rec?.quality && rec?.size ? (getImagePrice(model, rec.quality, rec.size) ?? 0.01) : 0.01;
 	});
 
 	async function handleCopy() {
@@ -42,10 +40,8 @@
 		if (confirm('Are you sure you want to delete this image?')) {
 			const rec = $images.find((img) => img.id === id);
 			if (rec) {
-				const deletedCost =
-					rec.quality && rec.size && PRICING[rec.model as ImageModel]?.[rec.quality]?.[rec.size] ?
-						PRICING[rec.model as ImageModel][rec.quality][rec.size]
-					:	0.01;
+				const model = (rec.model || 'gpt-image-2') as ImageModel;
+				const deletedCost = rec.quality && rec.size ? (getImagePrice(model, rec.quality, rec.size) ?? 0.01) : 0.01;
 				totalCostAll.update((c) => Math.max(0, c - deletedCost));
 			}
 			await deleteImage(id);
