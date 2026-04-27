@@ -4,7 +4,7 @@
 	import { Upload, X, ChevronDown, ChevronRight, Loader2, Sparkles, ImagePlus, ClipboardPaste } from 'lucide-svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addImage } from '$lib/db/imageStore';
-	import { images, refreshImageStore } from '$lib/stores/imageStore';
+	import { refreshImageStore } from '$lib/stores/imageStore';
 	import { generateImage, editImage } from '$lib/services/openai';
 	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
 	import type { ImageRecord } from '$lib/stores/imageStore';

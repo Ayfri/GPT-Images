@@ -1,6 +1,5 @@
 import { writable, get } from 'svelte/store';
 import { countImages, getImages, getCostCache, setCostCache, invalidateCostCache, computeImageCostTotal } from '$lib/db/imageStore';
-import { runMigrations } from '$lib/db/migrations';
 import type { Writable } from 'svelte/store';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
 

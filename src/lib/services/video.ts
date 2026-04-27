@@ -1,5 +1,6 @@
 import type { RemixVideoParams, VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import OpenAI from 'openai';
+import type { VideoCreateParams } from 'openai/resources/videos';
 
 /**
  * Converts an ArrayBuffer to base64 string using chunked processing to avoid stack overflow
@@ -20,7 +21,7 @@ function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
 
 export interface GenerateVideoParams {
 	duration?: VideoDuration;
-	inputReference?: File | string;
+	inputReference?: File;
 	model: VideoModel;
 	prompt: string;
 	resolution?: VideoResolution;
@@ -33,13 +34,14 @@ export async function generateVideo(apiKey: string, params: GenerateVideoParams)
 	});
 
 	try {
-		const response = await client.videos.create({
+		const body: VideoCreateParams = {
 			prompt: params.prompt,
 			...(params.model !== undefined && { model: params.model }),
 			...(params.resolution !== undefined && { size: params.resolution }),
-			...(params.duration !== undefined && { seconds: params.duration.toString() }),
+			...(params.duration !== undefined && { seconds: params.duration.toString() as VideoCreateParams['seconds'] }),
 			...(params.inputReference !== undefined && { input_reference: params.inputReference }),
-		} as any);
+		};
+		const response = await client.videos.create(body);
 
 		// Return the video ID which will be used to poll for completion
 		return response.id;
@@ -101,14 +103,14 @@ export async function getVideoStatus(apiKey: string, videoId: string): Promise<{
 				return {
 					video_data: videoDataUrl,
 					status: response.status,
-					progress: (response as any).progress
+					progress: response.progress
 				};
 			} catch (downloadError: any) {
 				// Video completed but download failed - return completed status without video data
 				console.error('Failed to download completed video content:', downloadError);
 				return {
 					status: response.status,
-					progress: (response as any).progress,
+					progress: response.progress,
 					error: { code: 'DOWNLOAD_FAILED', message: 'Video completed but download failed' }
 				};
 			}
@@ -116,8 +118,8 @@ export async function getVideoStatus(apiKey: string, videoId: string): Promise<{
 
 		return {
 			status: response.status,
-			progress: (response as any).progress,
-			error: response.status === 'failed' ? (response as any).error : undefined
+			progress: response.progress,
+			error: response.status === 'failed' ? response.error ?? undefined : undefined
 		};
 	} catch (error: any) {
 		if (error?.status) {
