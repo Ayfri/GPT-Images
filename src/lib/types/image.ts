@@ -17,6 +17,11 @@ export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 export type ImageModeration = 'auto' | 'low';
 
 
+/**
+ * OpenAI Images API: max `prompt` length in characters.
+ */
+export const GPT_IMAGE_MODEL_PROMPT_MAX_CHARS = 32_000;
+
 export const MODEL_OPTIONS = {
 	'gpt-image-1': { description: 'High quality images', label: 'GPT Image 1' },
 	'gpt-image-1-mini': { description: 'Fast and cost-effective', label: 'GPT Image 1 Mini' },

@@ -8,10 +8,11 @@
 	import { generateImage, editImage } from '$lib/services/openai';
 	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModeration } from '$lib/types/image';
 	import type { ImageRecord } from '$lib/stores/imageStore';
-	import {
+	import 	{
 		MODEL_OPTIONS,
 		QUALITY_OPTIONS,
 		SIZE_OPTIONS,
+		GPT_IMAGE_MODEL_PROMPT_MAX_CHARS,
 		getImagePrice,
 		IMAGE_UPLOAD_LIMITS,
 		INPUT_FIDELITY_OPTIONS,
@@ -98,6 +99,8 @@
 
 	// Calculate price dynamically
 	let currentPrice = $derived((displayPrice ?? 0) * imageCount);
+	let promptCharCount = $derived(prompt.length);
+	let promptExceedsApiLimit = $derived(promptCharCount > GPT_IMAGE_MODEL_PROMPT_MAX_CHARS);
 
 	onMount(() => {
 		loadFormOptions()
@@ -269,6 +272,11 @@
 			return;
 		}
 
+		if (prompt.length > GPT_IMAGE_MODEL_PROMPT_MAX_CHARS) {
+			error = `Prompt exceeds the API limit (${GPT_IMAGE_MODEL_PROMPT_MAX_CHARS.toLocaleString("en-US")} characters for GPT Image models). Shorten the text and try again.`;
+			return;
+		}
+
 		if (mode === 'edit' && inputImages.length === 0) {
 			error = "Please upload at least one image to edit";
 			return;
@@ -390,16 +398,27 @@
 	<form onsubmit={(e) => { e.preventDefault(); handleGenerate(); }} class="p-5 space-y-4">
 		<!-- Prompt -->
 		<div>
-			<textarea
-				id="prompt"
-				bind:value={prompt}
-				rows="4"
-				placeholder={inputImages.length > 0
-					? 'Describe what to generate using these references - style, subject, composition…'
-					: 'Describe the image you want to create…'}
-				class="input w-full resize-none leading-relaxed"
-				disabled={isGenerating}
-			></textarea>
+			<div class="relative">
+				<textarea
+					id="prompt"
+					bind:value={prompt}
+					rows="4"
+					placeholder={inputImages.length > 0
+						? 'Describe what to generate using these references - style, subject, composition…'
+						: 'Describe the image you want to create…'}
+					class="input w-full resize-none leading-relaxed pb-8"
+					disabled={isGenerating}
+					aria-describedby="prompt-char-count"
+				></textarea>
+				<div
+					id="prompt-char-count"
+					class="pointer-events-none absolute inset-e-2.5 bottom-2.5 text-xs leading-none tabular-nums select-none {promptExceedsApiLimit
+						? 'text-amber-400/95'
+						: 'text-gray-500'}"
+				>
+					{promptCharCount} / {GPT_IMAGE_MODEL_PROMPT_MAX_CHARS}
+				</div>
+			</div>
 		</div>
 
 		<!-- Reference images zone - always visible -->
