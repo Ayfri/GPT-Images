@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Sparkles } from 'lucide-svelte';
+	import { Sparkles } from '@lucide/svelte';
 	import { deleteVideo } from '$lib/db/videoStore';
 	import { videos, totalVideoCount, totalCostAll, invalidateVideoStats } from '$lib/stores/videoStore';
 	import { calculateVideoPrice } from '$lib/utils/videoPrice';

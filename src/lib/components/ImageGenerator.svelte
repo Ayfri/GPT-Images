@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import { Upload, X, ChevronDown, ChevronRight, Loader2, Sparkles, ImagePlus, ClipboardPaste } from 'lucide-svelte';
+	import { Upload, X, ChevronDown, ChevronRight, Loader2, Sparkles, ImagePlus, ClipboardPaste } from '@lucide/svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addImage } from '$lib/db/imageStore';
 	import { refreshImageStore } from '$lib/stores/imageStore';

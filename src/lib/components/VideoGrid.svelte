@@ -7,7 +7,7 @@
 		ChevronLeft,
 		ChevronRight,
 		Video as VideoIcon
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import VideoCard from './VideoCard.svelte';
 	import { videos, initVideoStore, loadMoreVideos, totalVideoCount, type VideoRecord } from '$lib/stores/videoStore';
 	import { quintOut } from 'svelte/easing';

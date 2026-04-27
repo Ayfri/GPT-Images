@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { apiKey } from '$lib/stores/apiKeyStore';
-	import { Key, Eye, EyeOff } from 'lucide-svelte';
+	import { Key, Eye, EyeOff } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 
 	let showApiKey = $state(false);

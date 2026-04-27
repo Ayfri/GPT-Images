@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Pencil } from 'lucide-svelte';
+	import { Pencil } from '@lucide/svelte';
 	import { downloadImage } from '$lib/utils/downloadImage';
 	import { deleteImage } from '$lib/db/imageStore';
 	import { images, totalImageCount, totalCostAll, invalidateImageStats } from '$lib/stores/imageStore';

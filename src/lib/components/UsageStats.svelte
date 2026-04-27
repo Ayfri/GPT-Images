@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BarChart3, Coins } from 'lucide-svelte';
+	import { BarChart3, Coins } from '@lucide/svelte';
 	import { totalImageCount, totalCostAll } from '$lib/stores/imageStore';
 	import { MODEL_OPTIONS, PRICED_SIZE_OPTIONS, QUALITY_OPTIONS, getImagePrice } from '$lib/types/image';
 

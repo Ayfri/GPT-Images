@@ -7,7 +7,7 @@
 		ChevronLeft,
 		ChevronRight,
 		Image as ImageIcon
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import ImageCard from './ImageCard.svelte';
 	import { images, initImageStore, loadMoreImages, totalImageCount, type ImageRecord } from '$lib/stores/imageStore';
 	import type { ImageModel } from '$lib/types/image';

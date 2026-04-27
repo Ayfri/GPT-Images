@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import { ClipboardPaste, Film, Loader2, Sparkles, X } from 'lucide-svelte';
+	import { ClipboardPaste, Film, Loader2, Sparkles, X } from '@lucide/svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addVideoWithStorageManagement } from '$lib/stores/videoStore';
 	import { generateVideo, getVideoStatus, remixVideo } from '$lib/services/video';

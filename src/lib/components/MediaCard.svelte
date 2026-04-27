@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { Copy, Download, RefreshCw, Trash2 } from 'lucide-svelte';
+	import { Copy, Download, RefreshCw, Trash2 } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { formatDate } from '$lib/utils/formatDate';
 

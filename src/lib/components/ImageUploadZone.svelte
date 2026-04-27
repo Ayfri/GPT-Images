@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Upload, X } from 'lucide-svelte';
+	import { Upload, X } from '@lucide/svelte';
 	import { IMAGE_UPLOAD_LIMITS } from '$lib/types/image';
 
 	interface Props {

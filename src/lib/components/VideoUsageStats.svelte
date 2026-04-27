@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BarChart3, Coins, HardDrive } from 'lucide-svelte';
+	import { BarChart3, Coins, HardDrive } from '@lucide/svelte';
 	import { totalVideoCount, totalCostAll, storageStatus } from '$lib/stores/videoStore';
 	import { MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL, DURATION_OPTIONS } from '$lib/types/video';
 
