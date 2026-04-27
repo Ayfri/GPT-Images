@@ -6,14 +6,26 @@
 	import { addImage } from '$lib/db/imageStore';
 	import { refreshImageStore } from '$lib/stores/imageStore';
 	import { generateImage, editImage } from '$lib/services/openai';
-	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground } from '$lib/types/image';
+	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModeration } from '$lib/types/image';
 	import type { ImageRecord } from '$lib/stores/imageStore';
-	import { MODEL_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS, PRICING, IMAGE_UPLOAD_LIMITS, INPUT_FIDELITY_OPTIONS, OUTPUT_FORMAT_OPTIONS, BACKGROUND_OPTIONS } from '$lib/types/image';
+	import {
+		MODEL_OPTIONS,
+		QUALITY_OPTIONS,
+		SIZE_OPTIONS,
+		getImagePrice,
+		IMAGE_UPLOAD_LIMITS,
+		INPUT_FIDELITY_OPTIONS,
+		OUTPUT_FORMAT_OPTIONS,
+		BACKGROUND_OPTIONS,
+		MODEL_SUPPORT,
+		MODERATION_OPTIONS
+	} from '$lib/types/image';
 	import { browser } from '$app/environment';
 	import ImageUploadZone from './ImageUploadZone.svelte';
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'image-generator-options';
+	const NON_CONFIGURABLE_INPUT_FIDELITY: InputFidelity = 'high';
 
 	// Load options from localStorage if available
 	function loadFormOptions() {
@@ -30,6 +42,7 @@
 			if (opts.outputCompression !== undefined) outputCompression = opts.outputCompression
 			if (opts.outputFormat) outputFormat = opts.outputFormat
 			if (opts.selectedBackground) selectedBackground = opts.selectedBackground
+			if (opts.selectedModeration) selectedModeration = opts.selectedModeration
 			if (opts.prompt) prompt = opts.prompt
 		} catch {}
 	}
@@ -45,6 +58,7 @@
 			outputCompression,
 			outputFormat,
 			selectedBackground,
+			selectedModeration,
 			prompt
 		}
 		localStorage.setItem(FORM_OPTIONS_KEY, JSON.stringify(opts))
@@ -58,7 +72,7 @@
 	let { prompt = $bindable(''), imageToEdit = $bindable(null) }: Props = $props();
 	let isGenerating = $state(false);
 	let error: string | null = $state(null);
-	let selectedModel: ImageModel = $state('gpt-image-1.5');
+	let selectedModel: ImageModel = $state('gpt-image-2');
 	let selectedQuality: ImageQuality = $state('low');
 	let selectedSize: ImageSize = $state('1024x1024');
 	let imageCount = $state(1);
@@ -77,9 +91,13 @@
 	let outputCompression = $state(100);
 	let outputFormat: OutputFormat = $state('png');
 	let selectedBackground: ImageBackground = $state('auto');
+	let selectedModeration: ImageModeration = $state('auto');
+	let supportsTransparentBackground = $derived(MODEL_SUPPORT[selectedModel].transparentBackground);
+	let canConfigureInputFidelity = $derived(MODEL_SUPPORT[selectedModel].inputFidelityConfigurable);
+	let displayPrice = $derived(getImagePrice(selectedModel, selectedQuality, selectedSize));
 
 	// Calculate price dynamically
-	let currentPrice = $derived(PRICING[selectedModel][selectedQuality][selectedSize] * imageCount);
+	let currentPrice = $derived((displayPrice ?? 0) * imageCount);
 
 	onMount(() => {
 		loadFormOptions()
@@ -171,7 +189,7 @@
 
 			// Set other image properties if available
 			if (imageToEdit) {
-				selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-1';
+				selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-2';
 				selectedQuality = imageToEdit.quality ?? 'low';
 				selectedSize = imageToEdit.size ?? '1024x1024';
 				inputFidelity = imageToEdit.input_fidelity ?? 'low';
@@ -179,6 +197,15 @@
 				outputFormat = imageToEdit.output_format ?? 'png';
 				selectedBackground = imageToEdit.background ?? 'auto';
 			}
+		}
+	});
+
+	$effect(() => {
+		if (!supportsTransparentBackground && selectedBackground === 'transparent') {
+			selectedBackground = 'auto';
+		}
+		if (!canConfigureInputFidelity) {
+			inputFidelity = NON_CONFIGURABLE_INPUT_FIDELITY;
 		}
 	});
 
@@ -251,6 +278,10 @@
 			error = 'Transparent background is not supported for JPEG output format. Please select PNG or WebP.';
 			return;
 		}
+		if (!supportsTransparentBackground && selectedBackground === 'transparent') {
+			error = `${MODEL_OPTIONS[selectedModel].label} does not support transparent backgrounds.`;
+			return;
+		}
 
 		isGenerating = true;
 		error = null;
@@ -258,22 +289,28 @@
 		try {
 			let imageDataArray: string[];
 
+			const compressionOptions = {
+				...(outputFormat === 'jpeg' || outputFormat === 'webp'
+					? { output_compression: outputCompression }
+					: {})
+			};
+
 			const baseParams = {
 				model: selectedModel,
 				prompt,
 				quality: selectedQuality,
 				size: selectedSize,
 				n: imageCount,
-				input_fidelity: inputFidelity,
-				output_compression: outputCompression,
 				output_format: outputFormat,
-				background: selectedBackground
+				background: selectedBackground,
+				moderation: selectedModeration,
+				...compressionOptions
 			};
 
 			if (mode === 'edit' && inputImages.length > 0) {
 				imageDataArray = await editImage($apiKey, {
 					...baseParams,
-					input_fidelity: inputFidelity, // Only add input_fidelity for editing
+					...(canConfigureInputFidelity ? { input_fidelity: inputFidelity } : {}),
 					images: inputImages,
 					mask: inputMask || undefined
 				});
@@ -285,9 +322,10 @@
 					quality: selectedQuality,
 					size: selectedSize,
 					n: imageCount,
-					output_compression: outputCompression,
 					output_format: outputFormat,
-					background: selectedBackground
+					background: selectedBackground,
+					moderation: selectedModeration,
+					...compressionOptions
 				};
 				imageDataArray = await generateImage($apiKey, generationParams);
 			}
@@ -301,7 +339,7 @@
 					selectedModel,
 					selectedQuality,
 					selectedSize,
-					inputFidelity,
+					canConfigureInputFidelity ? inputFidelity : NON_CONFIGURABLE_INPUT_FIDELITY,
 					outputCompression,
 					outputFormat,
 					selectedBackground
@@ -462,7 +500,7 @@
 			{#if showAdvanced}
 				<div class="mt-4 space-y-4 pl-4 border-l border-gray-700/60" in:fly={{ y: -6, duration: 180 }}>
 					<div class="grid grid-cols-2 gap-4">
-						{#if mode === 'edit'}
+						{#if mode === 'edit' && canConfigureInputFidelity}
 							<div>
 								<label for="inputFidelity" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
 									Input Fidelity
@@ -489,12 +527,24 @@
 					</div>
 
 					<div>
+						<label for="moderation" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+							Moderation
+						</label>
+						<select id="moderation" bind:value={selectedModeration} class="input w-full text-sm" disabled={isGenerating}>
+							{#each Object.entries(MODERATION_OPTIONS) as [key, option] (key)}
+								<option value={key}>{option.label}</option>
+							{/each}
+						</select>
+						<p class="text-xs text-gray-600 mt-1">{MODERATION_OPTIONS[selectedModeration].description}</p>
+					</div>
+
+					<div>
 						<label for="background" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
 							Background
 						</label>
 						<select id="background" bind:value={selectedBackground} class="input w-full text-sm" disabled={isGenerating}>
 							{#each Object.entries(BACKGROUND_OPTIONS) as [key, option] (key)}
-								<option value={key}>{option.label}</option>
+								<option value={key} disabled={!supportsTransparentBackground && key === 'transparent'}>{option.label}</option>
 							{/each}
 						</select>
 						<p class="text-xs text-gray-600 mt-1">{BACKGROUND_OPTIONS[selectedBackground].description}</p>
@@ -608,7 +658,11 @@
 
 		<div class="text-xs text-gray-600 flex justify-between pt-0.5">
 			<span>{MODEL_OPTIONS[selectedModel].label}</span>
-			<span class="text-secondary-500">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
+			{#if displayPrice !== null}
+				<span class="text-secondary-500">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
+			{:else}
+				<span class="text-gray-500">Estimated price unavailable for this size/quality</span>
+			{/if}
 		</div>
 	</form>
 </div>

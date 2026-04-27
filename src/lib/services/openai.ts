@@ -1,4 +1,12 @@
-import type { ImageBackground, ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat } from '$lib/types/image';
+import type {
+	ImageBackground,
+	ImageModel,
+	ImageModeration,
+	ImageQuality,
+	ImageSize,
+	InputFidelity,
+	OutputFormat
+} from '$lib/types/image';
 import OpenAI from 'openai';
 import type {
 	ImageEditParamsNonStreaming,
@@ -7,6 +15,7 @@ import type {
 
 export interface GenerateImageParams {
 	background?: ImageBackground;
+	moderation?: ImageModeration;
 	model: ImageModel;
 	n: number;
 	output_compression?: number;
@@ -23,6 +32,10 @@ export async function generateImage(apiKey: string, params: GenerateImageParams)
 	});
 
 	try {
+		if (params.model === 'gpt-image-2' && params.background === 'transparent') {
+			throw new Error('Transparent background is not supported for GPT Image 2');
+		}
+
 		const response = await client.images.generate({
 			model: params.model,
 			prompt: params.prompt,
@@ -30,6 +43,7 @@ export async function generateImage(apiKey: string, params: GenerateImageParams)
 			size: params.size,
 			n: params.n,
 			...(params.background !== undefined && { background: params.background }),
+			...(params.moderation !== undefined && { moderation: params.moderation }),
 			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
 			...(params.output_format !== undefined && { output_format: params.output_format }),
 		} as ImageGenerateParamsNonStreaming);
@@ -57,6 +71,7 @@ export interface EditImageParams {
 	background?: ImageBackground;
 	images: File[];
 	input_fidelity?: InputFidelity;
+	moderation?: ImageModeration;
 	mask?: File;
 	model: ImageModel;
 	n: number;
@@ -74,6 +89,10 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 	});
 
 	try {
+		if (params.model === 'gpt-image-2' && params.background === 'transparent') {
+			throw new Error('Transparent background is not supported for GPT Image 2');
+		}
+
 		// For editing, we need to use the first image as the base
 		const imageFile = params.images[0];
 		if (!imageFile) {
@@ -87,7 +106,8 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 			size: params.size,
 			n: params.n,
 			quality: params.quality,
-			...(params.input_fidelity !== undefined && { input_fidelity: params.input_fidelity }),
+			...(params.model !== 'gpt-image-2' && params.input_fidelity !== undefined && { input_fidelity: params.input_fidelity }),
+			...(params.moderation !== undefined && { moderation: params.moderation }),
 			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
 			...(params.output_format !== undefined && { output_format: params.output_format }),
 			...(params.background !== undefined && { background: params.background }),

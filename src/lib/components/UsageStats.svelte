@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { BarChart3, Coins } from 'lucide-svelte';
 	import { totalImageCount, totalCostAll } from '$lib/stores/imageStore';
-	import { MODEL_OPTIONS, QUALITY_OPTIONS, SIZE_OPTIONS, PRICING } from '$lib/types/image';
+	import { MODEL_OPTIONS, PRICED_SIZE_OPTIONS, QUALITY_OPTIONS, getImagePrice } from '$lib/types/image';
 
 	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
-	const qualities = Object.keys(QUALITY_OPTIONS) as (keyof typeof QUALITY_OPTIONS)[];
-	const sizes = Object.keys(SIZE_OPTIONS) as (keyof typeof SIZE_OPTIONS)[];
+	const qualities = (Object.keys(QUALITY_OPTIONS) as (keyof typeof QUALITY_OPTIONS)[]).filter(
+		(quality) => quality !== 'auto'
+	);
+	const sizes = Object.keys(PRICED_SIZE_OPTIONS) as (keyof typeof PRICED_SIZE_OPTIONS)[];
 </script>
 
 <div class="glass-panel p-5 rounded-2xl">
@@ -44,7 +46,7 @@
 						<div class="grid grid-cols-4 gap-1 text-[10px] text-gray-600 uppercase tracking-wider mb-1">
 							<div></div>
 							{#each sizes as size}
-								<div class="text-center">{SIZE_OPTIONS[size].label}</div>
+								<div class="text-center">{PRICED_SIZE_OPTIONS[size].label}</div>
 							{/each}
 						</div>
 						<!-- Data rows -->
@@ -52,10 +54,13 @@
 							<div class="grid grid-cols-4 gap-1">
 								<div class="text-xs text-gray-500 flex items-center capitalize">{quality}</div>
 								{#each sizes as size}
+									{@const price = getImagePrice(modelKey, quality, size)}
 									<div class="rounded-lg bg-dark-300/60 border border-white/4 p-1.5 text-center">
-										<span class="text-xs font-semibold text-gray-200">
-											${PRICING[modelKey][quality][size].toFixed(3)}
-										</span>
+										{#if price !== null}
+											<span class="text-xs font-semibold text-gray-200">${price.toFixed(3)}</span>
+										{:else}
+											<span class="text-xs font-semibold text-gray-500">—</span>
+										{/if}
 									</div>
 								{/each}
 							</div>
