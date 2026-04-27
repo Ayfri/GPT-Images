@@ -2,7 +2,7 @@
 	import ApiKeyForm from '$lib/components/ApiKeyForm.svelte';
 	import VideoUsageStats from '$lib/components/VideoUsageStats.svelte';
 	import VideoGenerator from '$lib/components/VideoGenerator.svelte';
-	import VideoGrid from '$lib/components/VideoGrid.svelte';
+	import MediaGrid from '$lib/components/MediaGrid.svelte';
 
 	let currentPrompt = $state('');
 	let remixVideoId: string | null = $state(null);
@@ -43,7 +43,7 @@
 		</div>
 
 		<div>
-			<VideoGrid onRegenerate={handleRegenerate} onRemix={handleRemix} />
+			<MediaGrid onRegenerate={handleRegenerate} onRemix={handleRemix} variant="video" />
 		</div>
 	</div>
 
