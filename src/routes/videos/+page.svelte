@@ -3,19 +3,21 @@
 	import VideoUsageStats from '$lib/components/VideoUsageStats.svelte';
 	import VideoGenerator from '$lib/components/VideoGenerator.svelte';
 	import MediaGrid from '$lib/components/MediaGrid.svelte';
+	import { SORA_API_SHUTDOWN_DATE } from '$lib/types/video';
+	import { TriangleAlert } from '@lucide/svelte';
 
 	let currentPrompt = $state('');
-	let remixVideoId: string | null = $state(null);
+	let editVideoId: string | null = $state(null);
 
 	function handleRegenerate(newPrompt: string) {
 		currentPrompt = newPrompt;
-		remixVideoId = null;
+		editVideoId = null;
 		scrollToGenerator();
 	}
 
-	function handleRemix(videoId: string, prompt: string) {
+	function handleEdit(videoId: string, prompt: string) {
 		currentPrompt = prompt;
-		remixVideoId = videoId;
+		editVideoId = videoId;
 		scrollToGenerator();
 	}
 
@@ -36,14 +38,22 @@
 	</p>
 </div>
 
+<div class="mb-8 flex items-start gap-3 rounded-2xl border border-amber-600/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
+	<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+	<p class="leading-relaxed">
+		OpenAI removes the Videos API and every Sora model on <span class="font-semibold">{SORA_API_SHUTDOWN_DATE}</span>, with no
+		replacement endpoint. Video generation stops working on that date - download anything you want to keep.
+	</p>
+</div>
+
 <div class="grid gap-8 grid-cols-1 md:grid-cols-3">
 	<div class="md:col-span-2">
 		<div id="generator-section" class="mb-8">
-			<VideoGenerator bind:prompt={currentPrompt} bind:remixVideoId />
+			<VideoGenerator bind:prompt={currentPrompt} bind:editVideoId />
 		</div>
 
 		<div>
-			<MediaGrid onRegenerate={handleRegenerate} onRemix={handleRemix} variant="video" />
+			<MediaGrid onRegenerate={handleRegenerate} onEditVideo={handleEdit} variant="video" />
 		</div>
 	</div>
 

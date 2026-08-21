@@ -1,9 +1,13 @@
 // Types for video generation
+// The Videos API and every Sora model are deprecated: OpenAI removes them from the API on 2026-09-24 with no announced replacement.
 export type VideoModel = 'sora-2' | 'sora-2-pro';
 export type VideoResolution = '720x1280' | '1280x720' | '1024x1792' | '1792x1024';
 export type VideoDuration = 4 | 8 | 12;
 
-export interface RemixVideoParams {
+/** OpenAI removes the Videos API and all `sora-2*` models on this date; there is no replacement endpoint. */
+export const SORA_API_SHUTDOWN_DATE = '2026-09-24';
+
+export interface EditVideoParams {
 	prompt: string;
 	videoId: string;
 }

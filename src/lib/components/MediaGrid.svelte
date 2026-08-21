@@ -27,11 +27,11 @@
 	interface Props {
 		onRegenerate: (prompt: string) => void;
 		onEditImage?: (image: ImageRecord) => void;
-		onRemix?: (id: string, prompt: string) => void;
+		onEditVideo?: (id: string, prompt: string) => void;
 		variant: 'image' | 'video';
 	}
 
-	let { onRegenerate, onEditImage, onRemix, variant }: Props = $props();
+	let { onRegenerate, onEditImage, onEditVideo, variant }: Props = $props();
 
 	const qualityOrder = { auto: 0, high: 3, low: 1, medium: 2 };
 
@@ -201,8 +201,8 @@
 		if (e.key === 'Escape') closeLightbox();
 	}
 
-	function handleRemix(id: string, prompt: string) {
-		onRemix?.(id, prompt);
+	function handleEditVideo(id: string, prompt: string) {
+		onEditVideo?.(id, prompt);
 	}
 
 	function handleView(mediaId: string) {
@@ -329,7 +329,7 @@
 							timestamp={video.timestamp}
 							videoData={video.videoData}
 							onRegenerate={onRegenerate}
-							onRemix={handleRemix}
+							onEdit={handleEditVideo}
 							onView={handleView}
 						/>
 					{/if}

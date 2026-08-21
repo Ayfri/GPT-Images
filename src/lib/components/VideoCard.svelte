@@ -15,7 +15,7 @@
 		videoData: string;
 		onDeleted?: (id: string) => void;
 		onRegenerate?: (prompt: string) => void;
-		onRemix?: (id: string, prompt: string) => void;
+		onEdit?: (id: string, prompt: string) => void;
 		onView?: (id: string) => void;
 	}
 
@@ -29,7 +29,7 @@
 		videoData,
 		onDeleted,
 		onRegenerate,
-		onRemix,
+		onEdit,
 		onView,
 	}: Props = $props();
 
@@ -119,13 +119,13 @@
 		<button
 			onclick={(e) => {
 				e.stopPropagation();
-				onRemix?.(id, prompt);
+				onEdit?.(id, prompt);
 			}}
-			class="btn-ghost p-2 rounded-xl hover:bg-purple-700/25 group/remix"
-			aria-label="Remix this video"
-			title="Remix this video"
+			class="btn-ghost p-2 rounded-xl hover:bg-purple-700/25 group/edit"
+			aria-label="Edit this video"
+			title="Edit this video"
 		>
-			<Sparkles class="w-4 h-4 text-purple-300 group-hover/remix:scale-110 transition-transform" />
+			<Sparkles class="w-4 h-4 text-purple-300 group-hover/edit:scale-110 transition-transform" />
 		</button>
 	{/snippet}
 </MediaCard>

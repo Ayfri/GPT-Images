@@ -1,4 +1,4 @@
-import type { RemixVideoParams, VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
+import type { EditVideoParams, VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 import OpenAI from 'openai';
 import type { VideoCreateParams } from 'openai/resources/videos';
 
@@ -53,15 +53,17 @@ export async function generateVideo(apiKey: string, params: GenerateVideoParams)
 	}
 }
 
-export async function remixVideo(apiKey: string, params: RemixVideoParams): Promise<string> {
+/** Re-prompts a completed video through `POST /v1/videos/edits`, which supersedes the deprecated remix endpoint. */
+export async function editVideo(apiKey: string, params: EditVideoParams): Promise<string> {
 	const client = new OpenAI({
 		apiKey,
 		dangerouslyAllowBrowser: true
 	});
 
 	try {
-		const response = await client.videos.remix(params.videoId, {
-			prompt: params.prompt
+		const response = await client.videos.edit({
+			prompt: params.prompt,
+			video: { id: params.videoId }
 		});
 
 		// Return the new video ID which will be used to poll for completion
@@ -70,7 +72,7 @@ export async function remixVideo(apiKey: string, params: RemixVideoParams): Prom
 		if (error?.status) {
 			throw new Error(error.message || `OpenAI API error: ${error.status}`);
 		}
-		throw new Error(error.message || 'Failed to remix video');
+		throw new Error(error.message || 'Failed to edit video');
 	}
 }
 

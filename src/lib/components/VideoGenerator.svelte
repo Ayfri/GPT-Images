@@ -4,7 +4,7 @@
 	import { ClipboardPaste, Film, Loader2, Sparkles, X } from '@lucide/svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addVideoWithStorageManagement } from '$lib/stores/videoStore';
-	import { generateVideo, getVideoStatus, remixVideo } from '$lib/services/video';
+	import { generateVideo, getVideoStatus, editVideo } from '$lib/services/video';
 	import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
 	import { DURATION_OPTIONS, MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL } from '$lib/types/video';
 	import { browser } from '$app/environment';
@@ -36,10 +36,10 @@
 
 	interface Props {
 		prompt?: string;
-		remixVideoId?: string | null;
+		editVideoId?: string | null;
 	}
 
-	let { prompt = $bindable(''), remixVideoId = $bindable(null) }: Props = $props();
+	let { prompt = $bindable(''), editVideoId = $bindable(null) }: Props = $props();
 
 	let error: string | null = $state(null);
 	let generationProgress = $state(0);
@@ -84,7 +84,7 @@
 		error = null;
 
 		function handleGlobalPaste(e: ClipboardEvent) {
-			if (remixVideoId) return;
+			if (editVideoId) return;
 			const target = e.target as HTMLElement;
 			if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') return;
 			const items = e.clipboardData?.items;
@@ -132,7 +132,7 @@
 				}
 
 				if (status.video_data) {
-					const wasRemix = remixVideoId !== null;
+					const wasEdit = editVideoId !== null;
 					const { cleanedCount } = await addVideoWithStorageManagement(
 						selectedDuration,
 						selectedModel,
@@ -141,7 +141,7 @@
 						status.video_data,
 					);
 
-					remixVideoId = null;
+					editVideoId = null;
 					inputImages = [];
 					inputImagePreviews = [];
 					lastProcessedResolution = null;
@@ -152,10 +152,10 @@
 					if (cleanedCount > 0) {
 						generationStatus = `${cleanedCount} old video${cleanedCount > 1 ? 's' : ''} removed to free space`;
 						setTimeout(() => {
-							generationStatus = wasRemix ? 'Remix complete!' : 'Video complete!';
+							generationStatus = wasEdit ? 'Edit complete!' : 'Video complete!';
 						}, 3000);
 					} else {
-						generationStatus = wasRemix ? 'Remix complete!' : 'Video complete!';
+						generationStatus = wasEdit ? 'Edit complete!' : 'Video complete!';
 					}
 				} else {
 					error =
@@ -214,8 +214,8 @@
 		sourceImageFile = null;
 	}
 
-	function clearRemixMode() {
-		remixVideoId = null;
+	function clearEditMode() {
+		editVideoId = null;
 		removeImage();
 	}
 
@@ -231,13 +231,13 @@
 
 		isGenerating = true;
 		error = null;
-		generationStatus = remixVideoId ? 'Starting remix…' : 'Starting generation…';
+		generationStatus = editVideoId ? 'Starting edit…' : 'Starting generation…';
 		generationProgress = 0;
 
 		try {
 			let videoId: string;
-			if (remixVideoId) {
-				videoId = await remixVideo($apiKey, { prompt, videoId: remixVideoId });
+			if (editVideoId) {
+				videoId = await editVideo($apiKey, { prompt, videoId: editVideoId });
 			} else {
 				videoId = await generateVideo($apiKey, {
 					duration: selectedDuration,
@@ -263,24 +263,24 @@
 		<div class="flex items-center gap-2">
 			<Film class="h-4 w-4 text-purple-400" />
 			<h2 class="text-sm font-semibold text-gray-100 tracking-wide uppercase">
-				{remixVideoId ? 'Remix Video'
+				{editVideoId ? 'Edit Video'
 				: inputImages.length > 0 ? 'Generate from image'
 				: 'Create Video'}
 			</h2>
 		</div>
-		{#if remixVideoId}
+		{#if editVideoId}
 			<div class="flex items-center gap-2">
 				<span
 					in:fade={{ duration: 200 }}
 					class="text-xs px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300 border border-purple-700/40"
 				>
-					Remix mode
+					Edit mode
 				</span>
 				<button
 					type="button"
-					onclick={clearRemixMode}
+					onclick={clearEditMode}
 					class="p-1 rounded-full hover:bg-error-700/30 transition-colors cursor-pointer"
-					aria-label="Cancel remix"
+					aria-label="Cancel edit"
 				>
 					<X class="w-3.5 h-3.5 text-error-400" />
 				</button>
@@ -312,15 +312,15 @@
 			id="prompt"
 			bind:value={prompt}
 			rows="4"
-			placeholder={remixVideoId ? 'Describe the changes to make to the video…'
+			placeholder={editVideoId ? 'Describe the changes to make to the video…'
 			: inputImages.length > 0 ? 'Describe what to generate from this image…'
 			: 'Describe the video you want to create…'}
 			class="input w-full resize-none leading-relaxed"
 			disabled={isGenerating}
 		></textarea>
 
-		<!-- Reference image - hidden in remix mode -->
-		{#if !remixVideoId}
+		<!-- Reference image - hidden in edit mode -->
+		{#if !editVideoId}
 			<div>
 				<div class="flex items-center justify-between mb-2">
 					<label
@@ -368,8 +368,8 @@
 			</div>
 		{/if}
 
-		<!-- Model / Resolution / Duration - hidden in remix mode -->
-		{#if !remixVideoId}
+		<!-- Model / Resolution / Duration - hidden in edit mode -->
+		{#if !editVideoId}
 			<div class="grid grid-cols-3 gap-3">
 				<div>
 					<label for="v-model" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider"
@@ -440,7 +440,7 @@
 				</span>
 				<Loader2 class="relative z-10 h-4 w-4 animate-spin shrink-0" />
 				<span class="relative z-10 flex items-center gap-2">
-					{remixVideoId ? 'Remixing' : 'Generating'}
+					{editVideoId ? 'Editing' : 'Generating'}
 					<span class="flex items-end gap-0.5 pb-px">
 						<span class="block h-1 w-1 rounded-full bg-white/80 animate-bounce [animation-delay:0ms]"></span>
 						<span class="block h-1 w-1 rounded-full bg-white/80 animate-bounce [animation-delay:150ms]"></span>
@@ -449,7 +449,7 @@
 				</span>
 			{:else}
 				<Sparkles class="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
-				{remixVideoId ? 'Remix video'
+				{editVideoId ? 'Edit video'
 				: inputImages.length > 0 ? 'Generate from image'
 				: 'Generate video'}
 			{/if}
@@ -492,8 +492,8 @@
 
 		<!-- Footer -->
 		<div class="text-xs text-gray-600 flex justify-between pt-0.5">
-			{#if remixVideoId}
-				<span class="text-purple-500/70">Remix inherits settings from the original video</span>
+			{#if editVideoId}
+				<span class="text-purple-500/70">Edits inherit settings from the original video</span>
 			{:else}
 				<span>{MODEL_OPTIONS[selectedModel].label}</span>
 				<span class="text-secondary-500">${currentPrice.toFixed(2)} per video</span>
