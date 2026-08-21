@@ -22,11 +22,16 @@ export type ImageModeration = 'auto' | 'low';
  */
 export const GPT_IMAGE_MODEL_PROMPT_MAX_CHARS = 32_000;
 
+/**
+ * OpenAI shuts down `gpt-image-1-mini`, `gpt-image-1.5` and `chatgpt-image-latest` on this date; `gpt-image-2` replaces them.
+ */
+export const LEGACY_IMAGE_MODEL_SHUTDOWN_DATE = '2026-12-01';
+
 export const MODEL_OPTIONS = {
-	'gpt-image-1': { description: 'High quality images', label: 'GPT Image 1' },
-	'gpt-image-1-mini': { description: 'Fast and cost-effective', label: 'GPT Image 1 Mini' },
-	'gpt-image-1.5': { description: 'Latest previous-generation model', label: 'GPT Image 1.5' },
-	'gpt-image-2': { description: 'Highest quality with flexible sizing', label: 'GPT Image 2' }
+	'gpt-image-1': { deprecated: false, description: 'High quality images', label: 'GPT Image 1' },
+	'gpt-image-1-mini': { deprecated: true, description: 'Fast and cost-effective', label: 'GPT Image 1 Mini' },
+	'gpt-image-1.5': { deprecated: true, description: 'Previous generation', label: 'GPT Image 1.5' },
+	'gpt-image-2': { deprecated: false, description: 'Highest quality with flexible sizing', label: 'GPT Image 2' }
 } as const;
 
 export const QUALITY_OPTIONS = {
@@ -196,12 +201,35 @@ export function getImagePrice(model: ImageModel, quality: ImageQuality, size: Im
 	return (table as Partial<Record<ImageSize, number>>)[size] ?? null;
 }
 
+// `gpt-image-2` always processes image inputs at high fidelity, so `input_fidelity` must be omitted; transparency is in preview for it.
 export const MODEL_SUPPORT = {
-	'gpt-image-1': { inputFidelityConfigurable: true, transparentBackground: true },
-	'gpt-image-1-mini': { inputFidelityConfigurable: true, transparentBackground: true },
-	'gpt-image-1.5': { inputFidelityConfigurable: true, transparentBackground: true },
-	'gpt-image-2': { inputFidelityConfigurable: false, transparentBackground: false }
+	'gpt-image-1': { arbitrarySize: false, inputFidelityConfigurable: true, transparentBackground: true },
+	'gpt-image-1-mini': { arbitrarySize: false, inputFidelityConfigurable: true, transparentBackground: true },
+	'gpt-image-1.5': { arbitrarySize: false, inputFidelityConfigurable: true, transparentBackground: true },
+	'gpt-image-2': { arbitrarySize: true, inputFidelityConfigurable: false, transparentBackground: true }
 } as const;
+
+/** Resolution constraints `gpt-image-2` enforces on arbitrary `size` values (image generation guide). */
+export const GPT_IMAGE_2_SIZE_CONSTRAINTS = {
+	edgeMultiple: 16,
+	maxAspectRatio: 3,
+	maxEdge: 3840,
+	maxPixels: 8_294_400,
+	minPixels: 655_360
+} as const;
+
+/** Returns null when the resolution is valid for `gpt-image-2`, otherwise a human-readable reason. */
+export function validateGptImage2Size(width: number, height: number): string | null {
+	const { edgeMultiple, maxAspectRatio, maxEdge, maxPixels, minPixels } = GPT_IMAGE_2_SIZE_CONSTRAINTS;
+	if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) return 'Width and height must be positive integers.';
+	if (width % edgeMultiple !== 0 || height % edgeMultiple !== 0) return `Both edges must be multiples of ${edgeMultiple}px.`;
+	if (Math.max(width, height) > maxEdge) return `The longest edge must be at most ${maxEdge}px.`;
+	if (Math.max(width, height) / Math.min(width, height) > maxAspectRatio) return `The aspect ratio must not exceed ${maxAspectRatio}:1.`;
+	const pixels = width * height;
+	if (pixels < minPixels) return `The image must have at least ${minPixels.toLocaleString('en-US')} pixels.`;
+	if (pixels > maxPixels) return `The image must have at most ${maxPixels.toLocaleString('en-US')} pixels.`;
+	return null;
+}
 
 // GPT Image 1 specifications for image uploads
 export const IMAGE_UPLOAD_LIMITS = {

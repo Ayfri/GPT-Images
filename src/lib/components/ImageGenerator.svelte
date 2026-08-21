@@ -15,6 +15,7 @@
 		GPT_IMAGE_MODEL_PROMPT_MAX_CHARS,
 		getImagePrice,
 		IMAGE_UPLOAD_LIMITS,
+		LEGACY_IMAGE_MODEL_SHUTDOWN_DATE,
 		INPUT_FIDELITY_OPTIONS,
 		OUTPUT_FORMAT_OPTIONS,
 		BACKGROUND_OPTIONS,
@@ -461,7 +462,7 @@
 				<label for="model" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Model</label>
 				<select id="model" bind:value={selectedModel} class="input w-full text-sm" disabled={isGenerating}>
 					{#each Object.entries(MODEL_OPTIONS) as [key, option] (key)}
-						<option value={key}>{option.label}</option>
+						<option value={key}>{option.label}{option.deprecated ? ` (retired ${LEGACY_IMAGE_MODEL_SHUTDOWN_DATE})` : ''}</option>
 					{/each}
 				</select>
 			</div>

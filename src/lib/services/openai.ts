@@ -32,8 +32,8 @@ export async function generateImage(apiKey: string, params: GenerateImageParams)
 	});
 
 	try {
-		if (params.model === 'gpt-image-2' && params.background === 'transparent') {
-			throw new Error('Transparent background is not supported for GPT Image 2');
+		if (params.background === 'transparent' && params.output_format === 'jpeg') {
+			throw new Error('Transparent backgrounds require the PNG or WebP output format');
 		}
 
 		const response = await client.images.generate({
@@ -89,8 +89,8 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 	});
 
 	try {
-		if (params.model === 'gpt-image-2' && params.background === 'transparent') {
-			throw new Error('Transparent background is not supported for GPT Image 2');
+		if (params.background === 'transparent' && params.output_format === 'jpeg') {
+			throw new Error('Transparent backgrounds require the PNG or WebP output format');
 		}
 
 		// For editing, we need to use the first image as the base
