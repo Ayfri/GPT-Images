@@ -7,6 +7,7 @@ import type {
 	InputFidelity,
 	OutputFormat
 } from '$lib/types/image';
+import { MODEL_SUPPORT } from '$lib/types/image';
 import OpenAI from 'openai';
 import type {
 	ImageEditParamsNonStreaming,
@@ -106,7 +107,7 @@ export async function editImage(apiKey: string, params: EditImageParams): Promis
 			size: params.size,
 			n: params.n,
 			quality: params.quality,
-			...(params.model !== 'gpt-image-2' && params.input_fidelity !== undefined && { input_fidelity: params.input_fidelity }),
+			...(MODEL_SUPPORT[params.model].inputFidelityConfigurable && params.input_fidelity !== undefined && { input_fidelity: params.input_fidelity }),
 			...(params.moderation !== undefined && { moderation: params.moderation }),
 			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
 			...(params.output_format !== undefined && { output_format: params.output_format }),

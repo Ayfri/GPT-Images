@@ -19,7 +19,7 @@
 		totalVideoCount,
 		type VideoRecord,
 	} from '$lib/stores/videoStore';
-	import type { ImageModel } from '$lib/types/image';
+	import type { ImageModel, ImageQuality } from '$lib/types/image';
 	import { getImagePrice as getModelPrice } from '$lib/types/image';
 	import { flip } from 'svelte/animate';
 	import { calculateVideoPrice } from '$lib/utils/videoPrice';
@@ -33,7 +33,7 @@
 
 	let { onRegenerate, onEditImage, onEditVideo, variant }: Props = $props();
 
-	const qualityOrder = { auto: 0, high: 3, low: 1, medium: 2 };
+	const qualityOrder: Record<ImageQuality, number> = { auto: 0, high: 3, low: 1, max: 5, medium: 2, xhigh: 4 };
 
 	let loading = $state(true);
 	let loadingMore = $state(false);

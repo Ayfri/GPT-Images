@@ -74,7 +74,7 @@
 	let { prompt = $bindable(''), imageToEdit = $bindable(null) }: Props = $props();
 	let isGenerating = $state(false);
 	let error: string | null = $state(null);
-	let selectedModel: ImageModel = $state('gpt-image-2');
+	let selectedModel: ImageModel = $state('gpt-image-2.5-flare');
 	let selectedQuality: ImageQuality = $state('low');
 	let selectedSize: ImageSize = $state('1024x1024');
 	let imageCount = $state(1);
@@ -96,6 +96,11 @@
 	let selectedModeration: ImageModeration = $state('auto');
 	let supportsTransparentBackground = $derived(MODEL_SUPPORT[selectedModel].transparentBackground);
 	let canConfigureInputFidelity = $derived(MODEL_SUPPORT[selectedModel].inputFidelityConfigurable);
+	let availableQualities = $derived(MODEL_SUPPORT[selectedModel].qualities as readonly ImageQuality[]);
+	// `xhigh` and `max` only exist on GPT Image 2.5, so fall back when switching to a model without them.
+	$effect(() => {
+		if (!availableQualities.includes(selectedQuality)) selectedQuality = 'high';
+	});
 	let displayPrice = $derived(getImagePrice(selectedModel, selectedQuality, selectedSize));
 
 	// Calculate price dynamically
@@ -469,8 +474,8 @@
 			<div>
 				<label for="quality" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Quality</label>
 				<select id="quality" bind:value={selectedQuality} class="input w-full text-sm" disabled={isGenerating}>
-					{#each Object.entries(QUALITY_OPTIONS) as [key, option] (key)}
-						<option value={key}>{option.label}</option>
+					{#each availableQualities as key (key)}
+						<option value={key}>{QUALITY_OPTIONS[key].label}</option>
 					{/each}
 				</select>
 			</div>

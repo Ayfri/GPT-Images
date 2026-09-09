@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { BarChart3, Coins } from '@lucide/svelte';
 	import { totalImageCount, totalCostAll } from '$lib/stores/imageStore';
-	import { MODEL_OPTIONS, PRICED_SIZE_OPTIONS, QUALITY_OPTIONS, getImagePrice } from '$lib/types/image';
+	import { MODEL_OPTIONS, MODEL_SUPPORT, PRICED_SIZE_OPTIONS, getImagePrice } from '$lib/types/image';
+	import type { ImageQuality } from '$lib/types/image';
 
 	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
-	const qualities = (Object.keys(QUALITY_OPTIONS) as (keyof typeof QUALITY_OPTIONS)[]).filter(
-		(quality) => quality !== 'auto'
-	);
+	const qualitiesFor = (model: keyof typeof MODEL_OPTIONS): ImageQuality[] =>
+		MODEL_SUPPORT[model].qualities.filter((quality) => quality !== 'auto');
 	const sizes = Object.keys(PRICED_SIZE_OPTIONS) as (keyof typeof PRICED_SIZE_OPTIONS)[];
 </script>
 
@@ -50,7 +50,7 @@
 							{/each}
 						</div>
 						<!-- Data rows -->
-						{#each qualities as quality}
+						{#each qualitiesFor(modelKey) as quality}
 							<div class="grid grid-cols-4 gap-1">
 								<div class="text-xs text-gray-500 flex items-center capitalize">{quality}</div>
 								{#each sizes as size}
