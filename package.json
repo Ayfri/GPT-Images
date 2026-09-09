@@ -24,7 +24,7 @@
 	"dependencies": {
 		"@lucide/svelte": "^1.33.0",
 		"idb": "^8.0.3",
-		"openai": "^7.5.0"
+		"openai": "7.12.1"
 	},
 	"packageManager": "bun@1.4"
 }
