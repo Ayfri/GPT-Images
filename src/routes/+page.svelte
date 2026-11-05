@@ -44,7 +44,7 @@
 		</div>
 
 		<div>
-			<MediaGrid onEditImage={handleEditImage} onRegenerate={handleRegenerate} variant="image" />
+			<MediaGrid onEditImage={handleEditImage} onRegenerate={handleRegenerate} />
 		</div>
 	</div>
 

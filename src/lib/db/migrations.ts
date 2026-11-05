@@ -1,4 +1,6 @@
-import { openDB } from 'idb';
+import { deleteDB, openDB } from 'idb';
+import { getDb } from './imageStore';
+import { writeMediaFile } from './opfsStore';
 
 async function getMetaDb() {
 	return openDB('app-meta', 1, {
@@ -19,9 +21,7 @@ async function setStorageVersion(version: number): Promise<void> {
 }
 
 async function migration1(): Promise<void> {
-	const imageDb = await (await import('./imageStore')).getDb();
-	const videoDb = await (await import('./videoStore')).getDb();
-	const { writeMediaFile } = await import('./opfsStore');
+	const imageDb = await getDb();
 
 	const images = await imageDb.getAll('generated-images');
 	for (const image of images) {
@@ -33,21 +33,26 @@ async function migration1(): Promise<void> {
 				image.output_format = fmt;
 			}
 		}
-		await writeMediaFile('images', image.id, image.imageData);
+		await writeMediaFile(image.id, image.imageData);
 		await imageDb.put('generated-images', { ...image, imageData: '' });
 	}
+}
 
-	const videos = await videoDb.getAll('generated-videos');
-	for (const video of videos) {
-		if (!video.videoData?.startsWith('data:')) continue;
-		await writeMediaFile('videos', video.id, video.videoData);
-		await videoDb.put('generated-videos', { ...video, videoData: '' });
-	}
+/** OpenAI retired the Videos API on 2026-09-24: the video history, its OPFS files and its settings are wiped. */
+async function migration2(): Promise<void> {
+	localStorage.removeItem('video-generator-options');
+	localStorage.removeItem('gpt-video-cost-cache');
+	/** A tab still on the old video page blocks the deletion, which then finishes once that tab closes: resolving on blocked keeps the image page from hanging. */
+	await new Promise<void>((resolve, reject) => void deleteDB('gpt-video-generator', { blocked: () => resolve() }).then(resolve, reject));
+	await (await navigator.storage.getDirectory()).removeEntry('videos', { recursive: true }).catch((error: unknown) => {
+		if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
+	});
 }
 
 type Migration = { name: string; run: () => Promise<void>; version: number };
 const MIGRATIONS: Migration[] = [
-	{ name: 'Move blobs from IDB to OPFS', run: migration1, version: 1 }
+	{ name: 'Move blobs from IDB to OPFS', run: migration1, version: 1 },
+	{ name: 'Wipe retired video data', run: migration2, version: 2 }
 ];
 
 async function _runMigrations(): Promise<void> {
@@ -62,6 +67,8 @@ async function _runMigrations(): Promise<void> {
 			console.log(`[migration] v${migration.version} done`);
 		} catch (err) {
 			console.error(`[migration] v${migration.version} failed:`, err);
+			/** Later migrations wait for a failed one: bumping the version past it would skip it forever. */
+			break;
 		}
 	}
 }

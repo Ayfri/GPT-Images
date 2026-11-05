@@ -29,7 +29,7 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 *   **Language**: TypeScript
 *   **AI**: OpenAI API
 *   **Icons**: Lucide Svelte
-*   **Client-side Storage**: IndexedDB (via `idb` library)
+*   **Client-side Storage**: IndexedDB via `idb` for image metadata, OPFS (Origin Private File System, `src/lib/db/opfsStore.ts`) for the image files
 *   **Package Manager**: Bun
 *   **Build Tool**: Vite
 *   **Hosting**: Cloudflare Workers (`@sveltejs/adapter-cloudflare`, deployed with Wrangler)
@@ -101,7 +101,7 @@ gpt-images/
 │   ├── assets/       # Static assets imported by modules
 │   ├── lib/          # Application library, imported as `#lib/...`
 │   │   ├── components/ # Reusable Svelte components
-│   │   ├── db/         # Database interaction (IndexedDB)
+│   │   ├── db/         # Image metadata (IndexedDB), image files (OPFS) and storage migrations
 │   │   ├── services/   # API interactions (OpenAI)
 │   │   ├── stores/     # Svelte stores
 │   │   ├── types/      # Shared types and model definitions

@@ -8,12 +8,11 @@
 		maxImages: number;
 		acceptedExtensions: string;
 		isGenerating: boolean;
-		singleImage?: boolean;
 		onImagesChange: (images: File[], previews: string[]) => void;
 		validateFile?: (file: File) => string | null;
 	}
 
-	let { images, imagePreviews, maxImages, acceptedExtensions, isGenerating, singleImage = false, onImagesChange, validateFile }: Props = $props();
+	let { images, imagePreviews, maxImages, acceptedExtensions, isGenerating, onImagesChange, validateFile }: Props = $props();
 
 	let isDragging = $state(false);
 	let urlInput = $state('');
@@ -58,8 +57,8 @@
 		}
 
 		// Add files and create previews
-		const newImages = singleImage ? [] : [...images];
-		const newPreviews = singleImage ? [] : [...imagePreviews];
+		const newImages = [...images];
+		const newPreviews = [...imagePreviews];
 
 		files.forEach((file) => {
 			newImages.push(file);
@@ -101,8 +100,8 @@
 		if (imageFiles.length === 0) return;
 
 		// Add files and create previews
-		const newImages = singleImage ? [] : [...images];
-		const newPreviews = singleImage ? [] : [...imagePreviews];
+		const newImages = [...images];
+		const newPreviews = [...imagePreviews];
 
 		imageFiles.forEach((file) => {
 			newImages.push(file);
@@ -149,8 +148,8 @@
 			}
 
 			// Add file and create preview
-			const newImages = singleImage ? [file] : [...images, file];
-			const newPreviews = singleImage ? [] : [...imagePreviews];
+			const newImages = [...images, file];
+			const newPreviews = [...imagePreviews];
 
 			const reader = new FileReader();
 			reader.onload = (e) => {
@@ -186,8 +185,8 @@
 						}
 
 						// Add file and create preview
-						const newImages = singleImage ? [file] : [...images, file];
-						const newPreviews = singleImage ? [] : [...imagePreviews];
+						const newImages = [...images, file];
+						const newPreviews = [...imagePreviews];
 
 						const reader = new FileReader();
 						reader.onload = (e) => {
@@ -223,65 +222,46 @@
 
 <div class="space-y-2">
 	{#if imagePreviews.length > 0}
-		{#if singleImage}
-			<div class="relative group inline-block">
-				<img
-					src={imagePreviews[0]}
-					alt="Input preview"
-					class="w-20 h-20 object-cover rounded-lg border border-gray-700"
-				/>
-				<button
-					type="button"
-					onclick={() => !isGenerating && clearAllImages()}
-					class="absolute -top-1.5 -right-1.5 bg-error-600 hover:bg-error-700 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-					aria-label="Remove image"
-					disabled={isGenerating}
-				>
-					<X class="w-3.5 h-3.5" />
-				</button>
-			</div>
-		{:else}
-			<div class="flex flex-wrap gap-2 mb-1">
-				{#each imagePreviews as preview, index (index)}
-					<div class="relative group">
-						<img src={preview} alt="Reference {index + 1}" class="w-16 h-16 object-cover rounded-lg border border-gray-700/60" />
-						<button
-							type="button"
-							class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity {isGenerating ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
-							onclick={() => !isGenerating && removeImage(index)}
-							disabled={isGenerating}
-						>
-							<X class="h-3 w-3" />
-						</button>
-					</div>
-				{/each}
-				<!-- Add more button if not at max -->
-				{#if images.length < maxImages}
-					<label
-						class="w-16 h-16 rounded-lg border-2 border-dashed border-gray-700 hover:border-gray-500 flex items-center justify-center cursor-pointer transition-colors {isGenerating ? 'opacity-40 cursor-not-allowed' : ''}"
+		<div class="flex flex-wrap gap-2 mb-1">
+			{#each imagePreviews as preview, index (index)}
+				<div class="relative group">
+					<img src={preview} alt="Reference {index + 1}" class="w-16 h-16 object-cover rounded-lg border border-gray-700/60" />
+					<button
+						type="button"
+						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity {isGenerating ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
+						onclick={() => !isGenerating && removeImage(index)}
+						disabled={isGenerating}
 					>
-						<input
-							type="file"
-							accept={acceptedExtensions}
-							multiple
-							onchange={handleImageUpload}
-							class="hidden"
-							disabled={isGenerating || images.length >= maxImages}
-						/>
-						<Upload class="w-5 h-5 text-gray-600" />
-					</label>
-				{/if}
-			</div>
-			{#if images.length > 0}
-				<button
-					type="button"
-					class="text-xs text-red-500/70 hover:text-red-400 transition-colors {isGenerating ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}"
-					onclick={() => !isGenerating && clearAllImages()}
-					disabled={isGenerating}
+						<X class="h-3 w-3" />
+					</button>
+				</div>
+			{/each}
+			<!-- Add more button if not at max -->
+			{#if images.length < maxImages}
+				<label
+					class="w-16 h-16 rounded-lg border-2 border-dashed border-gray-700 hover:border-gray-500 flex items-center justify-center cursor-pointer transition-colors {isGenerating ? 'opacity-40 cursor-not-allowed' : ''}"
 				>
-					Clear all
-				</button>
+					<input
+						type="file"
+						accept={acceptedExtensions}
+						multiple
+						onchange={handleImageUpload}
+						class="hidden"
+						disabled={isGenerating || images.length >= maxImages}
+					/>
+					<Upload class="w-5 h-5 text-gray-600" />
+				</label>
 			{/if}
+		</div>
+		{#if images.length > 0}
+			<button
+				type="button"
+				class="text-xs text-red-500/70 hover:text-red-400 transition-colors {isGenerating ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}"
+				onclick={() => !isGenerating && clearAllImages()}
+				disabled={isGenerating}
+			>
+				Clear all
+			</button>
 		{/if}
 	{/if}
 

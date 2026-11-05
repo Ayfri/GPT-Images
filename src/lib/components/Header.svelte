@@ -1,13 +1,5 @@
 <script lang="ts">
 	import logo from '../../assets/logo.png';
-	import { page } from '$app/state';
-
-	const isVideoPage = $derived(page.url.pathname.startsWith('/videos'));
-	const docsUrl = $derived(
-		isVideoPage
-			? 'https://platform.openai.com/docs/guides/video-generation'
-			: 'https://platform.openai.com/docs/guides/image-generation'
-	);
 </script>
 
 <header class="py-2 px-3 sm:py-3 sm:px-4 md:px-5 lg:px-6 border-b border-white/6 mb-6 sticky top-0 z-10 bg-dark-300/70 backdrop-blur-xl">
@@ -26,47 +18,10 @@
 				<span class="text-base sm:text-lg font-bold gradient-text">GPT Generator</span>
 			</div>
 		</a>
-		<!-- Nav links -->
-		<nav class="flex items-center gap-0.5 sm:gap-1">
-			<a
-				href="/"
-				class="relative px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
-					{page.url.pathname === '/' ? 'text-white bg-white/8' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'}"
-			>
-				{#if page.url.pathname === '/'}
-					<span class="absolute inset-0 rounded-lg ring-1 ring-primary-500/30 bg-primary-500/5"></span>
-				{/if}
-				<span class="relative flex items-center gap-2">
-					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-						<rect x="3" y="3" width="7" height="7" rx="1" stroke-linecap="round"/>
-						<rect x="14" y="3" width="7" height="7" rx="1" stroke-linecap="round"/>
-						<rect x="3" y="14" width="7" height="7" rx="1" stroke-linecap="round"/>
-						<rect x="14" y="14" width="7" height="7" rx="1" stroke-linecap="round"/>
-					</svg>
-					Images
-				</span>
-			</a>
-			<a
-				href="/videos"
-				class="relative px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200
-					{page.url.pathname.startsWith('/videos') ? 'text-white bg-white/8' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'}"
-			>
-				{#if page.url.pathname.startsWith('/videos')}
-					<span class="absolute inset-0 rounded-lg ring-1 ring-secondary-500/30 bg-secondary-500/5"></span>
-				{/if}
-				<span class="relative flex items-center gap-2">
-					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-						<polygon points="5 3 19 12 5 21 5 3" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
-					Videos
-				</span>
-			</a>
-		</nav>
-
 		<!-- Right side actions -->
 		<div class="flex items-center gap-1 sm:gap-2 md:gap-3 ml-auto">
 			<a
-				href={docsUrl}
+				href='https://platform.openai.com/docs/guides/image-generation'
 				target='_blank'
 				rel='noopener noreferrer'
 				class='hidden sm:flex items-center gap-1 sm:gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 sm:px-3 py-1.5 rounded-lg hover:bg-white/5'

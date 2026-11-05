@@ -7,9 +7,7 @@
 	interface Props {
 		prompt: string;
 		price: number;
-		priceDecimals?: number;
 		timestamp: number;
-		aspectClass?: string;
 		copied: boolean;
 		media: Snippet;
 		extraAction?: Snippet;
@@ -18,15 +16,12 @@
 		onDownload: () => void;
 		onRegenerate: () => void;
 		onView: () => void;
-		onCardHoverChange?: (hovering: boolean) => void;
 	}
 
 	let {
 		prompt,
 		price,
-		priceDecimals = 3,
 		timestamp,
-		aspectClass = 'aspect-square',
 		copied,
 		media,
 		extraAction,
@@ -35,7 +30,6 @@
 		onDownload,
 		onRegenerate,
 		onView,
-		onCardHoverChange,
 	}: Props = $props();
 
 	let showControls = $state(false);
@@ -50,7 +44,7 @@
 	role="article"
 >
 	<div
-		class="relative {aspectClass} cursor-pointer overflow-hidden"
+		class="relative aspect-square cursor-pointer overflow-hidden"
 		onclick={onView}
 		onkeydown={(e) => e.key === 'Enter' && onView()}
 		role="button"
@@ -129,7 +123,7 @@
 		<div class="flex items-center justify-between">
 			<span class="text-xs text-gray-600">{formatDate(timestamp)}</span>
 			<span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-secondary-500/10 text-secondary-400 border border-secondary-500/20">
-				${price.toFixed(priceDecimals)}
+				${price.toFixed(3)}
 			</span>
 		</div>
 	</div>

@@ -2,22 +2,19 @@
 	import { fade, fly } from 'svelte/transition';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import type { ImageRecord } from '#lib/stores/imageStore.ts';
-	import type { VideoRecord } from '#lib/stores/videoStore.ts';
 	import { getCarouselSwipeDirection } from '#lib/utils/carouselSwipe.ts';
 	import { quintOut } from 'svelte/easing';
 
 	interface Props {
-		currentItem: ImageRecord | VideoRecord | null;
+		currentItem: ImageRecord | null;
 		itemCount: number;
 		mediaPrice: number;
 		onClose: () => void;
 		onNext: () => void;
 		onPrev: () => void;
-		priceDecimals: number;
-		variant: 'image' | 'video';
 	}
 
-	let { currentItem, itemCount, mediaPrice, onClose, onNext, onPrev, priceDecimals, variant }: Props = $props();
+	let { currentItem, itemCount, mediaPrice, onClose, onNext, onPrev }: Props = $props();
 
 	let showNav = $derived(itemCount > 1);
 
@@ -59,7 +56,7 @@
 
 {#if currentItem}
 	<div
-		aria-label={variant === 'image' ? 'Image viewer' : 'Video viewer'}
+		aria-label="Image viewer"
 		aria-modal="true"
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
 		onclick={onClose}
@@ -71,7 +68,7 @@
 		{#if showNav}
 			<button
 				class="{arrowBtnClass} left-4"
-				aria-label="Previous {variant}"
+				aria-label="Previous image"
 				onclick={(e) => {
 					e.stopPropagation();
 					onPrev();
@@ -85,7 +82,7 @@
 			{#key currentItem.id}
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
-					aria-label={showNav ? `Swipe horizontally to change ${variant}` : undefined}
+					aria-label={showNav ? 'Swipe horizontally to change image' : undefined}
 					class="absolute inset-0 flex items-center justify-center p-2 touch-pan-y sm:p-4"
 					in:fly={{ x: 30, duration: 300, easing: quintOut }}
 					onkeydown={(e) => {
@@ -94,76 +91,48 @@
 					ontouchcancel={onCarouselTouchCancel}
 					ontouchend={onCarouselTouchEnd}
 					ontouchstart={onCarouselTouchStart}
-					role={variant === 'image' ? 'button' : 'region'}
-					tabindex={variant === 'image' ? 0 : -1}
+					role="button"
+					tabindex={0}
 				>
-					{#if variant === 'image'}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<img
-							alt={(currentItem as ImageRecord).prompt}
-							class="max-h-[min(90dvh,90vh)] max-w-[92vw] object-contain isolate sm:max-w-[80vw]"
-							onclick={(e) => e.stopPropagation()}
-							src={(currentItem as ImageRecord).imageData}
-						/>
-					{:else}
-						<video
-							autoplay
-							class="max-h-[min(90dvh,90vh)] max-w-[92vw] sm:max-w-[80vw]"
-							controls
-							loop
-							onclick={(e) => e.stopPropagation()}
-							src={(currentItem as VideoRecord).videoData}
-						>
-							<track kind="captions" />
-						</video>
-					{/if}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+					<img
+						alt={currentItem.prompt}
+						class="max-h-[min(90dvh,90vh)] max-w-[92vw] object-contain isolate sm:max-w-[80vw]"
+						onclick={(e) => e.stopPropagation()}
+						src={currentItem.imageData}
+					/>
 				</div>
 			{/key}
 		</div>
 
-		{#if variant === 'image'}
-			{@const img = currentItem as ImageRecord}
-			<div
-				class="absolute backdrop-blur-sm bg-black/80 flex flex-col gap-2 max-h-[40vh] max-sm:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:inset-x-4 max-sm:top-auto overflow-y-auto p-3 rounded-xl shadow-lg sm:left-4 sm:max-h-none sm:max-w-xs sm:overflow-visible sm:top-4 text-xs text-gray-200 z-20"
-			>
-				<span>Quality: {img.quality ?? 'N/A'}</span>
-				<span>Size: {img.size ?? 'N/A'}</span>
-				{#if img.input_fidelity && img.input_fidelity !== 'low'}
-					<span>Input Fidelity: {img.input_fidelity}</span>
-				{/if}
-				{#if img.output_compression && img.output_compression !== 100}
-					<span>Output Compression: {img.output_compression}</span>
-				{/if}
-				{#if img.output_format && img.output_format !== 'png'}
-					<span>Output Format: {img.output_format}</span>
-				{/if}
-				{#if img.background && img.background !== 'auto'}
-					<span>Background: {img.background}</span>
-				{/if}
-				{#if img.model}
-					<span>Model: {img.model}</span>
-				{/if}
-				<span>Cost: ${mediaPrice.toFixed(priceDecimals)}</span>
-			</div>
-		{:else}
-			{@const vid = currentItem as VideoRecord}
-			<div
-				class="absolute backdrop-blur-sm bg-black/80 flex flex-col gap-2 max-h-[40vh] max-sm:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:inset-x-4 max-sm:top-auto overflow-y-auto p-3 rounded-xl shadow-lg sm:left-4 sm:max-h-none sm:max-w-xs sm:overflow-visible sm:top-4 text-xs text-gray-200 z-20"
-			>
-				<span>Resolution: {vid.resolution ?? 'N/A'}</span>
-				<span>Duration: {vid.duration ?? 'N/A'}s</span>
-				{#if vid.model}
-					<span>Model: {vid.model}</span>
-				{/if}
-				<span>Cost: ${mediaPrice.toFixed(priceDecimals)}</span>
-			</div>
-		{/if}
+		<div
+			class="absolute backdrop-blur-sm bg-black/80 flex flex-col gap-2 max-h-[40vh] max-sm:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:inset-x-4 max-sm:top-auto overflow-y-auto p-3 rounded-xl shadow-lg sm:left-4 sm:max-h-none sm:max-w-xs sm:overflow-visible sm:top-4 text-xs text-gray-200 z-20"
+		>
+			<span>Quality: {currentItem.quality ?? 'N/A'}</span>
+			<span>Size: {currentItem.size ?? 'N/A'}</span>
+			{#if currentItem.input_fidelity && currentItem.input_fidelity !== 'low'}
+				<span>Input Fidelity: {currentItem.input_fidelity}</span>
+			{/if}
+			{#if currentItem.output_compression && currentItem.output_compression !== 100}
+				<span>Output Compression: {currentItem.output_compression}</span>
+			{/if}
+			{#if currentItem.output_format && currentItem.output_format !== 'png'}
+				<span>Output Format: {currentItem.output_format}</span>
+			{/if}
+			{#if currentItem.background && currentItem.background !== 'auto'}
+				<span>Background: {currentItem.background}</span>
+			{/if}
+			{#if currentItem.model}
+				<span>Model: {currentItem.model}</span>
+			{/if}
+			<span>Cost: ${mediaPrice.toFixed(3)}</span>
+		</div>
 
 		{#if showNav}
 			<button
 				class="{arrowBtnClass} right-4"
-				aria-label="Next {variant}"
+				aria-label="Next image"
 				onclick={(e) => {
 					e.stopPropagation();
 					onNext();

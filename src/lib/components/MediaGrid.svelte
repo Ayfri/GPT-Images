@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
-	import { ArrowDown, ArrowUp, Image as ImageIcon, Video as VideoIcon } from '@lucide/svelte';
+	import { ArrowDown, ArrowUp, Image as ImageIcon } from '@lucide/svelte';
 	import ImageCard from './ImageCard.svelte';
 	import MediaLightbox from './MediaLightbox.svelte';
-	import VideoCard from './VideoCard.svelte';
 	import {
 		images,
 		initImageStore,
@@ -12,26 +11,16 @@
 		totalImageCount,
 		type ImageRecord,
 	} from '#lib/stores/imageStore.ts';
-	import {
-		videos,
-		initVideoStore,
-		loadMoreVideos,
-		totalVideoCount,
-		type VideoRecord,
-	} from '#lib/stores/videoStore.ts';
 	import type { ImageModel, ImageQuality } from '#lib/types/image.ts';
 	import { getImagePrice as getModelPrice } from '#lib/types/image.ts';
 	import { flip } from 'svelte/animate';
-	import { calculateVideoPrice } from '#lib/utils/videoPrice.ts';
 
 	interface Props {
 		onRegenerate: (prompt: string) => void;
 		onEditImage?: (image: ImageRecord) => void;
-		onEditVideo?: (id: string, prompt: string) => void;
-		variant: 'image' | 'video';
 	}
 
-	let { onRegenerate, onEditImage, onEditVideo, variant }: Props = $props();
+	let { onRegenerate, onEditImage }: Props = $props();
 
 	const qualityOrder: Record<ImageQuality, number> = { auto: 0, high: 3, low: 1, max: 5, medium: 2, xhigh: 4 };
 
@@ -55,50 +44,25 @@
 		return w * h;
 	}
 
-	function getResolutionArea(resolution: string | undefined): number {
-		if (!resolution) return 0;
-		const [w, h] = resolution.split('x').map(Number);
-		return w * h;
-	}
-
-	function getSortValue(item: ImageRecord | VideoRecord): string | number {
-		if (variant === 'image') {
-			const image = item as ImageRecord;
-			switch (sortField) {
-				case 'price':
-					return getImageRecordPrice(image);
-				case 'quality':
-					return qualityOrder[image.quality ?? 'low'] ?? 0;
-				case 'size':
-					return getImageSizeArea(image.size);
-				case 'prompt':
-					return image.prompt.toLowerCase();
-				case 'timestamp':
-					return image.timestamp;
-				default:
-					return image.timestamp;
-			}
-		}
-		const video = item as VideoRecord;
+	function getSortValue(image: ImageRecord): string | number {
 		switch (sortField) {
-			case 'duration':
-				return video.duration ?? 0;
 			case 'price':
-				return calculateVideoPrice(video.model, video.resolution, video.duration);
+				return getImageRecordPrice(image);
+			case 'quality':
+				return qualityOrder[image.quality ?? 'low'] ?? 0;
+			case 'size':
+				return getImageSizeArea(image.size);
 			case 'prompt':
-				return video.prompt.toLowerCase();
-			case 'resolution':
-				return getResolutionArea(video.resolution);
+				return image.prompt.toLowerCase();
 			case 'timestamp':
-				return video.timestamp;
+				return image.timestamp;
 			default:
-				return video.timestamp;
+				return image.timestamp;
 		}
 	}
 
 	let sortedItems = $derived.by(() => {
-		const raw = variant === 'image' ? [...$images] : [...$videos];
-		return raw.sort((a, b) => {
+		return [...$images].sort((a, b) => {
 			const aValue = getSortValue(a);
 			const bValue = getSortValue(b);
 			if (aValue < bValue) {
@@ -113,59 +77,25 @@
 
 	let currentItem = $derived(largeViewIndex !== null ? sortedItems[largeViewIndex] ?? null : null);
 
-	let lightboxPrice = $derived(
-		currentItem && variant === 'image'
-			? getImageRecordPrice(currentItem as ImageRecord)
-			: currentItem && variant === 'video'
-				? calculateVideoPrice(
-						(currentItem as VideoRecord).model,
-						(currentItem as VideoRecord).resolution,
-						(currentItem as VideoRecord).duration,
-					)
-				: 0,
-	);
+	let lightboxPrice = $derived(currentItem ? getImageRecordPrice(currentItem) : 0);
 
-	let priceDecimals = $derived(variant === 'image' ? 3 : 2);
-
-	let showLoadMoreSentinel = $derived(
-		variant === 'image' ? $images.length < $totalImageCount : $videos.length < $totalVideoCount,
-	);
-
-	let sortSelectId = $derived(variant === 'image' ? 'sort-by-images' : 'sort-by-videos');
-
-	let gridClass = $derived(
-		variant === 'image'
-			? 'image-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-			: 'video-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3',
-	);
+	let showLoadMoreSentinel = $derived($images.length < $totalImageCount);
 
 	onMount(async () => {
-		if (variant === 'image') {
-			await initImageStore();
-		} else {
-			await initVideoStore();
-		}
+		await initImageStore();
 		loading = false;
 
 		observer = new IntersectionObserver(
 			(entries) => {
 				if (!entries[0].isIntersecting || loadingMore) return;
-				if (variant === 'image') {
-					if ($images.length >= $totalImageCount) return;
-				} else if ($videos.length >= $totalVideoCount) {
-					return;
-				}
+				if ($images.length >= $totalImageCount) return;
 				loadingMore = true;
 				const schedule =
 					typeof requestIdleCallback !== 'undefined'
 						? (cb: () => void) => requestIdleCallback(cb, { timeout: 500 })
 						: (cb: () => void) => setTimeout(cb, 0);
 				schedule(async () => {
-					if (variant === 'image') {
-						await loadMoreImages();
-					} else {
-						await loadMoreVideos();
-					}
+					await loadMoreImages();
 					loadingMore = false;
 				});
 			},
@@ -184,8 +114,8 @@
 	}
 
 	function handleEdit(imageId: string) {
-		if (variant !== 'image' || !onEditImage) return;
-		const imageToEdit = sortedItems.find((img) => img.id === imageId) as ImageRecord | undefined;
+		if (!onEditImage) return;
+		const imageToEdit = sortedItems.find((img) => img.id === imageId);
 		if (imageToEdit) {
 			onEditImage(imageToEdit);
 			window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -199,10 +129,6 @@
 			if (e.key === 'ArrowLeft') showPrev();
 		}
 		if (e.key === 'Escape') closeLightbox();
-	}
-
-	function handleEditVideo(id: string, prompt: string) {
-		onEditVideo?.(id, prompt);
 	}
 
 	function handleView(mediaId: string) {
@@ -225,39 +151,25 @@
 <div>
 	<div class="mb-6 flex items-center justify-between">
 		<div>
-			<h2 class="text-base font-semibold text-gray-100">
-				{variant === 'image' ? 'Image History' : 'Video History'}
-			</h2>
+			<h2 class="text-base font-semibold text-gray-100">Image History</h2>
 			<p class="mt-0.5 text-xs text-gray-600">
-				{#if variant === 'image'}
-					{$totalImageCount} image{$totalImageCount !== 1 ? 's' : ''} generated
-				{:else}
-					{$totalVideoCount} video{$totalVideoCount !== 1 ? 's' : ''} generated
-				{/if}
+				{$totalImageCount} image{$totalImageCount !== 1 ? 's' : ''} generated
 			</p>
 		</div>
 		<div class="flex items-center gap-2">
 			<div class="glass-panel flex items-center gap-2 px-3 py-1.5">
-				<label class="text-xs text-gray-500" for={sortSelectId}>Sort</label>
+				<label class="text-xs text-gray-500" for="sort-by-images">Sort</label>
 				<select
 					bind:value={sortField}
 					class="appearance-none cursor-pointer rounded bg-dark-100 pr-1 text-sm text-gray-200 focus:outline-none"
-					id={sortSelectId}
+					id="sort-by-images"
 					style="color-scheme: dark"
 				>
-					{#if variant === 'image'}
-						<option value="timestamp">Date</option>
-						<option value="price">Price</option>
-						<option value="prompt">Prompt</option>
-						<option value="quality">Quality</option>
-						<option value="size">Size</option>
-					{:else}
-						<option value="timestamp">Date</option>
-						<option value="duration">Duration</option>
-						<option value="price">Price</option>
-						<option value="prompt">Prompt</option>
-						<option value="resolution">Resolution</option>
-					{/if}
+					<option value="timestamp">Date</option>
+					<option value="price">Price</option>
+					<option value="prompt">Prompt</option>
+					<option value="quality">Quality</option>
+					<option value="size">Size</option>
 				</select>
 			</div>
 			<button
@@ -276,63 +188,35 @@
 
 	{#if loading}
 		<div class="flex h-40 items-center justify-center">
-			<div class="animate-pulse-slow text-gray-500">
-				{variant === 'image' ? 'Loading images...' : 'Loading videos...'}
-			</div>
+			<div class="animate-pulse-slow text-gray-500">Loading images...</div>
 		</div>
-	{:else if variant === 'image' ? $images.length === 0 : $videos.length === 0}
+	{:else if $images.length === 0}
 		<div
 			class="rounded-2xl border border-dashed border-white/8 bg-white/2 px-6 py-16 text-center"
 			in:fly={{ duration: 400, y: 20 }}
 		>
 			<div class="relative mb-4 inline-flex h-16 w-16 items-center justify-center">
-				{#if variant === 'image'}
-					<div class="absolute inset-0 animate-pulse rounded-2xl bg-primary-500/10"></div>
-					<ImageIcon class="relative h-8 w-8 text-primary-400/60" />
-				{:else}
-					<div class="absolute inset-0 animate-pulse rounded-2xl bg-secondary-500/10"></div>
-					<VideoIcon class="relative h-8 w-8 text-secondary-400/60" />
-				{/if}
+				<div class="absolute inset-0 animate-pulse rounded-2xl bg-primary-500/10"></div>
+				<ImageIcon class="relative h-8 w-8 text-primary-400/60" />
 			</div>
-			<h3 class="mb-1 text-base font-semibold text-gray-300">
-				{variant === 'image' ? 'No images yet' : 'No videos yet'}
-			</h3>
+			<h3 class="mb-1 text-base font-semibold text-gray-300">No images yet</h3>
 			<p class="mx-auto max-w-xs text-sm text-gray-600">
-				{variant === 'image'
-					? 'Generate your first image above and it will appear here'
-					: 'Generate your first video above and it will appear here'}
+				Generate your first image above and it will appear here
 			</p>
 		</div>
 	{:else}
-		<div class={gridClass}>
-			{#each sortedItems as item, i (item.id)}
+		<div class="image-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			{#each sortedItems as image, i (image.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * i, duration: 300, y: 20 }}>
-					{#if variant === 'image'}
-						{@const image = item as ImageRecord}
-						<ImageCard
-							id={image.id}
-							imageData={image.imageData}
-							prompt={image.prompt}
-							timestamp={image.timestamp}
-							onEdit={handleEdit}
-							onRegenerate={onRegenerate}
-							onView={handleView}
-						/>
-					{:else}
-						{@const video = item as VideoRecord}
-						<VideoCard
-							duration={video.duration}
-							id={video.id}
-							model={video.model}
-							prompt={video.prompt}
-							resolution={video.resolution}
-							timestamp={video.timestamp}
-							videoData={video.videoData}
-							onRegenerate={onRegenerate}
-							onEdit={handleEditVideo}
-							onView={handleView}
-						/>
-					{/if}
+					<ImageCard
+						id={image.id}
+						imageData={image.imageData}
+						prompt={image.prompt}
+						timestamp={image.timestamp}
+						onEdit={handleEdit}
+						onRegenerate={onRegenerate}
+						onView={handleView}
+					/>
 				</div>
 			{/each}
 		</div>
@@ -340,9 +224,7 @@
 		{#if showLoadMoreSentinel}
 			<div bind:this={sentinelRef} class="mt-8 flex min-h-px justify-center">
 				{#if loadingMore}
-					<div class="animate-pulse-slow text-gray-500">
-						{variant === 'image' ? 'Loading more images...' : 'Loading more videos...'}
-					</div>
+					<div class="animate-pulse-slow text-gray-500">Loading more images...</div>
 				{/if}
 			</div>
 		{/if}
@@ -356,6 +238,4 @@
 	onClose={closeLightbox}
 	onNext={showNext}
 	onPrev={showPrev}
-	priceDecimals={priceDecimals}
-	{variant}
 />

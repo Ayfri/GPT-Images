@@ -56,9 +56,7 @@
 <MediaCard
 	{prompt}
 	{price}
-	priceDecimals={3}
 	{timestamp}
-	aspectClass="aspect-square"
 	{copied}
 	onDelete={handleDelete}
 	onCopy={handleCopy}

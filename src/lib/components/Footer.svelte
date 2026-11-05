@@ -1,13 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { ExternalLink } from '@lucide/svelte';
-
-	const isVideoPage = $derived(page.url.pathname.startsWith('/videos'));
-	const docsUrl = $derived(
-		isVideoPage
-			? 'https://platform.openai.com/docs/guides/video-generation'
-			: 'https://platform.openai.com/docs/guides/image-generation'
-	);
 </script>
 
 <footer class="border-t border-white/6 bg-dark-300/40 backdrop-blur-sm">
@@ -27,7 +19,7 @@
 					/>
 				</svg>
 			</a>
-			<a href={docsUrl} target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-300 transition-colors p-1" title="API Documentation">
+			<a href="https://platform.openai.com/docs/guides/image-generation" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-300 transition-colors p-1" title="API Documentation">
 				<ExternalLink class="w-4 h-4" />
 			</a>
 		</div>

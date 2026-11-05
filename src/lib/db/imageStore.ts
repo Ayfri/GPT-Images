@@ -2,7 +2,7 @@ import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from "#lib/types/image.ts";
 import { getImagePrice } from "#lib/types/image.ts";
-import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, revokeMediaObjectUrl, writeMediaFile } from "./opfsStore";
+import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, writeMediaFile } from "./opfsStore";
 
 interface GeneratedImage {
 	background?: ImageBackground;
@@ -86,7 +86,7 @@ async function withImageBlobs(records: GeneratedImage[]): Promise<GeneratedImage
 	return Promise.all(
 		records.map(async (img) => {
 			if (img.imageData) return img;
-			const url = await readMediaObjectUrl("images", img.id);
+			const url = await readMediaObjectUrl(img.id);
 			return { ...img, imageData: url ?? "" };
 		}),
 	);
@@ -107,7 +107,7 @@ export async function addImage(
 	const id = crypto.randomUUID();
 
 	// Persist binary to OPFS; only metadata goes into IDB.
-	await writeMediaFile("images", id, imageData);
+	await writeMediaFile(id, imageData);
 
 	await db.add("generated-images", {
 		background,
@@ -152,13 +152,12 @@ export async function getAllImages(): Promise<GeneratedImage[]> {
 
 export async function deleteImage(id: string): Promise<void> {
 	const db = await getDb();
-	await Promise.all([db.delete("generated-images", id), deleteMediaFile("images", id)]);
-	revokeMediaObjectUrl("images", id);
+	await Promise.all([db.delete("generated-images", id), deleteMediaFile(id)]);
 }
 
 export async function clearImages(): Promise<void> {
 	const db = await getDb();
-	await Promise.all([db.clear("generated-images"), clearMediaFolder("images")]);
+	await Promise.all([db.clear("generated-images"), clearMediaFolder()]);
 }
 
 const COST_CACHE_KEY = "gpt-image-cost-cache";

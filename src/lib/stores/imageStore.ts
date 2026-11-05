@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { countImages, getImages, getCostCache, setCostCache, invalidateCostCache, computeImageCostTotal } from '#lib/db/imageStore.ts';
+import { runMigrations } from '#lib/db/migrations.ts';
 import type { Writable } from 'svelte/store';
 import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '#lib/types/image.ts';
 
@@ -29,6 +30,8 @@ const idle = typeof requestIdleCallback !== 'undefined'
 
 export const initImageStore = async () => {
 	try {
+		/** Migrations move legacy inline blobs to OPFS and wipe retired video data, so they run before the first read. */
+		await runMigrations();
 		const count = await countImages();
 		totalImageCount.set(count);
 		const initialImages = await getImages(0, PAGE_SIZE);
