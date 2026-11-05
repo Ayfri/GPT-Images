@@ -22,9 +22,15 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
+	/** A failed delete keeps the card: the record is only dropped once the database delete succeeded. */
+	const remove = () => gallery.remove(image).catch((error: unknown) => console.error('Failed to delete the image:', error));
+
 	async function download() {
+		const href = await gallery.url(image);
+		if (!href) return;
+
 		const a = document.createElement('a');
-		a.href = (await gallery.url(image)) ?? '';
+		a.href = href;
 		a.download = `${image.prompt.replace(/\W/g, '_').slice(0, 30)}_${image.timestamp}.${image.output_format ?? 'png'}`;
 		a.click();
 	}
@@ -55,7 +61,7 @@
 				<button
 					aria-label="Delete"
 					class="btn-ghost group/del rounded-xl p-2 hover:bg-error-700/25"
-					onclick={() => confirm('Are you sure you want to delete this image?') && gallery.remove(image)}
+					onclick={() => confirm('Are you sure you want to delete this image?') && remove()}
 					title="Delete"
 					type="button"
 				>

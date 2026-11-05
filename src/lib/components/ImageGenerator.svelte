@@ -99,6 +99,7 @@
 
 	/** Registered before the persistence effect, so the first save writes the restored options and not the defaults. */
 	onMount(() => {
+		mounted = true;
 		try {
 			for (const [key, value] of Object.entries(JSON.parse(localStorage.getItem(FORM_OPTIONS_KEY) ?? '{}'))) if (isOptionKey(key)) restore(key, value);
 		} catch {}
@@ -113,9 +114,12 @@
 	let inputMask: File | null = $state(null);
 	let showAdvanced = $state(false);
 	let showMarkup = $state(false);
+	/** The prerendered page has no API key: the missing-key UI waits for mount so a returning user never sees it flash before hydration. */
+	let mounted = $state(false);
 	let markupHasStrokes = $state(false);
 	let markupCanvas: ReturnType<typeof MarkupCanvas> | undefined = $state();
 	const firstReference = $derived(inputImages[0]);
+	const keyMissing = $derived(mounted && !apiKey.value);
 
 	/** Reference images attached means edit/compose, none means pure generation. */
 	const mode = $derived<'generate' | 'edit'>(inputImages.length > 0 ? 'edit' : 'generate');
@@ -125,10 +129,7 @@
 	const markupAllowed = $derived(mode === 'edit' && support.markup && showAdvanced);
 	const markupOpen = $derived(markupAllowed && showMarkup);
 
-	/**
-	 * Effective options: a saved choice the current model or mode can't take is replaced here and stays saved, so it comes back with them.
-	 * `xhigh` and `max` only exist on GPT Image 2.5 and 2.6, so other models fall back to high.
-	 */
+	/** Effective options: a saved choice the model or mode can't take is replaced here but stays saved. `xhigh` and `max` only exist on 2.5 and 2.6, so others use high. */
 	const quality = $derived<ImageQuality>(support.qualities.includes(opts.selectedQuality) ? opts.selectedQuality : 'high');
 	const format = $derived<OutputFormat>((opts.outputFormat === 'gif' && !gifAllowed) || (opts.outputFormat === 'svg' && !svgAllowed) ? 'png' : opts.outputFormat);
 	const availableSizes = $derived(format === 'gif' ? GIF_SIZES : STANDARD_SIZES);
@@ -202,6 +203,8 @@
 	async function handleGenerate() {
 		if (problem) return void (error = problem);
 
+		/** Captured up front: a reference attached while the request runs must survive the cleanup below. */
+		const editing = mode === 'edit';
 		isGenerating = true;
 		error = null;
 
@@ -223,7 +226,7 @@
 			} satisfies NewImage;
 
 			let result: ImageResult;
-			if (mode === 'edit') {
+			if (editing) {
 				if (format === 'gif' || format === 'svg') throw new Error('GIF and SVG output only work without reference images.');
 				result = await editImage(apiKey.value, { ...meta, n: effectiveCount, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }), ...(markup && { markup }) });
 			} else {
@@ -249,7 +252,7 @@
 			});
 
 			/** Editing consumes the references and the markup, the prompt stays. */
-			if (mode === 'edit') {
+			if (editing) {
 				inputImages = [];
 				showMarkup = false;
 			}
@@ -596,9 +599,9 @@
 			class={[
 				'btn group relative bg-linear-to-r ring-transparent ring-2 duration-300 from-brand-700 via-highlight-600 to-aqua-600 w-full flex items-center justify-center gap-2 py-3 font-semibold text-white shadow-lg shadow-brand-950/60 overflow-hidden disabled:cursor-not-allowed',
 				'enabled:hover:ring-white/70 enabled:hover:shadow-brand-600/50 enabled:hover:scale-[1.01] enabled:hover:from-brand-600 enabled:hover:via-highlight-500 enabled:hover:to-aqua-500',
-				!isGenerating && !apiKey.value && 'opacity-50'
+				!isGenerating && keyMissing && 'opacity-50'
 			]}
-			disabled={isGenerating || !apiKey.value}
+			disabled={isGenerating || keyMissing}
 		>
 			{#if isGenerating}
 				<span class="pointer-events-none absolute inset-0 overflow-hidden">
@@ -621,7 +624,7 @@
 			{/if}
 		</button>
 
-		{#if !apiKey.value}
+		{#if keyMissing}
 			<div class="text-sm text-warning-400 bg-warning-900/20 border border-warning-600/20 p-2 rounded-md">
 				Please add your OpenAI API key to generate images
 			</div>

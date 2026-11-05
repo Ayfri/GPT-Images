@@ -38,6 +38,7 @@ interface ImageDB extends DBSchema {
 	};
 }
 
+/** Cleared when the open fails, so the next call retries instead of replaying the same rejection. */
 let db: Promise<IDBPDatabase<ImageDB>> | undefined;
 
 export const getDb = () =>
@@ -62,4 +63,7 @@ export const getDb = () =>
 				await cursor.update(record);
 			}
 		}
+	}).catch((error: unknown) => {
+		db = undefined;
+		throw error;
 	}));

@@ -78,7 +78,7 @@ Enter your OpenAI API key in the application's UI to start generating images.
 bun run build
 ```
 
-This command creates an optimized production build in the `.svelte-kit/cloudflare` directory, which `wrangler.jsonc` points to for the Worker and its static assets. Deploy it with `bunx wrangler deploy`.
+This command creates an optimized production build in the `.svelte-kit/cloudflare` directory, which `wrangler.jsonc` points to for the Worker and its static assets. Deploy it with `bunx wrangler deploy`. The page is prerendered into `.svelte-kit/cloudflare/index.html` and served as a static asset: the Worker only handles other paths. API calls go straight from the browser to OpenAI with `fetch`, so no SDK ships at runtime.
 
 ### Previewing the Production Build
 
@@ -112,6 +112,7 @@ gpt-images/
 │   │   └── utils/      # Utility functions
 │   └── routes/       # Application pages
 │       ├── +layout.svelte # Root layout component
+│       ├── +layout.ts     # Prerenders the page to a static index.html
 │       └── +page.svelte   # Main page component
 ├── static/           # Static assets served as-is (logo, robots.txt, screenshot)
 ├── .gitignore        # Files/folders ignored by Git

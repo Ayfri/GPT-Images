@@ -36,23 +36,30 @@
 	}
 
 	async function add(incoming: File[]) {
-		const valid: File[] = [];
-		for (const file of incoming) {
-			/** SVG is untrusted markup and the edits endpoint rejects it, so its text goes to the prompt and it is never rendered. */
-			if (isSvg(file)) {
-				onsvg((await file.text()).trim());
-				flash();
-				continue;
-			}
+		const prepared = await Promise.all(
+			incoming.map(async (file) => {
+				/** SVG is untrusted markup and the edits endpoint rejects it, so its text goes to the prompt and it is never rendered. */
+				if (isSvg(file)) {
+					onsvg((await file.text()).trim());
+					flash();
+					return null;
+				}
 
-			try {
-				const prepared = await toSupported(file);
-				if (prepared.size > IMAGE_UPLOAD_LIMITS.maxFileSize) onerror(`File "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maxFileSize / (1024 * 1024)}MB.`);
-				else valid.push(prepared);
-			} catch {
-				onerror(`Unsupported image format: ${file.name}`);
-			}
-		}
+				/** Checked before decoding: a huge file is rejected without paying for the bitmap and the PNG re-encode. */
+				if (file.size > IMAGE_UPLOAD_LIMITS.maxFileSize) {
+					onerror(`File "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maxFileSize / (1024 * 1024)}MB.`);
+					return null;
+				}
+
+				try {
+					return await toSupported(file);
+				} catch {
+					onerror(`Unsupported image format: ${file.name}`);
+					return null;
+				}
+			})
+		);
+		const valid = prepared.filter((file) => file !== null);
 		if (!valid.length) return;
 		if (files.length + valid.length > IMAGE_UPLOAD_LIMITS.maxImages) return onerror(`You can attach up to ${IMAGE_UPLOAD_LIMITS.maxImages} reference images.`);
 
@@ -78,7 +85,7 @@
 	/** Pasting inside a text field keeps its native behavior, so the URL field still takes a pasted link as text. */
 	function onpaste(event: ClipboardEvent) {
 		const { clipboardData, target } = event;
-		if (disabled || !clipboardData || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+		if (disabled || document.querySelector('dialog[open]') || !clipboardData || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
 
 		if (clipboardData.files.length) {
 			event.preventDefault();
@@ -133,7 +140,7 @@
 					<img {@attach fileSrc(file)} alt="Reference {index + 1}" class="w-16 h-16 object-cover rounded-lg border border-gray-700/60" />
 					<button
 						type="button"
-						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-error-500 hover:bg-error-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
+						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity bg-error-500 hover:bg-error-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
 						onclick={() => (files = files.filter((f) => f !== file))}
 						{disabled}
 					>

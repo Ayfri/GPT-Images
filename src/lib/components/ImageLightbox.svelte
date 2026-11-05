@@ -6,16 +6,22 @@
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { getRecordPrice } from '#lib/types/image.ts';
 
-	let { images, index = $bindable() }: { images: ImageRecord[]; index: number | null } = $props();
+	let { id = $bindable(), images }: { id: string | null; images: ImageRecord[] } = $props();
 
-	const image = $derived(index === null ? null : images[index]);
+	/** The viewed image is tracked by id: an index would point at another image when a finished generation shifts the list. */
+	const index = $derived(images.findIndex((image) => image.id === id));
+	const image = $derived(images[index]);
 	const arrowClass =
 		'btn-ghost absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-2 shadow-arrow hover:bg-white/20';
 
 	let swipeStart: Touch | null = null;
 
+	$effect(() => {
+		if (id !== null && index === -1) id = null;
+	});
+
 	function step(delta: number) {
-		if (index !== null) index = (index + delta + images.length) % images.length;
+		id = images[(index + delta + images.length) % images.length].id;
 	}
 
 	/** Horizontal swipes of 52 px or more that are wider than tall change the image, vertical ones keep scrolling the details. */
@@ -36,7 +42,7 @@
 		class="m-0 size-full max-h-none max-w-none touch-pan-y items-center justify-center border-0 bg-black/80 p-4 text-inherit select-none open:flex"
 		in:fade={{ duration: 150 }}
 		onclick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
-		onclose={() => (index = null)}
+		onclose={() => (id = null)}
 		onkeydown={(e) => {
 			if (e.key === 'ArrowLeft') step(-1);
 			if (e.key === 'ArrowRight') step(1);

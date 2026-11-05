@@ -23,7 +23,7 @@
 	const SORT_KEYS = {
 		price: getRecordPrice,
 		prompt: ({ prompt }) => prompt.toLowerCase(),
-		quality: ({ quality }) => qualityOrder[quality ?? 'low'],
+		quality: ({ quality }) => qualityOrder[quality ?? 'low'] ?? 0,
 		size: ({ size }) => size?.split('x').map(Number).reduce((a, b) => a * b) || 0,
 		timestamp: ({ timestamp }) => timestamp
 	} satisfies Record<string, (image: ImageRecord) => number | string>;
@@ -31,7 +31,7 @@
 	let shown = $state(PAGE_SIZE);
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: keyof typeof SORT_KEYS = $state('timestamp');
-	let viewIndex: number | null = $state(null);
+	let viewId: string | null = $state(null);
 
 	const sorted = $derived.by(() => {
 		const sign = sortDirection === 'asc' ? 1 : -1;
@@ -51,7 +51,6 @@
 	};
 
 	onMount(gallery.load);
-
 </script>
 
 <div>
@@ -67,8 +66,9 @@
 				<label class="text-xs text-gray-500" for="sort-by-images">Sort</label>
 				<select
 					bind:value={sortField}
-					class="appearance-none cursor-pointer rounded bg-dark-100 pr-1 text-sm text-gray-200 focus:outline-none"
-					id="sort-by-images"				>
+					class="appearance-none cursor-pointer rounded bg-dark-100 pr-1 text-sm text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-primary-500/60"
+					id="sort-by-images"
+				>
 					<option value="timestamp">Date</option>
 					<option value="price">Price</option>
 					<option value="prompt">Prompt</option>
@@ -112,7 +112,7 @@
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each visible as image, i (image.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * (i % PAGE_SIZE), duration: 300, y: 20 }}>
-					<ImageCard {image} {onEdit}{onRegenerate} onView={() => (viewIndex = i)} />
+					<ImageCard {image} {onEdit} {onRegenerate} onView={() => (viewId = image.id)} />
 				</div>
 			{/each}
 		</div>
@@ -123,4 +123,4 @@
 	{/if}
 </div>
 
-<ImageLightbox images={sorted} bind:index={viewIndex} />
+<ImageLightbox images={sorted} bind:id={viewId} />

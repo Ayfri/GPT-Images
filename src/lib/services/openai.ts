@@ -9,7 +9,7 @@ export interface ImageResult {
 
 const part = (value: unknown) => (value instanceof Blob ? value : String(value));
 
-/** Same encoding as the openai SDK (internal/uploads.mjs, addFormValue): arrays repeat as `key[]`, Files keep their name, other values are stringified. */
+/** Encodes flat fields only: Files stay Files, arrays repeat as `key[]`, other values are stringified, so a nested object would become "[object Object]". */
 function toForm(params: ImageEditParamsNonStreaming) {
 	const form = new FormData();
 	const fields: [string, unknown][] = Object.entries(params);
@@ -28,9 +28,12 @@ async function request(apiKey: string, endpoint: 'generations' | 'edits', body: 
 		method: 'POST',
 		headers: { Authorization: `Bearer ${apiKey}`, ...(!isForm && { 'Content-Type': 'application/json' }) },
 		body: isForm ? body : JSON.stringify(body)
+	}).catch((cause: unknown) => {
+		throw new Error('Could not reach the OpenAI API. Check your connection and try again.', { cause });
 	});
-	const json: ImagesResponse & { error?: { message: string } } = await res.json();
-	if (!res.ok) throw new Error(json.error?.message ?? res.statusText);
+	/** Non-JSON error pages (proxies, gateways) parse to an empty object and HTTP/2 has no statusText, so the status code is the last-resort message. */
+	const json: ImagesResponse & { error?: { message: string } } = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error(json.error?.message || `HTTP ${res.status}`);
 
 	const images = (json.data ?? []).map((item) => item.b64_json).filter((b64) => b64 !== undefined);
 	if (images.length === 0) throw new Error('API did not return image data');

@@ -47,7 +47,7 @@ async function migrate() {
 				await migration();
 				await meta.put('meta', version, 'version');
 			} catch (error) {
-				console.error(`[migration] v${version} ${migration.name} failed:`, error);
+				console.error(`[migration] v${version} failed:`, error);
 				/** Later migrations wait for a failed one: bumping the version past it would skip it forever. */
 				break;
 			}

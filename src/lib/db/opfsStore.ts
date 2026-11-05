@@ -5,7 +5,14 @@ class MediaFiles {
 	#urls = new Map<string, Promise<string | null>>();
 
 	#root() {
-		return (this.#dir ??= navigator.storage.getDirectory().then((root) => root.getDirectoryHandle('images', { create: true })));
+		/** A failed lookup is not cached, so the next call retries instead of replaying the same rejection. */
+		return (this.#dir ??= navigator.storage
+			.getDirectory()
+			.then((root) => root.getDirectoryHandle('images', { create: true }))
+			.catch((error: unknown) => {
+				this.#dir = undefined;
+				throw error;
+			}));
 	}
 
 	async #read(id: string, type: string) {

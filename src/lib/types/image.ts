@@ -2,7 +2,7 @@ import type { ImagesResponse } from 'openai/resources/images';
 
 export type ImageModel = 'gpt-image-2' | 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2.6-flare' | 'gpt-image-2.6-sunburst';
 /** No longer offered: gpt-image-1 is shut down, gpt-image-1-mini and gpt-image-1.5 retire on 2026-12-01. History records keep them for display and pricing. */
-type LegacyImageModel ='gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5';
+type LegacyImageModel = 'gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5';
 export type StoredImageModel = ImageModel | LegacyImageModel;
 export type ImageQuality = 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'auto';
 export type ImageSize =
@@ -221,8 +221,7 @@ export function usageCostUsd({ input_tokens_details, output_tokens }: ImagesResp
 	);
 }
 
-/** Stored real cost when present, otherwise the estimate: records saved before usage tracking have no cost. */
-/** Records without a model predate the model field, which only existed once gpt-image-1 was the sole model. */
+/** Stored real cost when present, else the estimate (older records have none). Records without a model predate the model field and used gpt-image-1. */
 export function getRecordPrice({ cost, model = 'gpt-image-1', quality, size }: { cost?: number; model?: StoredImageModel; quality?: ImageQuality; size?: StoredImageSize }): number {
 	return cost ?? (quality && size ? (getImagePrice(model, quality, size) ?? 0.01) : 0.01);
 }
