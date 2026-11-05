@@ -1,27 +1,34 @@
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from "#lib/types/image.ts";
-import { getImagePrice } from "#lib/types/image.ts";
+import type { ImagesResponse } from "openai/resources/images";
+import type { ImageBackground, ImageComplexity, ImageQuality, ImageSize, InputFidelity, OutputFormat, StoredImageModel } from "#lib/types/image.ts";
+import { OUTPUT_FORMAT_OPTIONS, getRecordPrice } from "#lib/types/image.ts";
 import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, writeMediaFile } from "./opfsStore";
 
-interface GeneratedImage {
+export interface ImageRecord {
 	background?: ImageBackground;
+	complexity?: ImageComplexity;
+	/** Real USD cost of this image from the API usage, absent on records saved before usage tracking. */
+	cost?: number;
+	frame_count?: number;
+	frame_duration_ms?: number;
 	id: string;
 	imageData: string;
 	input_fidelity?: InputFidelity;
-	model?: ImageModel;
+	model?: StoredImageModel;
 	output_compression?: number;
 	output_format?: OutputFormat;
 	prompt: string;
 	quality?: ImageQuality;
 	size?: ImageSize;
+	svg_usage?: ImagesResponse.SvgUsage;
 	timestamp: number;
 }
 
 interface ImageDB extends DBSchema {
 	"generated-images": {
 		key: string;
-		value: GeneratedImage;
+		value: ImageRecord;
 		indexes: {
 			"by-timestamp": number;
 		};
@@ -82,55 +89,33 @@ export async function getDb() {
 }
 
 /** Populate imageData from OPFS for records with empty field. */
-async function withImageBlobs(records: GeneratedImage[]): Promise<GeneratedImage[]> {
+async function withImageBlobs(records: ImageRecord[]): Promise<ImageRecord[]> {
 	return Promise.all(
 		records.map(async (img) => {
 			if (img.imageData) return img;
-			const url = await readMediaObjectUrl(img.id);
+			const url = await readMediaObjectUrl(img.id, OUTPUT_FORMAT_OPTIONS[img.output_format ?? "png"].mime);
 			return { ...img, imageData: url ?? "" };
 		}),
 	);
 }
 
-export async function addImage(
-	imageData: string,
-	prompt: string,
-	model: ImageModel = "gpt-image-2",
-	quality: ImageQuality = "low",
-	size: ImageSize = "1024x1024",
-	input_fidelity: InputFidelity = "low",
-	output_compression: number = 100,
-	output_format: OutputFormat = "png",
-	background: ImageBackground = "auto",
-): Promise<string> {
+export async function addImage(imageData: string, meta: Omit<ImageRecord, "id" | "imageData" | "timestamp">): Promise<string> {
 	const db = await getDb();
 	const id = crypto.randomUUID();
 
 	// Persist binary to OPFS; only metadata goes into IDB.
 	await writeMediaFile(id, imageData);
 
-	await db.add("generated-images", {
-		background,
-		id,
-		imageData: "",
-		input_fidelity,
-		model,
-		output_compression,
-		output_format,
-		prompt,
-		quality,
-		size,
-		timestamp: Date.now(),
-	});
+	await db.add("generated-images", { ...meta, id, imageData: "", timestamp: Date.now() });
 	return id;
 }
 
-export async function getImages(offset: number, limit: number): Promise<GeneratedImage[]> {
+export async function getImages(offset: number, limit: number): Promise<ImageRecord[]> {
 	const db = await getDb();
 	const index = db.transaction("generated-images", "readonly").objectStore("generated-images").index("by-timestamp");
 	let cursor = await index.openCursor(null, "prev");
 	if (offset > 0 && cursor) cursor = await cursor.advance(offset);
-	const records: GeneratedImage[] = [];
+	const records: ImageRecord[] = [];
 	while (cursor && records.length < limit) {
 		records.push(cursor.value);
 		cursor = await cursor.continue();
@@ -143,7 +128,7 @@ export async function countImages(): Promise<number> {
 	return db.count("generated-images");
 }
 
-export async function getAllImages(): Promise<GeneratedImage[]> {
+export async function getAllImages(): Promise<ImageRecord[]> {
 	const db = await getDb();
 	const records = await db.getAllFromIndex("generated-images", "by-timestamp");
 	records.sort((a, b) => b.timestamp - a.timestamp);
@@ -194,9 +179,7 @@ export async function computeImageCostTotal(): Promise<number> {
 	let totalCost = 0;
 	let cursor = await store.openCursor();
 	while (cursor) {
-		const { model = "gpt-image-2", quality, size } = cursor.value;
-		const m = model as ImageModel;
-		totalCost += quality && size ? (getImagePrice(m, quality, size) ?? 0.01) : 0.01;
+		totalCost += getRecordPrice(cursor.value);
 		cursor = await cursor.continue();
 	}
 	return totalCost;

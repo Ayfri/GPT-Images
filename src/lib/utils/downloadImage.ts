@@ -1,4 +1,6 @@
-export function downloadImage(imageData: string, prompt: string): void {
+import type { OutputFormat } from '#lib/types/image.ts';
+
+export function downloadImage(imageData: string, prompt: string, format: OutputFormat): void {
 	// Create a download link
 	const downloadLink = document.createElement('a');
 
@@ -10,7 +12,7 @@ export function downloadImage(imageData: string, prompt: string): void {
 
 	// Set properties
 	downloadLink.href = imageData;
-	downloadLink.download = `${fileName}_${Date.now()}.png`;
+	downloadLink.download = `${fileName}_${Date.now()}.${format}`;
 
 	// Add to body, click, and remove
 	document.body.appendChild(downloadLink);

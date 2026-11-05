@@ -53,7 +53,7 @@ export async function writeMediaFile(id: string, dataUrl: string): Promise<void>
  * Return cached blob: URL for the file. First call reads from OPFS and caches.
  * Prefer over data URLs, no base64 overhead.
  */
-export async function readMediaObjectUrl(id: string): Promise<string | null> {
+export async function readMediaObjectUrl(id: string, type: string): Promise<string | null> {
 	if (!isOpfsAvailable()) return null;
 	const cached = objectUrlCache.get(id);
 	if (cached) return cached;
@@ -61,7 +61,8 @@ export async function readMediaObjectUrl(id: string): Promise<string | null> {
 		const dir = await getMediaDir();
 		const fileHandle = await dir.getFileHandle(id);
 		const file = await fileHandle.getFile();
-		const url = URL.createObjectURL(file);
+		/** OPFS files carry no MIME type and browsers never sniff SVG, so the blob gets the record's type back. */
+		const url = URL.createObjectURL(new Blob([file], { type }));
 		objectUrlCache.set(id, url);
 		return url;
 	} catch {

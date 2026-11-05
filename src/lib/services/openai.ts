@@ -1,135 +1,23 @@
-import type {
-	ImageBackground,
-	ImageModel,
-	ImageModeration,
-	ImageQuality,
-	ImageSize,
-	InputFidelity,
-	OutputFormat
-} from '#lib/types/image.ts';
-import { MODEL_SUPPORT } from '#lib/types/image.ts';
 import OpenAI from 'openai';
-import type {
-	ImageEditParamsNonStreaming,
-	ImageGenerateParamsNonStreaming
-} from 'openai/resources/images';
+import type { ImageEditParamsNonStreaming, ImageGenerateParamsNonStreaming, ImagesResponse } from 'openai/resources/images';
 
-export interface GenerateImageParams {
-	background?: ImageBackground;
-	moderation?: ImageModeration;
-	model: ImageModel;
-	n: number;
-	output_compression?: number;
-	output_format?: OutputFormat;
-	prompt: string;
-	quality: ImageQuality;
-	size: ImageSize;
+export interface ImageResult {
+	images: string[];
+	svgUsage?: ImagesResponse.SvgUsage;
+	usage?: ImagesResponse.Usage;
 }
 
-export async function generateImage(apiKey: string, params: GenerateImageParams): Promise<string[]> {
-	const client = new OpenAI({
-		apiKey,
-		dangerouslyAllowBrowser: true
-	});
-
-	try {
-		if (params.background === 'transparent' && params.output_format === 'jpeg') {
-			throw new Error('Transparent backgrounds require the PNG or WebP output format');
-		}
-
-		const response = await client.images.generate({
-			model: params.model,
-			prompt: params.prompt,
-			quality: params.quality,
-			size: params.size,
-			n: params.n,
-			...(params.background !== undefined && { background: params.background }),
-			...(params.moderation !== undefined && { moderation: params.moderation }),
-			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
-			...(params.output_format !== undefined && { output_format: params.output_format }),
-		} as ImageGenerateParamsNonStreaming);
-
-		if (!response.data || response.data.length === 0) {
-			throw new Error('API did not return image data');
-		}
-
-		// Return array of base64 images
-		return response.data.map(item => {
-			if (!item.b64_json) {
-				throw new Error('Image data is not in base64 format');
-			}
-			return item.b64_json;
-		});
-	} catch (error: any) {
-		if (error?.status) {
-			throw new Error(error.message || `OpenAI API error: ${error.status}`);
-		}
-		throw new Error(error.message || 'Failed to generate image');
-	}
+function toResult({ data, svg_usage, usage }: ImagesResponse): ImageResult {
+	const images = (data ?? []).map((item) => item.b64_json).filter((b64) => b64 !== undefined);
+	if (images.length === 0) throw new Error('API did not return image data');
+	return { images, svgUsage: svg_usage, usage };
 }
 
-export interface EditImageParams {
-	background?: ImageBackground;
-	images: File[];
-	input_fidelity?: InputFidelity;
-	moderation?: ImageModeration;
-	mask?: File;
-	model: ImageModel;
-	n: number;
-	output_compression?: number;
-	output_format?: OutputFormat;
-	prompt: string;
-	quality: ImageQuality;
-	size: ImageSize;
+export async function generateImage(apiKey: string, params: ImageGenerateParamsNonStreaming): Promise<ImageResult> {
+	return toResult(await new OpenAI({ apiKey, dangerouslyAllowBrowser: true }).images.generate(params));
 }
 
-export async function editImage(apiKey: string, params: EditImageParams): Promise<string[]> {
-	const client = new OpenAI({
-		apiKey,
-		dangerouslyAllowBrowser: true
-	});
-
-	try {
-		if (params.background === 'transparent' && params.output_format === 'jpeg') {
-			throw new Error('Transparent backgrounds require the PNG or WebP output format');
-		}
-
-		// For editing, we need to use the first image as the base
-		const imageFile = params.images[0];
-		if (!imageFile) {
-			throw new Error('At least one image is required for editing');
-		}
-
-		const response = await client.images.edit({
-			model: params.model,
-			image: imageFile,
-			prompt: params.prompt,
-			size: params.size,
-			n: params.n,
-			quality: params.quality,
-			...(MODEL_SUPPORT[params.model].inputFidelityConfigurable && params.input_fidelity !== undefined && { input_fidelity: params.input_fidelity }),
-			...(params.moderation !== undefined && { moderation: params.moderation }),
-			...(params.output_compression !== undefined && { output_compression: params.output_compression }),
-			...(params.output_format !== undefined && { output_format: params.output_format }),
-			...(params.background !== undefined && { background: params.background }),
-			...(params.mask && { mask: params.mask }),
-		} as ImageEditParamsNonStreaming);
-
-		if (!response.data || response.data.length === 0) {
-			throw new Error('API did not return image data');
-		}
-
-		// Return array of base64 images
-		return response.data.map(item => {
-			if (!item.b64_json) {
-				throw new Error('Image data is not in base64 format');
-			}
-			return item.b64_json;
-		});
-	} catch (error: any) {
-		if (error?.status) {
-			throw new Error(error.message || `OpenAI API error: ${error.status}`);
-		}
-		throw new Error(error.message || 'Failed to edit image');
-	}
+/** No selectable model takes input_fidelity: gpt-image-2 and 2.5 always use high fidelity and 2.6 rejects it (verified 2026-11-05), so edits never send it. */
+export async function editImage(apiKey: string, params: ImageEditParamsNonStreaming): Promise<ImageResult> {
+	return toResult(await new OpenAI({ apiKey, dangerouslyAllowBrowser: true }).images.edit(params));
 }

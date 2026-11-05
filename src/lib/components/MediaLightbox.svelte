@@ -2,19 +2,19 @@
 	import { fade, fly } from 'svelte/transition';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import type { ImageRecord } from '#lib/stores/imageStore.ts';
+	import { getRecordPrice } from '#lib/types/image.ts';
 	import { getCarouselSwipeDirection } from '#lib/utils/carouselSwipe.ts';
 	import { quintOut } from 'svelte/easing';
 
 	interface Props {
 		currentItem: ImageRecord | null;
 		itemCount: number;
-		mediaPrice: number;
 		onClose: () => void;
 		onNext: () => void;
 		onPrev: () => void;
 	}
 
-	let { currentItem, itemCount, mediaPrice, onClose, onNext, onPrev }: Props = $props();
+	let { currentItem, itemCount, onClose, onNext, onPrev }: Props = $props();
 
 	let showNav = $derived(itemCount > 1);
 
@@ -126,7 +126,16 @@
 			{#if currentItem.model}
 				<span>Model: {currentItem.model}</span>
 			{/if}
-			<span>Cost: ${mediaPrice.toFixed(3)}</span>
+			{#if currentItem.complexity}
+				<span>Complexity: {currentItem.complexity}</span>
+			{/if}
+			{#if currentItem.frame_count && currentItem.frame_duration_ms}
+				<span>Frames: {currentItem.frame_count} x {currentItem.frame_duration_ms} ms</span>
+			{/if}
+			{#if currentItem.svg_usage}
+				<span>SVG author: {currentItem.svg_usage.model}, {currentItem.svg_usage.input_tokens} in / {currentItem.svg_usage.output_tokens} out tokens (not in cost)</span>
+			{/if}
+			<span>{currentItem.cost === undefined ? 'Estimated cost' : 'Cost'}: ${getRecordPrice(currentItem).toFixed(3)}</span>
 		</div>
 
 		{#if showNav}

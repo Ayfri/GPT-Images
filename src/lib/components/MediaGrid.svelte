@@ -11,8 +11,8 @@
 		totalImageCount,
 		type ImageRecord,
 	} from '#lib/stores/imageStore.ts';
-	import type { ImageModel, ImageQuality } from '#lib/types/image.ts';
-	import { getImagePrice as getModelPrice } from '#lib/types/image.ts';
+	import type { ImageQuality } from '#lib/types/image.ts';
+	import { getRecordPrice } from '#lib/types/image.ts';
 	import { flip } from 'svelte/animate';
 
 	interface Props {
@@ -33,21 +33,16 @@
 	let observer: IntersectionObserver | undefined = $state();
 	let sentinelRef: HTMLDivElement | undefined = $state();
 
-	function getImageRecordPrice(image: ImageRecord): number {
-		const model = (image.model || 'gpt-image-2') as ImageModel;
-		return image.quality && image.size ? (getModelPrice(model, image.quality, image.size) ?? 0.01) : 0.01;
-	}
-
 	function getImageSizeArea(size: string | undefined): number {
 		if (!size) return 0;
 		const [w, h] = size.split('x').map(Number);
-		return w * h;
+		return w * h || 0;
 	}
 
 	function getSortValue(image: ImageRecord): string | number {
 		switch (sortField) {
 			case 'price':
-				return getImageRecordPrice(image);
+				return getRecordPrice(image);
 			case 'quality':
 				return qualityOrder[image.quality ?? 'low'] ?? 0;
 			case 'size':
@@ -76,8 +71,6 @@
 	});
 
 	let currentItem = $derived(largeViewIndex !== null ? sortedItems[largeViewIndex] ?? null : null);
-
-	let lightboxPrice = $derived(currentItem ? getImageRecordPrice(currentItem) : 0);
 
 	let showLoadMoreSentinel = $derived($images.length < $totalImageCount);
 
@@ -113,13 +106,10 @@
 		largeViewIndex = null;
 	}
 
-	function handleEdit(imageId: string) {
+	function handleEdit(image: ImageRecord) {
 		if (!onEditImage) return;
-		const imageToEdit = sortedItems.find((img) => img.id === imageId);
-		if (imageToEdit) {
-			onEditImage(imageToEdit);
-			window.scrollTo({ top: 0, behavior: 'smooth' });
-		}
+		onEditImage(image);
+		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -208,15 +198,7 @@
 		<div class="image-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each sortedItems as image, i (image.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * i, duration: 300, y: 20 }}>
-					<ImageCard
-						id={image.id}
-						imageData={image.imageData}
-						prompt={image.prompt}
-						timestamp={image.timestamp}
-						onEdit={handleEdit}
-						onRegenerate={onRegenerate}
-						onView={handleView}
-					/>
+					<ImageCard {image} onEdit={handleEdit} {onRegenerate} onView={handleView} />
 				</div>
 			{/each}
 		</div>
@@ -234,7 +216,6 @@
 <MediaLightbox
 	currentItem={currentItem}
 	itemCount={sortedItems.length}
-	mediaPrice={lightboxPrice}
 	onClose={closeLightbox}
 	onNext={showNext}
 	onPrev={showPrev}

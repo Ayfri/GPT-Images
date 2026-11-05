@@ -35,7 +35,7 @@
 		<div class="rounded-xl bg-white/3 border border-white/6 p-4">
 			<div class="flex items-center gap-2 mb-4">
 				<Coins class="h-3.5 w-3.5 text-warning-400" />
-				<span class="text-xs font-medium text-gray-400">Pricing per image</span>
+				<span class="text-xs font-medium text-gray-400">Estimated price per image</span>
 			</div>
 
 			<div class="space-y-5">

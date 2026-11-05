@@ -5,29 +5,35 @@
 	import { apiKey } from '#lib/stores/apiKeyStore.ts';
 	import { addImage } from '#lib/db/imageStore.ts';
 	import { refreshImageStore } from '#lib/stores/imageStore.ts';
-	import { generateImage, editImage } from '#lib/services/openai.ts';
-	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModeration } from '#lib/types/image.ts';
+	import { generateImage, editImage, type ImageResult } from '#lib/services/openai.ts';
+	import type { ImageComplexity, ImageModel, ImageQuality, ImageSize, OutputFormat, ImageBackground, ImageModeration, SvgAuthorModel, SvgEffort } from '#lib/types/image.ts';
 	import type { ImageRecord } from '#lib/stores/imageStore.ts';
 	import 	{
 		MODEL_OPTIONS,
 		QUALITY_OPTIONS,
 		SIZE_OPTIONS,
+		COMPLEXITY_OPTIONS,
+		DEFAULT_IMAGE_MODEL,
+		GIF_LIMITS,
+		GIF_SIZES,
 		GPT_IMAGE_MODEL_PROMPT_MAX_CHARS,
 		getImagePrice,
 		IMAGE_UPLOAD_LIMITS,
-		LEGACY_IMAGE_MODEL_SHUTDOWN_DATE,
-		INPUT_FIDELITY_OPTIONS,
 		OUTPUT_FORMAT_OPTIONS,
 		BACKGROUND_OPTIONS,
 		MODEL_SUPPORT,
-		MODERATION_OPTIONS
+		MODERATION_OPTIONS,
+		STANDARD_SIZES,
+		SVG_AUTHOR_MODEL_OPTIONS,
+		SVG_EFFORT_OPTIONS,
+		isSelectableModel,
+		usageCostUsd
 	} from '#lib/types/image.ts';
 	import { browser } from '$app/env';
 	import ImageUploadZone from './ImageUploadZone.svelte';
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'image-generator-options';
-	const NON_CONFIGURABLE_INPUT_FIDELITY: InputFidelity = 'high';
 
 	// Load options from localStorage if available
 	function loadFormOptions() {
@@ -36,11 +42,15 @@
 		if (!raw) return
 		try {
 			const opts = JSON.parse(raw)
-			if (opts.selectedModel) selectedModel = opts.selectedModel
+			if (isSelectableModel(opts.selectedModel)) selectedModel = opts.selectedModel
 			if (opts.selectedQuality) selectedQuality = opts.selectedQuality
 			if (opts.selectedSize) selectedSize = opts.selectedSize
 			if (opts.imageCount) imageCount = opts.imageCount
-			if (opts.inputFidelity) inputFidelity = opts.inputFidelity
+			if (opts.complexity) complexity = opts.complexity
+			if (opts.frameCount) frameCount = opts.frameCount
+			if (opts.frameDurationMs) frameDurationMs = opts.frameDurationMs
+			if (opts.svgModel) svgModel = opts.svgModel
+			if (opts.svgEffort) svgEffort = opts.svgEffort
 			if (opts.outputCompression !== undefined) outputCompression = opts.outputCompression
 			if (opts.outputFormat) outputFormat = opts.outputFormat
 			if (opts.selectedBackground) selectedBackground = opts.selectedBackground
@@ -56,7 +66,11 @@
 			selectedQuality,
 			selectedSize,
 			imageCount,
-			inputFidelity,
+			complexity,
+			frameCount,
+			frameDurationMs,
+			svgModel,
+			svgEffort,
 			outputCompression,
 			outputFormat,
 			selectedBackground,
@@ -74,7 +88,7 @@
 	let { prompt = $bindable(''), imageToEdit = $bindable(null) }: Props = $props();
 	let isGenerating = $state(false);
 	let error: string | null = $state(null);
-	let selectedModel: ImageModel = $state('gpt-image-2.5-flare');
+	let selectedModel: ImageModel = $state(DEFAULT_IMAGE_MODEL);
 	let selectedQuality: ImageQuality = $state('low');
 	let selectedSize: ImageSize = $state('1024x1024');
 	let imageCount = $state(1);
@@ -89,22 +103,30 @@
 
 	// Advanced options
 	let showAdvanced = $state(false);
-	let inputFidelity: InputFidelity = $state('low');
+	let complexity: ImageComplexity = $state('high');
+	let frameCount = $state<number>(GIF_LIMITS.defaultFrameCount);
+	let frameDurationMs = $state<number>(GIF_LIMITS.defaultFrameDurationMs);
+	let svgModel: SvgAuthorModel = $state('gpt-5.4-nano');
+	let svgEffort: SvgEffort = $state('default');
 	let outputCompression = $state(100);
-	let outputFormat: OutputFormat = $state('png');
+	let outputFormat = $state<OutputFormat>('png');
 	let selectedBackground: ImageBackground = $state('auto');
 	let selectedModeration: ImageModeration = $state('auto');
-	let supportsTransparentBackground = $derived(MODEL_SUPPORT[selectedModel].transparentBackground);
-	let canConfigureInputFidelity = $derived(MODEL_SUPPORT[selectedModel].inputFidelityConfigurable);
-	let availableQualities = $derived(MODEL_SUPPORT[selectedModel].qualities as readonly ImageQuality[]);
-	// `xhigh` and `max` only exist on GPT Image 2.5, so fall back when switching to a model without them.
+	let support = $derived(MODEL_SUPPORT[selectedModel]);
+	let gifAllowed = $derived(mode === 'generate' && support.gif);
+	let svgAllowed = $derived(mode === 'generate' && support.svg);
+	let availableSizes = $derived(outputFormat === 'gif' ? GIF_SIZES : STANDARD_SIZES);
+	let effectiveCount = $derived(outputFormat === 'svg' ? 1 : imageCount);
+	// `xhigh` and `max` only exist on GPT Image 2.5 and 2.6, so fall back when switching to a model without them.
 	$effect(() => {
-		if (!availableQualities.includes(selectedQuality)) selectedQuality = 'high';
+		if (!support.qualities.includes(selectedQuality)) selectedQuality = 'high';
+		if ((outputFormat === 'gif' && !gifAllowed) || (outputFormat === 'svg' && !svgAllowed)) outputFormat = 'png';
+		if (!availableSizes.includes(selectedSize)) selectedSize = 'auto';
 	});
-	let displayPrice = $derived(getImagePrice(selectedModel, selectedQuality, selectedSize));
+	let displayPrice = $derived(outputFormat === 'gif' || outputFormat === 'svg' ? null : getImagePrice(selectedModel, selectedQuality, selectedSize));
 
 	// Calculate price dynamically
-	let currentPrice = $derived((displayPrice ?? 0) * imageCount);
+	let currentPrice = $derived((displayPrice ?? 0) * effectiveCount);
 	let promptCharCount = $derived(prompt.length);
 	let promptExceedsApiLimit = $derived(promptCharCount > GPT_IMAGE_MODEL_PROMPT_MAX_CHARS);
 
@@ -186,35 +208,25 @@
 		if (imageToEdit) {
 			prompt = imageToEdit.prompt;
 			// Convert base64 image data URL to a File object for inputImages
-			fetch(imageToEdit.imageData)
+			const { id, imageData } = imageToEdit;
+			const format = imageToEdit.output_format ?? 'png';
+			fetch(imageData)
 				.then(res => res.blob())
 				.then(blob => {
-					const filename = `edited_image_${imageToEdit?.id}.png`;
-					const file = new File([blob], filename, { type: blob.type });
+					const file = new File([blob], `edited_image_${id}.${format}`, { type: OUTPUT_FORMAT_OPTIONS[format].mime });
 					inputImages = [file];
-					imagePreviews = [imageToEdit!.imageData];
+					imagePreviews = [imageData];
 				})
 				.catch(e => console.error("Error converting image data to File:", e));
 
 			// Set other image properties if available
-			if (imageToEdit) {
-				selectedModel = (imageToEdit.model as ImageModel) ?? 'gpt-image-2';
-				selectedQuality = imageToEdit.quality ?? 'low';
-				selectedSize = imageToEdit.size ?? '1024x1024';
-				inputFidelity = imageToEdit.input_fidelity ?? 'low';
-				outputCompression = imageToEdit.output_compression ?? 100;
-				outputFormat = imageToEdit.output_format ?? 'png';
-				selectedBackground = imageToEdit.background ?? 'auto';
-			}
-		}
-	});
-
-	$effect(() => {
-		if (!supportsTransparentBackground && selectedBackground === 'transparent') {
-			selectedBackground = 'auto';
-		}
-		if (!canConfigureInputFidelity) {
-			inputFidelity = NON_CONFIGURABLE_INPUT_FIDELITY;
+			selectedModel = imageToEdit.model && isSelectableModel(imageToEdit.model) ? imageToEdit.model : DEFAULT_IMAGE_MODEL;
+			selectedQuality = imageToEdit.quality ?? 'low';
+			selectedSize = imageToEdit.size ?? '1024x1024';
+			if (imageToEdit.complexity) complexity = imageToEdit.complexity;
+			outputCompression = imageToEdit.output_compression ?? 100;
+			outputFormat = format;
+			selectedBackground = imageToEdit.background ?? 'auto';
 		}
 	});
 
@@ -292,8 +304,9 @@
 			error = 'Transparent background is not supported for JPEG output format. Please select PNG or WebP.';
 			return;
 		}
-		if (!supportsTransparentBackground && selectedBackground === 'transparent') {
-			error = `${MODEL_OPTIONS[selectedModel].label} does not support transparent backgrounds.`;
+
+		if (outputFormat === 'gif' && !(Number.isInteger(frameDurationMs) && frameDurationMs >= GIF_LIMITS.minFrameDurationMs && frameDurationMs <= GIF_LIMITS.maxFrameDurationMs)) {
+			error = `Frame duration must be a whole number between ${GIF_LIMITS.minFrameDurationMs} and ${GIF_LIMITS.maxFrameDurationMs} ms.`;
 			return;
 		}
 
@@ -301,63 +314,49 @@
 		error = null;
 
 		try {
-			let imageDataArray: string[];
-
-			const compressionOptions = {
-				...(outputFormat === 'jpeg' || outputFormat === 'webp'
-					? { output_compression: outputCompression }
-					: {})
-			};
-
-			const baseParams = {
+			const format = outputFormat;
+			const compression = format === 'jpeg' || format === 'webp' ? { output_compression: outputCompression } : {};
+			const shared = {
+				background: selectedBackground,
 				model: selectedModel,
+				n: effectiveCount,
 				prompt,
 				quality: selectedQuality,
 				size: selectedSize,
-				n: imageCount,
-				output_format: outputFormat,
-				background: selectedBackground,
-				moderation: selectedModeration,
-				...compressionOptions
+				...compression,
+				...(support.complexity && { complexity })
 			};
 
-			if (mode === 'edit' && inputImages.length > 0) {
-				imageDataArray = await editImage($apiKey, {
-					...baseParams,
-					...(canConfigureInputFidelity ? { input_fidelity: inputFidelity } : {}),
-					images: inputImages,
-					mask: inputMask || undefined
-				});
+			let result: ImageResult;
+			if (mode === 'edit') {
+				if (format === 'gif' || format === 'svg') throw new Error('GIF and SVG output only work without reference images.');
+				result = await editImage($apiKey, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }) });
 			} else {
-				// For generation, create params without input_fidelity
-				const generationParams = {
+				result = await generateImage($apiKey, {
+					...shared,
+					moderation: selectedModeration,
+					output_format: format,
+					...(format === 'gif' && { frame_count: frameCount, frame_duration_ms: frameDurationMs }),
+					...(format === 'svg' && { svg: { model: svgModel, ...(svgEffort !== 'default' && { reasoning: { effort: svgEffort } }) } })
+				});
+			}
+
+			// The usage covers the whole request, so each image gets an equal share.
+			const cost = result.usage && usageCostUsd(result.usage) / result.images.length;
+			for (const b64 of result.images) {
+				await addImage(`data:${OUTPUT_FORMAT_OPTIONS[format].mime};base64,${b64}`, {
+					background: selectedBackground,
 					model: selectedModel,
+					output_format: format,
 					prompt,
 					quality: selectedQuality,
 					size: selectedSize,
-					n: imageCount,
-					output_format: outputFormat,
-					background: selectedBackground,
-					moderation: selectedModeration,
-					...compressionOptions
-				};
-				imageDataArray = await generateImage($apiKey, generationParams);
-			}
-
-			// Store each generated image
-			for (const imageData of imageDataArray) {
-				const imageDataUrl = imageData.startsWith('data:') ? imageData : `data:image/png;base64,${imageData}`;
-				await addImage(
-					imageDataUrl,
-					prompt,
-					selectedModel,
-					selectedQuality,
-					selectedSize,
-					canConfigureInputFidelity ? inputFidelity : NON_CONFIGURABLE_INPUT_FIDELITY,
-					outputCompression,
-					outputFormat,
-					selectedBackground
-				);
+					...compression,
+					...(support.complexity && { complexity }),
+					...(format === 'gif' && { frame_count: frameCount, frame_duration_ms: frameDurationMs }),
+					...(cost !== undefined && { cost }),
+					...(result.svgUsage && { svg_usage: result.svgUsage })
+				});
 			}
 
 			// Refresh the image store
@@ -368,6 +367,8 @@
 				inputImages = [];
 				imagePreviews = [];
 			}
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Image generation failed';
 		} finally {
 			isGenerating = false;
 		}
@@ -467,14 +468,14 @@
 				<label for="model" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Model</label>
 				<select id="model" bind:value={selectedModel} class="input w-full text-sm" disabled={isGenerating}>
 					{#each Object.entries(MODEL_OPTIONS) as [key, option] (key)}
-						<option value={key}>{option.label}{option.deprecated ? ` (retired ${LEGACY_IMAGE_MODEL_SHUTDOWN_DATE})` : ''}</option>
+						<option value={key}>{option.label}</option>
 					{/each}
 				</select>
 			</div>
 			<div>
 				<label for="quality" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Quality</label>
 				<select id="quality" bind:value={selectedQuality} class="input w-full text-sm" disabled={isGenerating}>
-					{#each availableQualities as key (key)}
+					{#each support.qualities as key (key)}
 						<option value={key}>{QUALITY_OPTIONS[key].label}</option>
 					{/each}
 				</select>
@@ -482,8 +483,8 @@
 			<div>
 				<label for="size" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Size</label>
 				<select id="size" bind:value={selectedSize} class="input w-full text-sm" disabled={isGenerating}>
-					{#each Object.entries(SIZE_OPTIONS) as [key, option] (key)}
-						<option value={key}>{option.label}</option>
+					{#each availableSizes as key (key)}
+						<option value={key}>{SIZE_OPTIONS[key].label}</option>
 					{/each}
 				</select>
 			</div>
@@ -501,9 +502,9 @@
 				max="10"
 				bind:value={imageCount}
 				class="flex-1 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
-				disabled={isGenerating}
+				disabled={isGenerating || outputFormat === 'svg'}
 			/>
-			<span class="text-sm font-medium text-gray-300 w-5 text-right">{imageCount}</span>
+			<span class="text-sm font-medium text-gray-300 w-5 text-right">{effectiveCount}</span>
 		</div>
 
 		<!-- Advanced Options -->
@@ -525,43 +526,109 @@
 			{#if showAdvanced}
 				<div class="mt-4 space-y-4 pl-4 border-l border-gray-700/60" in:fly={{ y: -6, duration: 180 }}>
 					<div class="grid grid-cols-2 gap-4">
-						{#if mode === 'edit' && canConfigureInputFidelity}
-							<div>
-								<label for="inputFidelity" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
-									Input Fidelity
-								</label>
-								<select id="inputFidelity" bind:value={inputFidelity} class="input w-full text-sm" disabled={isGenerating}>
-									{#each Object.entries(INPUT_FIDELITY_OPTIONS) as [key, option] (key)}
-										<option value={key}>{option.label}</option>
-									{/each}
-								</select>
-								<p class="text-xs text-gray-600 mt-1">{INPUT_FIDELITY_OPTIONS[inputFidelity].description}</p>
-							</div>
-						{/if}
 						<div>
 							<label for="outputFormat" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
 								Output Format
 							</label>
 							<select id="outputFormat" bind:value={outputFormat} class="input w-full text-sm" disabled={isGenerating}>
 								{#each Object.entries(OUTPUT_FORMAT_OPTIONS) as [key, option] (key)}
-									<option value={key} disabled={selectedBackground === 'transparent' && key === 'jpeg'}>{option.label}</option>
+									<option value={key} disabled={(key === 'gif' && !gifAllowed) || (key === 'svg' && !svgAllowed) || (key === 'jpeg' && selectedBackground === 'transparent')}>{option.label}</option>
 								{/each}
 							</select>
 							<p class="text-xs text-gray-600 mt-1">{OUTPUT_FORMAT_OPTIONS[outputFormat].description}</p>
 						</div>
+						{#if support.complexity}
+							<div>
+								<label for="complexity" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+									Complexity
+								</label>
+								<select id="complexity" bind:value={complexity} class="input w-full text-sm" disabled={isGenerating}>
+									{#each Object.entries(COMPLEXITY_OPTIONS) as [key, option] (key)}
+										<option value={key}>{option.label}</option>
+									{/each}
+								</select>
+								<p class="text-xs text-gray-600 mt-1">Planning effort, independent of quality</p>
+							</div>
+						{/if}
 					</div>
 
-					<div>
-						<label for="moderation" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
-							Moderation
-						</label>
-						<select id="moderation" bind:value={selectedModeration} class="input w-full text-sm" disabled={isGenerating}>
-							{#each Object.entries(MODERATION_OPTIONS) as [key, option] (key)}
-								<option value={key}>{option.label}</option>
-							{/each}
-						</select>
-						<p class="text-xs text-gray-600 mt-1">{MODERATION_OPTIONS[selectedModeration].description}</p>
-					</div>
+					{#if outputFormat === 'gif'}
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<div class="flex items-center justify-between mb-1.5">
+									<label for="frameCount" class="text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Frames
+									</label>
+									<span class="text-xs text-gray-400">{frameCount}</span>
+								</div>
+								<input
+									id="frameCount"
+									type="range"
+									min={GIF_LIMITS.minFrameCount}
+									max={GIF_LIMITS.maxFrameCount}
+									bind:value={frameCount}
+									class="w-full h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+									disabled={isGenerating}
+								/>
+							</div>
+							<div>
+								<label for="frameDuration" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+									Frame duration (ms)
+								</label>
+								<input
+									id="frameDuration"
+									type="number"
+									min={GIF_LIMITS.minFrameDurationMs}
+									max={GIF_LIMITS.maxFrameDurationMs}
+									step="10"
+									bind:value={frameDurationMs}
+									class="input w-full text-sm"
+									disabled={isGenerating}
+								/>
+							</div>
+						</div>
+						<p class="text-xs text-gray-600 -mt-2">Sizes are limited to small squares because frames share one sheet.</p>
+					{/if}
+
+					{#if outputFormat === 'svg'}
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label for="svgModel" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+									SVG author
+								</label>
+								<select id="svgModel" bind:value={svgModel} class="input w-full text-sm" disabled={isGenerating}>
+									{#each Object.entries(SVG_AUTHOR_MODEL_OPTIONS) as [key, option] (key)}
+										<option value={key}>{option.label}</option>
+									{/each}
+								</select>
+							</div>
+							<div>
+								<label for="svgEffort" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+									Author effort
+								</label>
+								<select id="svgEffort" bind:value={svgEffort} class="input w-full text-sm" disabled={isGenerating}>
+									{#each Object.entries(SVG_EFFORT_OPTIONS) as [key, option] (key)}
+										<option value={key}>{option.label}</option>
+									{/each}
+								</select>
+							</div>
+						</div>
+						<p class="text-xs text-gray-600 -mt-2">One image per request. Author tokens are billed separately and not included in the cost.</p>
+					{/if}
+
+					{#if mode === 'generate'}
+						<div>
+							<label for="moderation" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+								Moderation
+							</label>
+							<select id="moderation" bind:value={selectedModeration} class="input w-full text-sm" disabled={isGenerating}>
+								{#each Object.entries(MODERATION_OPTIONS) as [key, option] (key)}
+									<option value={key}>{option.label}</option>
+								{/each}
+							</select>
+							<p class="text-xs text-gray-600 mt-1">{MODERATION_OPTIONS[selectedModeration].description}</p>
+						</div>
+					{/if}
 
 					<div>
 						<label for="background" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
@@ -569,7 +636,7 @@
 						</label>
 						<select id="background" bind:value={selectedBackground} class="input w-full text-sm" disabled={isGenerating}>
 							{#each Object.entries(BACKGROUND_OPTIONS) as [key, option] (key)}
-								<option value={key} disabled={!supportsTransparentBackground && key === 'transparent'}>{option.label}</option>
+								<option value={key}>{option.label}</option>
 							{/each}
 						</select>
 						<p class="text-xs text-gray-600 mt-1">{BACKGROUND_OPTIONS[selectedBackground].description}</p>
@@ -664,8 +731,8 @@
 			{:else}
 				<Sparkles class="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
 				{mode === 'generate'
-					? `Generate ${imageCount > 1 ? `${imageCount} images` : 'image'}`
-					: `Generate ${imageCount > 1 ? `${imageCount} images` : 'image'} from references`}
+					? `Generate ${effectiveCount > 1 ? `${effectiveCount} images` : 'image'}`
+					: `Generate ${effectiveCount > 1 ? `${effectiveCount} images` : 'image'} from references`}
 			{/if}
 		</button>
 
@@ -684,9 +751,9 @@
 		<div class="text-xs text-gray-600 flex justify-between pt-0.5">
 			<span>{MODEL_OPTIONS[selectedModel].label}</span>
 			{#if displayPrice !== null}
-				<span class="text-secondary-500">${currentPrice.toFixed(3)} for {imageCount} {imageCount > 1 ? 'images' : 'image'}</span>
+				<span class="text-secondary-500">${currentPrice.toFixed(3)} for {effectiveCount} {effectiveCount > 1 ? 'images' : 'image'}</span>
 			{:else}
-				<span class="text-gray-500">Estimated price unavailable for this size/quality</span>
+				<span class="text-gray-500">Price estimate unavailable, the real cost is recorded after generation</span>
 			{/if}
 		</div>
 	</form>

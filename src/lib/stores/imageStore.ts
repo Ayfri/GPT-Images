@@ -2,21 +2,9 @@ import { writable, get } from 'svelte/store';
 import { countImages, getImages, getCostCache, setCostCache, invalidateCostCache, computeImageCostTotal } from '#lib/db/imageStore.ts';
 import { runMigrations } from '#lib/db/migrations.ts';
 import type { Writable } from 'svelte/store';
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '#lib/types/image.ts';
+import type { ImageRecord } from '#lib/db/imageStore.ts';
 
-export interface ImageRecord {
-	id: string;
-	prompt: string;
-	imageData: string;
-	timestamp: number;
-	model?: ImageModel;
-	quality?: ImageQuality;
-	size?: ImageSize;
-	input_fidelity?: InputFidelity;
-	output_compression?: number;
-	output_format?: OutputFormat;
-	background?: ImageBackground;
-}
+export type { ImageRecord } from '#lib/db/imageStore.ts';
 
 export const images: Writable<ImageRecord[]> = writable([]);
 export const totalImageCount: Writable<number> = writable(0);
@@ -35,7 +23,7 @@ export const initImageStore = async () => {
 		const count = await countImages();
 		totalImageCount.set(count);
 		const initialImages = await getImages(0, PAGE_SIZE);
-		images.set(initialImages as ImageRecord[]);
+		images.set(initialImages);
 		currentImageOffset.set(initialImages.length);
 
 		const cached = getCostCache();
@@ -64,7 +52,7 @@ export const initImageStore = async () => {
 export const loadMoreImages = async () => {
 	const offset = get(currentImageOffset);
 	const newImages = await getImages(offset, PAGE_SIZE);
-	images.update(existing => [...existing, ...newImages] as ImageRecord[]);
+	images.update(existing => [...existing, ...newImages]);
 	currentImageOffset.update(o => o + newImages.length);
 };
 
