@@ -4,7 +4,7 @@
 	import { fly } from 'svelte/transition';
 	import { ArrowDown, ArrowUp, Image as ImageIcon } from '@lucide/svelte';
 	import ImageCard from './ImageCard.svelte';
-	import MediaLightbox from './MediaLightbox.svelte';
+	import ImageLightbox from './ImageLightbox.svelte';
 	import type { ImageRecord } from '#lib/db/imageStore.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import type { ImageQuality } from '#lib/types/image.ts';
@@ -13,7 +13,7 @@
 
 	interface Props {
 		onRegenerate: (prompt: string) => void;
-		onEditImage?: (image: ImageRecord) => void;
+		onEditImage: (image: ImageRecord) => void;
 	}
 
 	let { onRegenerate, onEditImage }: Props = $props();
@@ -28,10 +28,10 @@
 		timestamp: ({ timestamp }) => timestamp
 	} satisfies Record<string, (image: ImageRecord) => number | string>;
 
-	let largeViewIndex: number | null = $state(null);
 	let shown = $state(PAGE_SIZE);
 	let sortDirection: 'asc' | 'desc' = $state('desc');
 	let sortField: keyof typeof SORT_KEYS = $state('timestamp');
+	let viewIndex: number | null = $state(null);
 
 	const sorted = $derived.by(() => {
 		const sign = sortDirection === 'asc' ? 1 : -1;
@@ -41,7 +41,6 @@
 			.map(({ image }) => image);
 	});
 	const visible = $derived(sorted.slice(0, shown));
-	const currentItem = $derived(largeViewIndex !== null ? sorted[largeViewIndex] ?? null : null);
 
 	/** Reading `shown` re-creates the observer after each page, so a sentinel still in view keeps loading the next page. */
 	const sentinel: Attachment<HTMLDivElement> = (target) => {
@@ -53,41 +52,7 @@
 
 	onMount(gallery.load);
 
-	function closeLightbox() {
-		largeViewIndex = null;
-	}
-
-	function handleEdit(image: ImageRecord) {
-		if (!onEditImage) return;
-		onEditImage(image);
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (largeViewIndex === null) return;
-		if (sorted.length > 1) {
-			if (e.key === 'ArrowRight') showNext();
-			if (e.key === 'ArrowLeft') showPrev();
-		}
-		if (e.key === 'Escape') closeLightbox();
-	}
-
-	function handleView(mediaId: string) {
-		largeViewIndex = sorted.findIndex((m) => m.id === mediaId);
-	}
-
-	function showNext() {
-		if (largeViewIndex === null) return;
-		largeViewIndex = (largeViewIndex + 1) % sorted.length;
-	}
-
-	function showPrev() {
-		if (largeViewIndex === null) return;
-		largeViewIndex = (largeViewIndex - 1 + sorted.length) % sorted.length;
-	}
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <div>
 	<div class="mb-6 flex items-center justify-between">
@@ -149,7 +114,7 @@
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each visible as image, i (image.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * (i % PAGE_SIZE), duration: 300, y: 20 }}>
-					<ImageCard {image} onEdit={handleEdit} {onRegenerate} onView={handleView} />
+					<ImageCard {image} onEdit={onEditImage} {onRegenerate} onView={() => (viewIndex = i)} />
 				</div>
 			{/each}
 		</div>
@@ -160,10 +125,4 @@
 	{/if}
 </div>
 
-<MediaLightbox
-	currentItem={currentItem}
-	itemCount={sorted.length}
-	onClose={closeLightbox}
-	onNext={showNext}
-	onPrev={showPrev}
-/>
+<ImageLightbox images={sorted} bind:index={viewIndex} />

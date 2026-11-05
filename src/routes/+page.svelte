@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ApiKeyForm from '#lib/components/ApiKeyForm.svelte';
 	import ImageGenerator from '#lib/components/ImageGenerator.svelte';
-	import MediaGrid from '#lib/components/MediaGrid.svelte';
+	import ImageGrid from '#lib/components/ImageGrid.svelte';
 	import UsageStats from '#lib/components/UsageStats.svelte';
 	import type { ImageRecord } from '#lib/db/imageStore.ts';
 
@@ -44,7 +44,7 @@
 		</div>
 
 		<div>
-			<MediaGrid onEditImage={handleEditImage} onRegenerate={handleRegenerate} />
+			<ImageGrid onEditImage={handleEditImage} onRegenerate={handleRegenerate} />
 		</div>
 	</div>
 
