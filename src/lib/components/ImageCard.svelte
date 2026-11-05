@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Copy, Download, Pencil, RefreshCw, Trash } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
+	import ConfirmPopover from './ConfirmPopover.svelte';
 	import type { ImageRecord } from '#lib/db/imageStore.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { getRecordPrice } from '#lib/types/image.ts';
@@ -53,20 +54,20 @@
 			{/await}
 		</button>
 
-		<!-- visibility keeps the hidden buttons untappable and out of the tab order until the card is hovered or focused -->
+		<!-- visibility keeps the hidden buttons untappable and out of the tab order until the card is hovered, focused or has an open popover, which leaves the card's hover box -->
 		<div
-			class="pointer-events-none invisible absolute inset-0 flex flex-col justify-end bg-linear-to-t from-dark-300/95 via-dark-300/50 via-40% to-transparent to-70% opacity-0 transition-[opacity,visibility] duration-200 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+			class="pointer-events-none invisible absolute inset-0 flex flex-col justify-end bg-linear-to-t from-dark-300/95 via-dark-300/50 via-40% to-transparent to-70% opacity-0 transition-[opacity,visibility] duration-200 group-focus-within:visible group-focus-within:opacity-100 group-has-[:popover-open]:visible group-has-[:popover-open]:opacity-100 group-hover:visible group-hover:opacity-100"
 		>
 			<div class="pointer-events-auto flex items-center justify-between p-3">
-				<button
-					aria-label="Delete"
+				<ConfirmPopover
 					class="btn-ghost group/del rounded-xl p-2 hover:bg-error-700/25"
-					onclick={() => confirm('Are you sure you want to delete this image?') && remove()}
-					title="Delete"
-					type="button"
+					confirmLabel="Delete image"
+					label="Delete"
+					message="Delete this image? This can't be undone."
+					onconfirm={remove}
 				>
 					<Trash class="h-4 w-4 text-error-400 transition-transform group-hover/del:scale-110" />
-				</button>
+				</ConfirmPopover>
 
 				<div class="flex items-center gap-1">
 					<button

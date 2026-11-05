@@ -119,6 +119,19 @@
 	@apply rounded-2xl border border-white/6 bg-dark-200/80 backdrop-blur-sm overflow-hidden shadow-xl transition-all duration-300;
 }
 
+/* Popover above its anchor (set `anchor-name` on the trigger and `position-anchor` on the popover), flipped when it doesn't fit. `position-visibility: always` keeps it shown when its trigger is hidden (an overlay that fades out on hover end). Without anchor positioning the UA centers it in the viewport. */
+@utility anchored-popover {
+	margin: auto;
+
+	@supports (position-area: top) {
+		inset: auto;
+		margin: calc(var(--spacing) * 2);
+		position-area: top;
+		position-try-fallbacks: flip-block, flip-inline;
+		position-visibility: always;
+	}
+}
+
 @utility card-gradient-border {
 	background:
 		linear-gradient(var(--color-dark-200), var(--color-dark-200)) padding-box,
