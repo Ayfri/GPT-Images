@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Brush, Eraser, Undo2 } from '@lucide/svelte';
+	import { fileSrc } from '#lib/utils/fileSrc.ts';
 
 	type Point = { x: number; y: number };
 	type Stroke = { color: string; points: Point[]; width: number };
@@ -21,12 +22,6 @@
 
 	$effect(() => {
 		hasStrokes = strokes.length > 0;
-	});
-
-	const src = $derived(URL.createObjectURL(image));
-	$effect(() => {
-		const url = src;
-		return () => URL.revokeObjectURL(url);
 	});
 
 	/** The canvas matches the natural size (EXIF orientation applied), which is the pixel size the API expects for the markup. */
@@ -125,7 +120,7 @@
 	</div>
 
 	<div class="relative">
-		<img {src} alt="First reference, drawing surface" draggable="false" class="w-full h-auto rounded-lg select-none" onload={reset} />
+		<img {@attach fileSrc(image)} alt="First reference, drawing surface" draggable="false" class="w-full h-auto rounded-lg select-none" onload={reset} />
 		<canvas
 			{@attach (canvas) => {
 				ctx = canvas.getContext('2d');

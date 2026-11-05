@@ -13,10 +13,10 @@
 
 	interface Props {
 		onRegenerate: (prompt: string) => void;
-		onEditImage: (image: ImageRecord) => void;
+		onEdit: (image: ImageRecord) => void;
 	}
 
-	let { onRegenerate, onEditImage }: Props = $props();
+	let { onRegenerate, onEdit }: Props = $props();
 
 	const PAGE_SIZE = 12;
 	const qualityOrder: Record<ImageQuality, number> = { auto: 0, high: 3, low: 1, max: 5, medium: 2, xhigh: 4 };
@@ -114,7 +114,7 @@
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each visible as image, i (image.id)}
 				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * (i % PAGE_SIZE), duration: 300, y: 20 }}>
-					<ImageCard {image} onEdit={onEditImage} {onRegenerate} onView={() => (viewIndex = i)} />
+					<ImageCard {image} {onEdit}{onRegenerate} onView={() => (viewIndex = i)} />
 				</div>
 			{/each}
 		</div>

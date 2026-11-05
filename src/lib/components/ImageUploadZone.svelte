@@ -173,7 +173,11 @@
 					type="text"
 					bind:value={urlInput}
 					placeholder="or paste image URL…"
-					onkeydown={(event) => event.key === 'Enter' && submitUrl()}
+					onkeydown={(event) => {
+						if (event.key !== 'Enter') return;
+						event.preventDefault();
+						submitUrl();
+					}}
 					class="flex-1 bg-transparent border-0 text-xs text-gray-500 placeholder-gray-700 focus:outline-none min-w-0"
 					disabled={blocked}
 				/>

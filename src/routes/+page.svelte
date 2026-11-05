@@ -3,29 +3,8 @@
 	import ImageGenerator from '#lib/components/ImageGenerator.svelte';
 	import ImageGrid from '#lib/components/ImageGrid.svelte';
 	import UsageStats from '#lib/components/UsageStats.svelte';
-	import type { ImageRecord } from '#lib/db/imageStore.ts';
 
-	let currentPrompt = $state('');
-	let imageForEdit: ImageRecord | null = $state(null); // New state variable
-
-	function handleRegenerate(newPrompt: string) {
-		currentPrompt = newPrompt;
-		imageForEdit = null; // Clear imageForEdit when regenerating
-		// Scroll to form
-		const generatorElement = document.getElementById('generator-section');
-		if (generatorElement) {
-			generatorElement.scrollIntoView({ behavior: 'smooth' });
-		}
-	}
-
-	function handleEditImage(image: ImageRecord) {
-		imageForEdit = image;
-		// Scroll to form
-		const generatorElement = document.getElementById('generator-section');
-		if (generatorElement) {
-			generatorElement.scrollIntoView({ behavior: 'smooth' });
-		}
-	}
+	let generator = $state<ReturnType<typeof ImageGenerator>>();
 </script>
 
 <div class="mb-10 text-center animate-slide-up">
@@ -39,12 +18,12 @@
 
 <div class="grid gap-8 grid-cols-1 md:grid-cols-3">
 	<div class="md:col-span-2">
-		<div id="generator-section" class="mb-8">
-			<ImageGenerator bind:prompt={currentPrompt} bind:imageToEdit={imageForEdit} />
+		<div class="mb-8">
+			<ImageGenerator bind:this={generator} />
 		</div>
 
 		<div>
-			<ImageGrid onEditImage={handleEditImage} onRegenerate={handleRegenerate} />
+			<ImageGrid onEdit={(image) => generator?.edit(image)} onRegenerate={(prompt) => generator?.regenerate(prompt)} />
 		</div>
 	</div>
 
