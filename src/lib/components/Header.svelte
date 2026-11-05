@@ -11,7 +11,11 @@
 			<div class="relative">
 				<div class="absolute inset-0 rounded-xl bg-primary-500/20 blur-md group-hover:bg-primary-500/35 transition-all duration-300"></div>
 				<div class="relative overflow-hidden h-8 sm:h-9">
-					<img src="/logo.png" alt="" class="size-full object-cover"/>
+					<!-- display: contents keeps the img sized by the wrapper, so the <picture> adds no box. -->
+					<picture class="contents">
+						<source srcset="/logo.avif" type="image/avif" />
+						<img src="/logo.png" alt="" width="103" height="96" class="size-full object-cover" />
+					</picture>
 				</div>
 			</div>
 			<div>
