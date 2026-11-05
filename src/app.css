@@ -199,4 +199,67 @@
 		background-color: var(--color-primary-900);
 		color: var(--color-white);
 	}
+
+	/* Customizable select (Chromium 135+): the arrow gets breathing room and the picker follows the dark theme, other browsers keep the native select. */
+	@supports (appearance: base-select) {
+		select,
+		::picker(select) {
+			appearance: base-select;
+		}
+
+		select {
+			gap: calc(var(--spacing) * 2);
+
+			/* Lucide's chevron-down as a mask, so it takes the text color like the other icons instead of the UA's filled triangle. */
+			&::picker-icon {
+				content: '';
+				width: 1em;
+				height: 1em;
+				background: var(--color-gray-500);
+				mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+				transition: rotate 200ms;
+			}
+
+			&:open::picker-icon {
+				rotate: 180deg;
+			}
+		}
+
+		::picker(select) {
+			margin-block: calc(var(--spacing) * 1.5);
+			border: 1px solid rgb(255 255 255 / 0.08);
+			border-radius: var(--radius-xl);
+			background: var(--color-dark-200);
+			padding: var(--spacing);
+			box-shadow: var(--shadow-xl);
+		}
+
+		select option {
+			gap: calc(var(--spacing) * 2);
+			border-radius: var(--radius-lg);
+			background: transparent;
+			padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.5);
+			font-size: var(--text-sm);
+			color: var(--color-gray-300);
+
+			&:hover,
+			&:focus-visible {
+				background: rgb(255 255 255 / 0.08);
+				color: var(--color-white);
+			}
+
+			&:checked {
+				background: color-mix(in oklab, var(--color-primary-500) 15%, transparent);
+				color: var(--color-primary-300);
+			}
+
+			&:disabled {
+				opacity: 0.4;
+			}
+
+			&::checkmark {
+				color: var(--color-primary-400);
+			}
+		}
+	}
 }
