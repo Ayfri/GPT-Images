@@ -21,8 +21,7 @@ node_modules/
 
 # IDE/Editor directories
 .idea/
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 *.suo
 *.ntvs*
 *.njsproj
