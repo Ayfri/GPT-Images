@@ -1,14 +1,11 @@
-@import '@fontsource/inter/400.css' layer(base);
-@import '@fontsource/inter/500.css' layer(base);
-@import '@fontsource/inter/600.css' layer(base);
-@import '@fontsource/inter/700.css' layer(base);
+@import '@fontsource-variable/inter' layer(base);
 
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-	--font-sans: Inter, sans-serif;
+	--font-sans: 'Inter Variable', sans-serif;
 
 	--color-primary-50: #eef2ff;
 	--color-primary-100: #e0e7ff;
