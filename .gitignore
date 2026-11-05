@@ -1,6 +1,7 @@
 # Generated files and directories
 .DS_Store
 .svelte-kit/
+.wrangler/
 build/
 dist/
 dist-ssr/
