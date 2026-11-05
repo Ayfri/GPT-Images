@@ -2,84 +2,51 @@
 
 @import 'tailwindcss';
 
+/* The semantic names alias Tailwind 4 palettes (only the shades in use), so the whole theme changes in this one place. */
+@theme inline {
+	--color-primary-300: var(--color-indigo-300);
+	--color-primary-400: var(--color-indigo-400);
+	--color-primary-500: var(--color-indigo-500);
+	--color-primary-600: var(--color-indigo-600);
+	--color-primary-700: var(--color-indigo-700);
+	--color-primary-900: var(--color-indigo-900);
+
+	--color-secondary-300: var(--color-teal-300);
+	--color-secondary-400: var(--color-teal-400);
+	--color-secondary-500: var(--color-teal-500);
+	--color-secondary-600: var(--color-teal-600);
+	--color-secondary-700: var(--color-teal-700);
+
+	--color-accent-300: var(--color-fuchsia-300);
+	--color-accent-400: var(--color-fuchsia-400);
+	--color-accent-500: var(--color-fuchsia-500);
+	--color-accent-600: var(--color-fuchsia-600);
+	--color-accent-700: var(--color-fuchsia-700);
+
+	--color-success-400: var(--color-green-400);
+
+	--color-warning-400: var(--color-amber-400);
+	--color-warning-600: var(--color-amber-600);
+	--color-warning-900: var(--color-amber-900);
+
+	--color-error-400: var(--color-red-400);
+	--color-error-600: var(--color-red-600);
+	--color-error-700: var(--color-red-700);
+	--color-error-900: var(--color-red-900);
+}
+
 @theme {
 	--font-sans: 'Inter Variable', sans-serif;
-
-	--color-primary-50: #eef2ff;
-	--color-primary-100: #e0e7ff;
-	--color-primary-200: #c7d2fe;
-	--color-primary-300: #a5b4fc;
-	--color-primary-400: #818cf8;
-	--color-primary-500: #6366f1;
-	--color-primary-600: #4f46e5;
-	--color-primary-700: #4338ca;
-	--color-primary-800: #3730a3;
-	--color-primary-900: #312e81;
-	--color-primary-950: #1e1b4b;
-
-	--color-secondary-50: #f0fdfa;
-	--color-secondary-100: #ccfbf1;
-	--color-secondary-200: #99f6e4;
-	--color-secondary-300: #5eead4;
-	--color-secondary-400: #2dd4bf;
-	--color-secondary-500: #14b8a6;
-	--color-secondary-600: #0d9488;
-	--color-secondary-700: #0f766e;
-	--color-secondary-800: #115e59;
-	--color-secondary-900: #134e4a;
-	--color-secondary-950: #042f2e;
-
-	--color-accent-50: #fdf4ff;
-	--color-accent-100: #fae8ff;
-	--color-accent-200: #f5d0fe;
-	--color-accent-300: #f0abfc;
-	--color-accent-400: #e879f9;
-	--color-accent-500: #d946ef;
-	--color-accent-600: #c026d3;
-	--color-accent-700: #a21caf;
-	--color-accent-800: #86198f;
-	--color-accent-900: #701a75;
-	--color-accent-950: #4a044e;
-
-	--color-success-50: #f0fdf4;
-	--color-success-100: #dcfce7;
-	--color-success-200: #bbf7d0;
-	--color-success-300: #86efac;
-	--color-success-400: #4ade80;
-	--color-success-500: #22c55e;
-	--color-success-600: #16a34a;
-	--color-success-700: #15803d;
-	--color-success-800: #166534;
-	--color-success-900: #14532d;
-	--color-success-950: #052e16;
-
-	--color-warning-50: #fffbeb;
-	--color-warning-100: #fef3c7;
-	--color-warning-200: #fde68a;
-	--color-warning-300: #fcd34d;
-	--color-warning-400: #fbbf24;
-	--color-warning-500: #f59e0b;
-	--color-warning-600: #d97706;
-	--color-warning-700: #b45309;
-	--color-warning-800: #92400e;
-	--color-warning-900: #78350f;
-	--color-warning-950: #451a03;
-
-	--color-error-50: #fef2f2;
-	--color-error-100: #fee2e2;
-	--color-error-200: #fecaca;
-	--color-error-300: #fca5a5;
-	--color-error-400: #f87171;
-	--color-error-500: #ef4444;
-	--color-error-600: #dc2626;
-	--color-error-700: #b91c1c;
-	--color-error-800: #991b1b;
-	--color-error-900: #7f1d1d;
-	--color-error-950: #450a0a;
 
 	--color-dark-100: #1e1e2e;
 	--color-dark-200: #181825;
 	--color-dark-300: #11111b;
+
+	--color-grid-line: rgb(255 255 255 / 0.0075);
+
+	--blur-orb: 80px;
+
+	--shadow-arrow: 0 2px 6px rgb(0 0 0 / 0.42);
 
 	--animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
@@ -136,13 +103,13 @@
 @utility card-gradient-border {
 	background:
 		linear-gradient(var(--color-dark-200), var(--color-dark-200)) padding-box,
-		linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(20, 184, 166, 0.3)) border-box;
+		linear-gradient(135deg, color-mix(in oklab, var(--color-violet-500) 30%, transparent), color-mix(in oklab, var(--color-secondary-500) 30%, transparent)) border-box;
 	border: 1px solid transparent;
 
 	&:hover {
 		background:
 			linear-gradient(var(--color-dark-200), var(--color-dark-200)) padding-box,
-			linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(20, 184, 166, 0.6)) border-box;
+			linear-gradient(135deg, color-mix(in oklab, var(--color-violet-500) 60%, transparent), color-mix(in oklab, var(--color-secondary-500) 60%, transparent)) border-box;
 	}
 }
 
@@ -166,6 +133,18 @@
 	@apply bg-linear-to-r from-accent-400 via-primary-400 to-secondary-400 bg-clip-text text-transparent;
 }
 
+/* Blurred background blob: the color comes from the `from-*` and `via-*` utilities. */
+@utility orb {
+	@apply absolute rounded-full bg-radial-[circle] via-40% to-transparent to-70%;
+}
+
+@utility grid-lines {
+	background-image:
+		linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+		linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+	background-size: 48px 48px;
+}
+
 
 @layer base {
 	:root {
@@ -179,13 +158,13 @@
 
 	/* Dark-themed native select options (fallback for non-supporting browsers) */
 	select option {
-		background-color: #1e1e2e;
-		color: #e5e7eb;
+		background-color: var(--color-dark-100);
+		color: var(--color-gray-200);
 	}
 	select option:hover,
 	select option:focus,
 	select option:checked {
-		background-color: #312e81;
-		color: #e0e7ff;
+		background-color: var(--color-primary-900);
+		color: var(--color-white);
 	}
 }

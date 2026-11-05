@@ -10,7 +10,7 @@
 
 	const image = $derived(index === null ? null : images[index]);
 	const arrowClass =
-		'btn-ghost absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-2 shadow-[0_2px_6px_rgba(0,0,0,0.42)] hover:bg-white/20';
+		'btn-ghost absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-2 shadow-arrow hover:bg-white/20';
 
 	let swipeStart: Touch | null = null;
 
