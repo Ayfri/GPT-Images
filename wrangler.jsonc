@@ -5,6 +5,7 @@
 	/** nodejs_compat is enabled by default for compatibility dates from 2026-08-04, so the flag is not listed. */
 	"compatibility_date": "2026-11-04",
 	"workers_dev": true,
+	"placement": { "mode": "smart" },
 	"observability": {
 		"enabled": true,
 		"logs": { "enabled": true },
