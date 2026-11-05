@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
-	import type { ImageRecord } from '#lib/stores/imageStore.ts';
+	import type { ImageRecord } from '#lib/db/imageStore.ts';
+	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { getRecordPrice } from '#lib/types/image.ts';
 	import { getCarouselSwipeDirection } from '#lib/utils/carouselSwipe.ts';
 	import { quintOut } from 'svelte/easing';
@@ -94,14 +95,18 @@
 					role="button"
 					tabindex={0}
 				>
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-					<img
-						alt={currentItem.prompt}
-						class="max-h-[min(90dvh,90vh)] max-w-[92vw] object-contain isolate sm:max-w-[80vw]"
-						onclick={(e) => e.stopPropagation()}
-						src={currentItem.imageData}
-					/>
+					{#await gallery.url(currentItem) then src}
+						{#if src}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+							<img
+								alt={currentItem.prompt}
+								class="max-h-[min(90dvh,90vh)] max-w-[92vw] object-contain isolate sm:max-w-[80vw]"
+								onclick={(e) => e.stopPropagation()}
+								{src}
+							/>
+						{/if}
+					{/await}
 				</div>
 			{/key}
 		</div>

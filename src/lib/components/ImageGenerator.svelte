@@ -2,12 +2,11 @@
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, ClipboardPaste, Brush } from '@lucide/svelte';
-	import { apiKey } from '#lib/stores/apiKeyStore.ts';
-	import { addImage } from '#lib/db/imageStore.ts';
-	import { refreshImageStore } from '#lib/stores/imageStore.ts';
+	import { apiKey } from '#lib/stores/apiKey.svelte.ts';
+	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { generateImage, editImage, type ImageResult } from '#lib/services/openai.ts';
 	import type { ImageComplexity, ImageModel, ImageQuality, ImageSize, OutputFormat, ImageBackground, ImageModeration, SvgAuthorModel, SvgEffort } from '#lib/types/image.ts';
-	import type { ImageRecord } from '#lib/stores/imageStore.ts';
+	import type { ImageRecord } from '#lib/db/imageStore.ts';
 	import 	{
 		MODEL_OPTIONS,
 		QUALITY_OPTIONS,
@@ -215,15 +214,16 @@
 	$effect(() => {
 		if (imageToEdit) {
 			prompt = imageToEdit.prompt;
-			// Convert base64 image data URL to a File object for inputImages
-			const { id, imageData } = imageToEdit;
+			// Convert the stored image to a File object for inputImages
+			const { id } = imageToEdit;
 			const format = imageToEdit.output_format ?? 'png';
-			fetch(imageData)
-				.then(res => res.blob())
-				.then(blob => {
+			gallery.url(imageToEdit)
+				.then(async (url) => {
+					if (!url) throw new Error('Image file not found');
+					const blob = await (await fetch(url)).blob();
 					const file = new File([blob], `edited_image_${id}.${format}`, { type: OUTPUT_FORMAT_OPTIONS[format].mime });
 					inputImages = [file];
-					imagePreviews = [imageData];
+					imagePreviews = [url];
 				})
 				.catch(e => console.error("Error converting image data to File:", e));
 
@@ -288,7 +288,7 @@
 	}
 
 	async function handleGenerate() {
-		if (!$apiKey) {
+		if (!apiKey.value) {
 			error = "Please enter your OpenAI API key first";
 			return;
 		}
@@ -342,9 +342,9 @@
 			let result: ImageResult;
 			if (mode === 'edit') {
 				if (format === 'gif' || format === 'svg') throw new Error('GIF and SVG output only work without reference images.');
-				result = await editImage($apiKey, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }), ...(markup && { markup }) });
+				result = await editImage(apiKey.value, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }), ...(markup && { markup }) });
 			} else {
-				result = await generateImage($apiKey, {
+				result = await generateImage(apiKey.value, {
 					...shared,
 					moderation: selectedModeration,
 					output_format: format,
@@ -355,24 +355,23 @@
 
 			/** The usage covers the whole request, so each image gets an equal share. */
 			const cost = result.usage && usageCostUsd(result.usage) / result.images.length;
-			for (const b64 of result.images) {
-				await addImage(`data:${OUTPUT_FORMAT_OPTIONS[format].mime};base64,${format === 'svg' ? sanitizeSvgBase64(b64) : b64}`, {
-					background: selectedBackground,
-					model: selectedModel,
-					output_format: format,
-					prompt,
-					quality: selectedQuality,
-					size: result.size ?? selectedSize,
-					...compression,
-					...(support.complexity && { complexity }),
-					...(format === 'gif' && { frame_count: frameCount, frame_duration_ms: frameDurationMs }),
-					...(cost !== undefined && { cost }),
-					...(result.svgUsage && { svg_usage: result.svgUsage })
-				});
-			}
-
-			// Refresh the image store
-			await refreshImageStore();
+			const blobs = result.images.map((b64) => new Blob(
+				[Uint8Array.from(atob(format === 'svg' ? sanitizeSvgBase64(b64) : b64), (c) => c.charCodeAt(0))],
+				{ type: OUTPUT_FORMAT_OPTIONS[format].mime }
+			));
+			await gallery.add(blobs, {
+				background: selectedBackground,
+				model: selectedModel,
+				output_format: format,
+				prompt,
+				quality: selectedQuality,
+				size: result.size ?? selectedSize,
+				...compression,
+				...(support.complexity && { complexity }),
+				...(format === 'gif' && { frame_count: frameCount, frame_duration_ms: frameDurationMs }),
+				...(cost !== undefined && { cost }),
+				...(result.svgUsage && { svg_usage: result.svgUsage })
+			});
 
 			// Clear images if editing (but keep the prompt)
 			if (mode === 'edit') {
@@ -742,10 +741,10 @@
 			class="btn group relative bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 via-violet-600 to-cyan-600 w-full flex items-center justify-center gap-2 py-3 font-semibold text-white shadow-lg shadow-purple-950/60 overflow-hidden
 				{isGenerating
 					? 'cursor-not-allowed'
-					: !$apiKey
+					: !apiKey.value
 					? 'opacity-50 cursor-not-allowed'
 					: 'hover:ring-white/70 hover:shadow-purple-600/50 hover:scale-[1.01] hover:from-purple-600 hover:via-violet-500 hover:to-cyan-500 cursor-pointer'}"
-			disabled={isGenerating || !$apiKey}
+			disabled={isGenerating || !apiKey.value}
 		>
 			{#if isGenerating}
 				<!-- Sheen sweep -->
@@ -769,7 +768,7 @@
 			{/if}
 		</button>
 
-		{#if !$apiKey}
+		{#if !apiKey.value}
 			<div class="text-sm text-warning-400 bg-warning-900/20 border border-warning-600/20 p-2 rounded-md">
 				Please add your OpenAI API key to generate images
 			</div>

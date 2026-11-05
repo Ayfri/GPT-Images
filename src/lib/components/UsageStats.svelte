@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ChartColumn, Coins } from '@lucide/svelte';
-	import { totalImageCount, totalCostAll } from '#lib/stores/imageStore.ts';
+	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { MODEL_OPTIONS, MODEL_SUPPORT, PRICED_SIZE_OPTIONS, getImagePrice } from '#lib/types/image.ts';
 	import type { ImageQuality } from '#lib/types/image.ts';
 
@@ -23,11 +23,11 @@
 		<div class="grid grid-cols-2 gap-3">
 			<div class="rounded-xl bg-white/3 border border-white/6 p-3.5">
 				<div class="text-xs text-gray-500 mb-1.5">Images generated</div>
-				<div class="text-2xl font-bold text-gray-100 tabular-nums">{$totalImageCount}</div>
+				<div class="text-2xl font-bold text-gray-100 tabular-nums">{gallery.images.length}</div>
 			</div>
 			<div class="rounded-xl bg-white/3 border border-white/6 p-3.5">
 				<div class="text-xs text-gray-500 mb-1.5">Total cost</div>
-				<div class="text-2xl font-bold text-gray-100 tabular-nums">${$totalCostAll.toFixed(2)}</div>
+				<div class="text-2xl font-bold text-gray-100 tabular-nums">${gallery.totalCost.toFixed(2)}</div>
 			</div>
 		</div>
 

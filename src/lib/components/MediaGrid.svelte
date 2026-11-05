@@ -1,16 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
+	import type { Attachment } from 'svelte/attachments';
+	import { fly } from 'svelte/transition';
 	import { ArrowDown, ArrowUp, Image as ImageIcon } from '@lucide/svelte';
 	import ImageCard from './ImageCard.svelte';
 	import MediaLightbox from './MediaLightbox.svelte';
-	import {
-		images,
-		initImageStore,
-		loadMoreImages,
-		totalImageCount,
-		type ImageRecord,
-	} from '#lib/stores/imageStore.ts';
+	import type { ImageRecord } from '#lib/db/imageStore.ts';
+	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import type { ImageQuality } from '#lib/types/image.ts';
 	import { getRecordPrice } from '#lib/types/image.ts';
 	import { flip } from 'svelte/animate';
@@ -22,85 +18,40 @@
 
 	let { onRegenerate, onEditImage }: Props = $props();
 
+	const PAGE_SIZE = 12;
 	const qualityOrder: Record<ImageQuality, number> = { auto: 0, high: 3, low: 1, max: 5, medium: 2, xhigh: 4 };
+	const SORT_KEYS = {
+		price: getRecordPrice,
+		prompt: ({ prompt }) => prompt.toLowerCase(),
+		quality: ({ quality }) => qualityOrder[quality ?? 'low'],
+		size: ({ size }) => size?.split('x').map(Number).reduce((a, b) => a * b) || 0,
+		timestamp: ({ timestamp }) => timestamp
+	} satisfies Record<string, (image: ImageRecord) => number | string>;
 
-	let loading = $state(true);
-	let loadingMore = $state(false);
 	let largeViewIndex: number | null = $state(null);
+	let shown = $state(PAGE_SIZE);
 	let sortDirection: 'asc' | 'desc' = $state('desc');
-	let sortField = $state<string>('timestamp');
+	let sortField: keyof typeof SORT_KEYS = $state('timestamp');
 
-	let observer: IntersectionObserver | undefined = $state();
-	let sentinelRef: HTMLDivElement | undefined = $state();
-
-	function getImageSizeArea(size: string | undefined): number {
-		if (!size) return 0;
-		const [w, h] = size.split('x').map(Number);
-		return w * h || 0;
-	}
-
-	function getSortValue(image: ImageRecord): string | number {
-		switch (sortField) {
-			case 'price':
-				return getRecordPrice(image);
-			case 'quality':
-				return qualityOrder[image.quality ?? 'low'] ?? 0;
-			case 'size':
-				return getImageSizeArea(image.size);
-			case 'prompt':
-				return image.prompt.toLowerCase();
-			case 'timestamp':
-				return image.timestamp;
-			default:
-				return image.timestamp;
-		}
-	}
-
-	let sortedItems = $derived.by(() => {
-		return [...$images].sort((a, b) => {
-			const aValue = getSortValue(a);
-			const bValue = getSortValue(b);
-			if (aValue < bValue) {
-				return sortDirection === 'asc' ? -1 : 1;
-			}
-			if (aValue > bValue) {
-				return sortDirection === 'asc' ? 1 : -1;
-			}
-			return 0;
-		});
+	const sorted = $derived.by(() => {
+		const sign = sortDirection === 'asc' ? 1 : -1;
+		return gallery.images
+			.map((image) => ({ image, key: SORT_KEYS[sortField](image) }))
+			.sort((a, b) => (a.key < b.key ? -sign : a.key > b.key ? sign : 0))
+			.map(({ image }) => image);
 	});
+	const visible = $derived(sorted.slice(0, shown));
+	const currentItem = $derived(largeViewIndex !== null ? sorted[largeViewIndex] ?? null : null);
 
-	let currentItem = $derived(largeViewIndex !== null ? sortedItems[largeViewIndex] ?? null : null);
+	/** Reading `shown` re-creates the observer after each page, so a sentinel still in view keeps loading the next page. */
+	const sentinel: Attachment<HTMLDivElement> = (target) => {
+		const nextShown = shown + PAGE_SIZE;
+		const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && (shown = nextShown), { rootMargin: '200px' });
+		observer.observe(target);
+		return () => observer.disconnect();
+	};
 
-	let showLoadMoreSentinel = $derived($images.length < $totalImageCount);
-
-	onMount(async () => {
-		await initImageStore();
-		loading = false;
-
-		observer = new IntersectionObserver(
-			(entries) => {
-				if (!entries[0].isIntersecting || loadingMore) return;
-				if ($images.length >= $totalImageCount) return;
-				loadingMore = true;
-				const schedule =
-					typeof requestIdleCallback !== 'undefined'
-						? (cb: () => void) => requestIdleCallback(cb, { timeout: 500 })
-						: (cb: () => void) => setTimeout(cb, 0);
-				schedule(async () => {
-					await loadMoreImages();
-					loadingMore = false;
-				});
-			},
-			{ rootMargin: '200px' },
-		);
-
-		if (sentinelRef) observer.observe(sentinelRef);
-	});
-
-	$effect(() => {
-		if (sentinelRef && observer) observer.observe(sentinelRef);
-	});
+	onMount(gallery.load);
 
 	function closeLightbox() {
 		largeViewIndex = null;
@@ -114,7 +65,7 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (largeViewIndex === null) return;
-		if (sortedItems.length > 1) {
+		if (sorted.length > 1) {
 			if (e.key === 'ArrowRight') showNext();
 			if (e.key === 'ArrowLeft') showPrev();
 		}
@@ -122,17 +73,17 @@
 	}
 
 	function handleView(mediaId: string) {
-		largeViewIndex = sortedItems.findIndex((m) => m.id === mediaId);
+		largeViewIndex = sorted.findIndex((m) => m.id === mediaId);
 	}
 
 	function showNext() {
 		if (largeViewIndex === null) return;
-		largeViewIndex = (largeViewIndex + 1) % sortedItems.length;
+		largeViewIndex = (largeViewIndex + 1) % sorted.length;
 	}
 
 	function showPrev() {
 		if (largeViewIndex === null) return;
-		largeViewIndex = (largeViewIndex - 1 + sortedItems.length) % sortedItems.length;
+		largeViewIndex = (largeViewIndex - 1 + sorted.length) % sorted.length;
 	}
 </script>
 
@@ -143,7 +94,7 @@
 		<div>
 			<h2 class="text-base font-semibold text-gray-100">Image History</h2>
 			<p class="mt-0.5 text-xs text-gray-600">
-				{$totalImageCount} image{$totalImageCount !== 1 ? 's' : ''} generated
+				{gallery.images.length} image{gallery.images.length !== 1 ? 's' : ''} generated
 			</p>
 		</div>
 		<div class="flex items-center gap-2">
@@ -176,11 +127,11 @@
 		</div>
 	</div>
 
-	{#if loading}
+	{#if !gallery.loaded}
 		<div class="flex h-40 items-center justify-center">
 			<div class="animate-pulse-slow text-gray-500">Loading images...</div>
 		</div>
-	{:else if $images.length === 0}
+	{:else if gallery.images.length === 0}
 		<div
 			class="rounded-2xl border border-dashed border-white/8 bg-white/2 px-6 py-16 text-center"
 			in:fly={{ duration: 400, y: 20 }}
@@ -195,27 +146,23 @@
 			</p>
 		</div>
 	{:else}
-		<div class="image-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-			{#each sortedItems as image, i (image.id)}
-				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * i, duration: 300, y: 20 }}>
+		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			{#each visible as image, i (image.id)}
+				<div animate:flip={{ duration: 300 }} in:fly={{ delay: 50 * (i % PAGE_SIZE), duration: 300, y: 20 }}>
 					<ImageCard {image} onEdit={handleEdit} {onRegenerate} onView={handleView} />
 				</div>
 			{/each}
 		</div>
 
-		{#if showLoadMoreSentinel}
-			<div bind:this={sentinelRef} class="mt-8 flex min-h-px justify-center">
-				{#if loadingMore}
-					<div class="animate-pulse-slow text-gray-500">Loading more images...</div>
-				{/if}
-			</div>
+		{#if visible.length < sorted.length}
+			<div {@attach sentinel} class="mt-8 min-h-px"></div>
 		{/if}
 	{/if}
 </div>
 
 <MediaLightbox
 	currentItem={currentItem}
-	itemCount={sortedItems.length}
+	itemCount={sorted.length}
 	onClose={closeLightbox}
 	onNext={showNext}
 	onPrev={showPrev}

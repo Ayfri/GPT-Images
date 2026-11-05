@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { apiKey } from '#lib/stores/apiKeyStore.ts';
+	import { apiKey } from '#lib/stores/apiKey.svelte.ts';
 	import { Key, Eye, EyeOff } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 
 	let showApiKey = $state(false);
-	let keyInput = $state($apiKey);
+	let keyInput = $state(apiKey.value);
 
 	function toggleVisibility() {
 		showApiKey = !showApiKey;
 	}
 
 	function saveApiKey() {
-		apiKey.set(keyInput);
+		apiKey.value = keyInput;
 	}
 </script>
 
@@ -24,7 +24,7 @@
 			<h2 class="text-sm font-semibold text-gray-100">OpenAI API Key</h2>
 			<p class="text-xs text-gray-600">Stored locally in your browser</p>
 		</div>
-		{#if $apiKey}
+		{#if apiKey.value}
 			<div class="ml-auto flex items-center gap-1.5 text-xs text-success-400 font-medium" in:fly={{ y: 5, duration: 300 }}>
 				<span class="relative flex size-1.5">
 					<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75"></span>
@@ -68,7 +68,7 @@
 
 		<button
 			class="btn btn-primary w-full text-sm py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
-			disabled={!keyInput || keyInput === $apiKey}
+			disabled={!keyInput || keyInput === apiKey.value}
 			onclick={saveApiKey}
 			type="button"
 		>
