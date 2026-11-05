@@ -86,12 +86,12 @@
 					{#if image.output_format !== 'gif' && image.output_format !== 'svg'}
 						<button
 							aria-label="Edit image"
-							class="btn-ghost group/edit rounded-xl p-2 hover:bg-blue-700/25"
+							class="btn-ghost group/edit rounded-xl p-2 hover:bg-info-700/25"
 							onclick={() => onEdit(image)}
 							title="Edit image"
 							type="button"
 						>
-							<Pencil class="h-4 w-4 text-blue-300 transition-transform group-hover/edit:scale-110" />
+							<Pencil class="h-4 w-4 text-info-300 transition-transform group-hover/edit:scale-110" />
 						</button>
 					{/if}
 

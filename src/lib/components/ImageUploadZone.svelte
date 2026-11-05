@@ -104,7 +104,7 @@
 
 <div
 	aria-label="Image drop zone"
-	class={['space-y-2 rounded-lg transition-shadow duration-300', isDragging && 'bg-primary-900/10', pasteFlash && 'ring-2 ring-purple-500/60']}
+	class={['space-y-2 rounded-lg transition-shadow duration-300', isDragging && 'bg-primary-900/10', pasteFlash && 'ring-2 ring-brand-500/60']}
 	ondragleave={() => (isDragging = false)}
 	ondragover={(event) => {
 		event.preventDefault();
@@ -133,7 +133,7 @@
 					<img {@attach fileSrc(file)} alt="Reference {index + 1}" class="w-16 h-16 object-cover rounded-lg border border-gray-700/60" />
 					<button
 						type="button"
-						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
+						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-error-500 hover:bg-error-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
 						onclick={() => (files = files.filter((f) => f !== file))}
 						{disabled}
 					>
@@ -152,7 +152,7 @@
 		</div>
 		<button
 			type="button"
-			class="text-xs text-red-500/70 hover:text-red-400 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+			class="text-xs text-error-500/70 hover:text-error-400 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
 			onclick={() => (files = [])}
 			{disabled}
 		>

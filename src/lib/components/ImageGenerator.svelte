@@ -264,7 +264,7 @@
 <div bind:this={root} class="glass-panel rounded-2xl overflow-hidden">
 	<div class="px-5 pt-5 pb-4 border-b border-white/5 flex items-center justify-between">
 		<div class="flex items-center gap-2">
-			<Sparkles class="h-4 w-4 text-purple-400" />
+			<Sparkles class="h-4 w-4 text-brand-400" />
 			<h2 class="text-sm font-semibold text-gray-100 tracking-wide uppercase">
 				{inputImages.length > 0 ? 'Generate with references' : 'Create Image'}
 			</h2>
@@ -272,7 +272,7 @@
 		{#if inputImages.length > 0}
 			<span
 				in:fade={{ duration: 200 }}
-				class="text-xs px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300 border border-purple-700/40"
+				class="text-xs px-2 py-0.5 rounded-full bg-brand-900/50 text-brand-300 border border-brand-700/40"
 			>
 				{inputImages.length} reference{inputImages.length > 1 ? 's' : ''} attached
 			</span>
@@ -303,7 +303,7 @@
 				></textarea>
 				<div
 					id="prompt-char-count"
-					class={['pointer-events-none absolute inset-e-2.5 bottom-2.5 text-xs leading-none tabular-nums select-none', opts.prompt.length > GPT_IMAGE_MODEL_PROMPT_MAX_CHARS ? 'text-amber-400/95' : 'text-gray-500']}
+					class={['pointer-events-none absolute inset-e-2.5 bottom-2.5 text-xs leading-none tabular-nums select-none', opts.prompt.length > GPT_IMAGE_MODEL_PROMPT_MAX_CHARS ? 'text-warning-400/95' : 'text-gray-500']}
 				>
 					{opts.prompt.length} / {GPT_IMAGE_MODEL_PROMPT_MAX_CHARS}
 				</div>
@@ -554,7 +554,7 @@
 										<img {@attach fileSrc(inputMask)} alt="Mask Preview" class="w-12 h-12 object-cover rounded-lg border border-gray-700" />
 										<button
 											type="button"
-											class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 bg-red-500 hover:bg-red-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
+											class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 bg-error-500 hover:bg-error-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
 											onclick={() => (inputMask = null)}
 											disabled={isGenerating}
 										>
@@ -594,8 +594,8 @@
 		<button
 			type="submit"
 			class={[
-				'btn group relative bg-linear-to-r ring-transparent ring-2 duration-300 from-purple-700 via-violet-600 to-cyan-600 w-full flex items-center justify-center gap-2 py-3 font-semibold text-white shadow-lg shadow-purple-950/60 overflow-hidden disabled:cursor-not-allowed',
-				'enabled:hover:ring-white/70 enabled:hover:shadow-purple-600/50 enabled:hover:scale-[1.01] enabled:hover:from-purple-600 enabled:hover:via-violet-500 enabled:hover:to-cyan-500',
+				'btn group relative bg-linear-to-r ring-transparent ring-2 duration-300 from-brand-700 via-highlight-600 to-aqua-600 w-full flex items-center justify-center gap-2 py-3 font-semibold text-white shadow-lg shadow-brand-950/60 overflow-hidden disabled:cursor-not-allowed',
+				'enabled:hover:ring-white/70 enabled:hover:shadow-brand-600/50 enabled:hover:scale-[1.01] enabled:hover:from-brand-600 enabled:hover:via-highlight-500 enabled:hover:to-aqua-500',
 				!isGenerating && !apiKey.value && 'opacity-50'
 			]}
 			disabled={isGenerating || !apiKey.value}
