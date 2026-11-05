@@ -1,7 +1,7 @@
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from "$lib/types/image";
-import { getImagePrice } from "$lib/types/image";
+import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from "#lib/types/image.ts";
+import { getImagePrice } from "#lib/types/image.ts";
 import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, revokeMediaObjectUrl, writeMediaFile } from "./opfsStore";
 
 interface GeneratedImage {

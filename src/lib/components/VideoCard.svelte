@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Sparkles } from '@lucide/svelte';
-	import { deleteVideo } from '$lib/db/videoStore';
-	import { videos, totalVideoCount, totalCostAll, invalidateVideoStats } from '$lib/stores/videoStore';
-	import { calculateVideoPrice } from '$lib/utils/videoPrice';
+	import { deleteVideo } from '#lib/db/videoStore.ts';
+	import { videos, totalVideoCount, totalCostAll, invalidateVideoStats } from '#lib/stores/videoStore.ts';
+	import { calculateVideoPrice } from '#lib/utils/videoPrice.ts';
 	import MediaCard from './MediaCard.svelte';
 
 	interface Props {

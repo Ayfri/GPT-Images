@@ -1,4 +1,4 @@
-import type { EditVideoParams, VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
+import type { EditVideoParams, VideoDuration, VideoModel, VideoResolution } from '#lib/types/video.ts';
 import OpenAI from 'openai';
 import type { VideoCreateParams } from 'openai/resources/videos';
 

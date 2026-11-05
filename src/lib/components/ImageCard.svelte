@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Pencil } from '@lucide/svelte';
-	import { downloadImage } from '$lib/utils/downloadImage';
-	import { deleteImage } from '$lib/db/imageStore';
-	import { images, totalImageCount, totalCostAll, invalidateImageStats } from '$lib/stores/imageStore';
-	import { getImagePrice, type ImageModel } from '$lib/types/image';
+	import { downloadImage } from '#lib/utils/downloadImage.ts';
+	import { deleteImage } from '#lib/db/imageStore.ts';
+	import { images, totalImageCount, totalCostAll, invalidateImageStats } from '#lib/stores/imageStore.ts';
+	import { getImagePrice, type ImageModel } from '#lib/types/image.ts';
 	import MediaCard from './MediaCard.svelte';
 
 	interface Props {

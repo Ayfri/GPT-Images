@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
-	import type { ImageRecord } from '$lib/stores/imageStore';
-	import type { VideoRecord } from '$lib/stores/videoStore';
-	import { getCarouselSwipeDirection } from '$lib/utils/carouselSwipe';
+	import type { ImageRecord } from '#lib/stores/imageStore.ts';
+	import type { VideoRecord } from '#lib/stores/videoStore.ts';
+	import { getCarouselSwipeDirection } from '#lib/utils/carouselSwipe.ts';
 	import { quintOut } from 'svelte/easing';
 
 	interface Props {

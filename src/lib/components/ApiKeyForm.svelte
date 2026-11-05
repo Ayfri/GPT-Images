@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { apiKey } from '$lib/stores/apiKeyStore';
+	import { apiKey } from '#lib/stores/apiKeyStore.ts';
 	import { Key, Eye, EyeOff } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 

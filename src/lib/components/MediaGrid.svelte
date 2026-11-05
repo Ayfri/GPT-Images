@@ -11,18 +11,18 @@
 		loadMoreImages,
 		totalImageCount,
 		type ImageRecord,
-	} from '$lib/stores/imageStore';
+	} from '#lib/stores/imageStore.ts';
 	import {
 		videos,
 		initVideoStore,
 		loadMoreVideos,
 		totalVideoCount,
 		type VideoRecord,
-	} from '$lib/stores/videoStore';
-	import type { ImageModel, ImageQuality } from '$lib/types/image';
-	import { getImagePrice as getModelPrice } from '$lib/types/image';
+	} from '#lib/stores/videoStore.ts';
+	import type { ImageModel, ImageQuality } from '#lib/types/image.ts';
+	import { getImagePrice as getModelPrice } from '#lib/types/image.ts';
 	import { flip } from 'svelte/animate';
-	import { calculateVideoPrice } from '$lib/utils/videoPrice';
+	import { calculateVideoPrice } from '#lib/utils/videoPrice.ts';
 
 	interface Props {
 		onRegenerate: (prompt: string) => void;

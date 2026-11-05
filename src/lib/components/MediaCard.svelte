@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { Copy, Download, RefreshCw, Trash } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
-	import { formatDate } from '$lib/utils/formatDate';
+	import { formatDate } from '#lib/utils/formatDate.ts';
 
 	interface Props {
 		prompt: string;

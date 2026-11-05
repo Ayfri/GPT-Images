@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Upload, X } from '@lucide/svelte';
-	import { IMAGE_UPLOAD_LIMITS } from '$lib/types/image';
+	import { IMAGE_UPLOAD_LIMITS } from '#lib/types/image.ts';
 
 	interface Props {
 		images: File[];

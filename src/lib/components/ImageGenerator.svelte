@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, ClipboardPaste } from '@lucide/svelte';
-	import { apiKey } from '$lib/stores/apiKeyStore';
-	import { addImage } from '$lib/db/imageStore';
-	import { refreshImageStore } from '$lib/stores/imageStore';
-	import { generateImage, editImage } from '$lib/services/openai';
-	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModeration } from '$lib/types/image';
-	import type { ImageRecord } from '$lib/stores/imageStore';
+	import { apiKey } from '#lib/stores/apiKeyStore.ts';
+	import { addImage } from '#lib/db/imageStore.ts';
+	import { refreshImageStore } from '#lib/stores/imageStore.ts';
+	import { generateImage, editImage } from '#lib/services/openai.ts';
+	import type { ImageModel, ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModeration } from '#lib/types/image.ts';
+	import type { ImageRecord } from '#lib/stores/imageStore.ts';
 	import 	{
 		MODEL_OPTIONS,
 		QUALITY_OPTIONS,
@@ -21,8 +21,8 @@
 		BACKGROUND_OPTIONS,
 		MODEL_SUPPORT,
 		MODERATION_OPTIONS
-	} from '$lib/types/image';
-	import { browser } from '$app/environment';
+	} from '#lib/types/image.ts';
+	import { browser } from '$app/env';
 	import ImageUploadZone from './ImageUploadZone.svelte';
 
 	// Storage keys

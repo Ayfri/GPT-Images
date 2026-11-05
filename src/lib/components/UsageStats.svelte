@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { ChartColumn, Coins } from '@lucide/svelte';
-	import { totalImageCount, totalCostAll } from '$lib/stores/imageStore';
-	import { MODEL_OPTIONS, MODEL_SUPPORT, PRICED_SIZE_OPTIONS, getImagePrice } from '$lib/types/image';
-	import type { ImageQuality } from '$lib/types/image';
+	import { totalImageCount, totalCostAll } from '#lib/stores/imageStore.ts';
+	import { MODEL_OPTIONS, MODEL_SUPPORT, PRICED_SIZE_OPTIONS, getImagePrice } from '#lib/types/image.ts';
+	import type { ImageQuality } from '#lib/types/image.ts';
 
 	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
 	const qualitiesFor = (model: keyof typeof MODEL_OPTIONS): ImageQuality[] =>

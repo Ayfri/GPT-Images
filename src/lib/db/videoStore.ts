@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
-import { calculateVideoPrice } from '$lib/utils/videoPrice';
+import type { VideoDuration, VideoModel, VideoResolution } from '#lib/types/video.ts';
+import { calculateVideoPrice } from '#lib/utils/videoPrice.ts';
 import { clearMediaFolder, deleteMediaFile, getMediaFileSize, getTotalFolderSize, readMediaObjectUrl, revokeMediaObjectUrl, writeMediaFile } from './opfsStore';
 
 interface GeneratedVideo {

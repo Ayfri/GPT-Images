@@ -1,9 +1,9 @@
 <script lang="ts">
-	import ApiKeyForm from '$lib/components/ApiKeyForm.svelte';
-	import VideoUsageStats from '$lib/components/VideoUsageStats.svelte';
-	import VideoGenerator from '$lib/components/VideoGenerator.svelte';
-	import MediaGrid from '$lib/components/MediaGrid.svelte';
-	import { SORA_API_SHUTDOWN_DATE } from '$lib/types/video';
+	import ApiKeyForm from '#lib/components/ApiKeyForm.svelte';
+	import VideoUsageStats from '#lib/components/VideoUsageStats.svelte';
+	import VideoGenerator from '#lib/components/VideoGenerator.svelte';
+	import MediaGrid from '#lib/components/MediaGrid.svelte';
+	import { SORA_API_SHUTDOWN_DATE } from '#lib/types/video.ts';
 	import { TriangleExclamationPoint } from '@lucide/svelte';
 
 	let currentPrompt = $state('');

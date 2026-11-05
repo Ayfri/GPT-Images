@@ -1,9 +1,9 @@
 <script lang="ts">
-	import ApiKeyForm from '$lib/components/ApiKeyForm.svelte';
-	import ImageGenerator from '$lib/components/ImageGenerator.svelte';
-	import MediaGrid from '$lib/components/MediaGrid.svelte';
-	import UsageStats from '$lib/components/UsageStats.svelte';
-	import type { ImageRecord } from '$lib/stores/imageStore';
+	import ApiKeyForm from '#lib/components/ApiKeyForm.svelte';
+	import ImageGenerator from '#lib/components/ImageGenerator.svelte';
+	import MediaGrid from '#lib/components/MediaGrid.svelte';
+	import UsageStats from '#lib/components/UsageStats.svelte';
+	import type { ImageRecord } from '#lib/stores/imageStore.ts';
 
 	let currentPrompt = $state('');
 	let imageForEdit: ImageRecord | null = $state(null); // New state variable

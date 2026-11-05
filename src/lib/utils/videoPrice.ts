@@ -1,5 +1,5 @@
-import type { VideoModel, VideoDuration, VideoResolution } from '$lib/types/video';
-import { PRICING } from '$lib/types/video';
+import type { VideoModel, VideoDuration, VideoResolution } from '#lib/types/video.ts';
+import { PRICING } from '#lib/types/video.ts';
 
 export function calculateVideoPrice(
 	model: string | undefined,

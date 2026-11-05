@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { ClipboardPaste, Film, LoaderCircle, Sparkles, X } from '@lucide/svelte';
-	import { apiKey } from '$lib/stores/apiKeyStore';
-	import { addVideoWithStorageManagement } from '$lib/stores/videoStore';
-	import { generateVideo, getVideoStatus, editVideo } from '$lib/services/video';
-	import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
-	import { DURATION_OPTIONS, MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL } from '$lib/types/video';
-	import { browser } from '$app/environment';
-	import { resizeImageToResolution } from '$lib/utils/imageResize';
-	import ImageUploadZone from '$lib/components/ImageUploadZone.svelte';
+	import { apiKey } from '#lib/stores/apiKeyStore.ts';
+	import { addVideoWithStorageManagement } from '#lib/stores/videoStore.ts';
+	import { generateVideo, getVideoStatus, editVideo } from '#lib/services/video.ts';
+	import type { VideoDuration, VideoModel, VideoResolution } from '#lib/types/video.ts';
+	import { DURATION_OPTIONS, MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL } from '#lib/types/video.ts';
+	import { browser } from '$app/env';
+	import { resizeImageToResolution } from '#lib/utils/imageResize.ts';
+	import ImageUploadZone from '#lib/components/ImageUploadZone.svelte';
 
 	const FORM_OPTIONS_KEY = 'video-generator-options';
 

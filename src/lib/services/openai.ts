@@ -6,8 +6,8 @@ import type {
 	ImageSize,
 	InputFidelity,
 	OutputFormat
-} from '$lib/types/image';
-import { MODEL_SUPPORT } from '$lib/types/image';
+} from '#lib/types/image.ts';
+import { MODEL_SUPPORT } from '#lib/types/image.ts';
 import OpenAI from 'openai';
 import type {
 	ImageEditParamsNonStreaming,

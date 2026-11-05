@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
-import { countImages, getImages, getCostCache, setCostCache, invalidateCostCache, computeImageCostTotal } from '$lib/db/imageStore';
+import { countImages, getImages, getCostCache, setCostCache, invalidateCostCache, computeImageCostTotal } from '#lib/db/imageStore.ts';
 import type { Writable } from 'svelte/store';
-import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '$lib/types/image';
+import type { ImageQuality, ImageSize, InputFidelity, OutputFormat, ImageBackground, ImageModel } from '#lib/types/image.ts';
 
 export interface ImageRecord {
 	id: string;

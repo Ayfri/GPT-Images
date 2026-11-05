@@ -3,11 +3,11 @@ import {
 	countVideos, getVideos, addVideoWithCleanup,
 	getVideoCostCache, setVideoCostCache, invalidateVideoCostCache, computeVideoCostTotal,
 	getTotalStorageSize
-} from '$lib/db/videoStore';
-import { runMigrations } from '$lib/db/migrations';
+} from '#lib/db/videoStore.ts';
+import { runMigrations } from '#lib/db/migrations.ts';
 import type { Writable } from 'svelte/store';
-import type { VideoDuration, VideoModel, VideoResolution } from '$lib/types/video';
-import { calculateVideoPrice } from '$lib/utils/videoPrice';
+import type { VideoDuration, VideoModel, VideoResolution } from '#lib/types/video.ts';
+import { calculateVideoPrice } from '#lib/utils/videoPrice.ts';
 
 export interface VideoRecord {
 	duration?: VideoDuration;

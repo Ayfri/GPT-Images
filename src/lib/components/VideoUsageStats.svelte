@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ChartColumn, Coins, HardDrive } from '@lucide/svelte';
-	import { totalVideoCount, totalCostAll, storageStatus } from '$lib/stores/videoStore';
-	import { MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL, DURATION_OPTIONS } from '$lib/types/video';
+	import { totalVideoCount, totalCostAll, storageStatus } from '#lib/stores/videoStore.ts';
+	import { MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL, DURATION_OPTIONS } from '#lib/types/video.ts';
 
 	const models = Object.keys(MODEL_OPTIONS) as (keyof typeof MODEL_OPTIONS)[];
 	const durations = Object.keys(DURATION_OPTIONS).map(Number) as (keyof typeof DURATION_OPTIONS)[];
