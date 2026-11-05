@@ -4,6 +4,7 @@
 	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, Brush } from '@lucide/svelte';
 	import { apiKey } from '#lib/stores/apiKey.svelte.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
+	import { galleryView } from '#lib/stores/galleryView.svelte.ts';
 	import { generateImage, editImage, type ImageResult } from '#lib/services/openai.ts';
 	import type { ImageComplexity, ImageModel, ImageQuality, ImageSize, OutputFormat, ImageBackground, ImageModeration, SvgAuthorModel, SvgEffort } from '#lib/types/image.ts';
 	import type { ImageRecord, NewImage } from '#lib/db/imageStore.ts';
@@ -33,6 +34,7 @@
 	import ImageUploadZone from './ImageUploadZone.svelte';
 	import MarkupCanvas from './MarkupCanvas.svelte';
 	import { sanitizeSvgBase64 } from '#lib/utils/sanitizeSvg.ts';
+	import { oneOf } from '#lib/utils/validate.ts';
 
 	const FORM_OPTIONS_KEY = 'image-generator-options';
 
@@ -53,7 +55,6 @@
 		svgModel: SvgAuthorModel;
 	}
 
-	const oneOf = <T extends string>(options: object) => (value: unknown): value is T => typeof value === 'string' && Object.hasOwn(options, value);
 	const intIn = (min: number, max: number) => (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 
 	/** One validator per saved field: stored options are untrusted, so an invalid or outdated value keeps its default. */
@@ -205,6 +206,8 @@
 
 		/** Captured up front: a reference attached while the request runs must survive the cleanup below. */
 		const editing = mode === 'edit';
+		/** The library open when Generate is clicked gets the images, even if another one is opened while the request runs. */
+		const library = galleryView.activeLibrary?.id;
 		isGenerating = true;
 		error = null;
 
@@ -247,6 +250,7 @@
 			await gallery.add(blobs, {
 				...meta,
 				size: result.size ?? size,
+				...(library && { libraries: [library] }),
 				...(cost !== undefined && { cost }),
 				...(result.svgUsage && { svg_usage: result.svgUsage })
 			});

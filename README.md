@@ -20,7 +20,7 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 *   **SVG as Prompt Text**: A dropped, pasted or browsed SVG file is appended to the prompt as text instead of being attached as an image.
 *   **Markup Edits**: Draw on the first reference image (brush color and size, undo, clear) to guide the edit with GPT Image 2.5 and 2.6. Can't be combined with a mask.
 *   **API Key Management**: Stores your OpenAI API key in the browser's `localStorage` (key `openai-api-key`). The key never leaves your browser except in requests to OpenAI.
-*   **Image Gallery**: Displays previously generated images.
+*   **Image Gallery**: Displays previously generated images, with libraries (an image can sit in several, and new generations go into the open one), grouping by date, prompt, model, library, format, quality and size with collapsible groups showing their image count and total cost, and sorting by date, prompt, model, price, quality, size or format with a prompt search. The view is remembered in `localStorage` (key `gallery-view`).
 *   **Regenerate Option**: Easily regenerate an image with the same prompt.
 *   **Usage Statistics**: Shows the total spent, using the real cost computed from the API usage for each image (estimate for older images), plus a table of estimated prices.
 *   **Responsive Design**: Adapts beautifully to different screen sizes thanks to Tailwind CSS.
@@ -35,7 +35,7 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 *   **Language**: TypeScript
 *   **AI**: OpenAI API
 *   **Icons**: Lucide Svelte
-*   **Client-side Storage**: IndexedDB via `idb` for image metadata, OPFS (Origin Private File System, `src/lib/db/opfsStore.ts`) for the image files
+*   **Client-side Storage**: IndexedDB via `idb` for image metadata and the `libraries` store, OPFS (Origin Private File System, `src/lib/db/opfsStore.ts`) for the image files
 *   **Package Manager**: Bun
 *   **Build Tool**: Vite
 *   **Hosting**: Cloudflare Workers (`@sveltejs/adapter-cloudflare`, deployed with Wrangler)

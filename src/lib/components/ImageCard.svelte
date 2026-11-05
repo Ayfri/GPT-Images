@@ -2,6 +2,7 @@
 	import { Copy, Download, Pencil, RefreshCw, Trash } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import ConfirmPopover from './ConfirmPopover.svelte';
+	import LibraryPopover from './LibraryPopover.svelte';
 	import type { ImageRecord } from '#lib/db/imageStore.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { getRecordPrice } from '#lib/types/image.ts';
@@ -58,6 +59,10 @@
 		<div
 			class="pointer-events-none invisible absolute inset-0 flex flex-col justify-end bg-linear-to-t from-dark-300/95 via-dark-300/50 via-40% to-transparent to-70% opacity-0 transition-[opacity,visibility] duration-200 group-focus-within:visible group-focus-within:opacity-100 group-has-[:popover-open]:visible group-has-[:popover-open]:opacity-100 group-hover:visible group-hover:opacity-100"
 		>
+			<div class="pointer-events-auto absolute top-3 right-3">
+				<LibraryPopover {image} />
+			</div>
+
 			<div class="pointer-events-auto flex items-center justify-between p-3">
 				<ConfirmPopover
 					class="btn-ghost group/del rounded-xl p-2 hover:bg-error-700/25"

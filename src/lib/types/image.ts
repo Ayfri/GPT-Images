@@ -39,6 +39,12 @@ export const MODEL_OPTIONS = {
 	'gpt-image-2.6-sunburst': { label: 'GPT Image 2.6 Sunburst' }
 } as const satisfies Record<ImageModel, { label: string }>;
 
+const LEGACY_MODEL_OPTIONS = {
+	'gpt-image-1': { label: 'GPT Image 1' },
+	'gpt-image-1-mini': { label: 'GPT Image 1 Mini' },
+	'gpt-image-1.5': { label: 'GPT Image 1.5' }
+} as const satisfies Record<LegacyImageModel, { label: string }>;
+
 export const QUALITY_OPTIONS = {
 	low: { label: 'Low' },
 	medium: { label: 'Medium' },
@@ -248,6 +254,9 @@ export const MODEL_SUPPORT: Record<ImageModel, ModelSupport> = {
 
 export const isSelectableModel = (model: string): model is ImageModel => Object.hasOwn(MODEL_SUPPORT, model);
 export const isImageSize = (size: string): size is ImageSize => Object.hasOwn(SIZE_OPTIONS, size);
+
+/** Records without a model predate the model field and used gpt-image-1. */
+export const modelLabel = (model: StoredImageModel = 'gpt-image-1') => (isSelectableModel(model) ? MODEL_OPTIONS[model] : LEGACY_MODEL_OPTIONS[model]).label;
 
 /** Reference image types the edits endpoint takes as is: any other decodable image is converted to PNG before upload. */
 export const ACCEPTED_IMAGE_TYPES: readonly string[] = ['image/png', 'image/webp', 'image/jpeg'];
