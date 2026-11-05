@@ -9,7 +9,7 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 
 **Website**: [https://gpt-images.ayfri.com](https://gpt-images.ayfri.com)
 
-![Screenshot of the application](static/screenshot.png)
+![Screenshot of the image history gallery next to the prompt form, API key card and usage statistics](static/screenshot.png)
 
 ## Features
 
@@ -25,7 +25,8 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 *   **Usage Statistics**: Shows the total spent, using the real cost computed from the API usage for each image (estimate for older images), plus a table of estimated prices.
 *   **Responsive Design**: Adapts beautifully to different screen sizes thanks to Tailwind CSS.
 *   **Modern UI**: Clean and intuitive user interface built with Svelte.
-*   **Link Previews**: Includes a description, a canonical URL and Open Graph tags for search engines and social sharing.
+*   **Installable (PWA) with an offline app shell**: A web app manifest and a service worker (`src/service-worker/index.ts`) let you install the app and open it without a connection. The worker caches the build files, the static assets and the prerendered page, and never touches cross-origin requests such as the OpenAI API.
+*   **Link Previews and SEO**: Includes a description, a canonical URL, Open Graph and Twitter card tags with a preview image, schema.org `WebApplication` data, a `robots.txt` and a sitemap for search engines and social sharing.
 
 ## Tech Stack
 
@@ -110,11 +111,12 @@ gpt-images/
 │   │   ├── stores/     # Runes state classes (gallery, API key)
 │   │   ├── types/      # Shared types and model definitions
 │   │   └── utils/      # Utility functions
-│   └── routes/       # Application pages
-│       ├── +layout.svelte # Root layout component
-│       ├── +layout.ts     # Prerenders the page to a static index.html
-│       └── +page.svelte   # Main page component
-├── static/           # Static assets served as-is (logo, robots.txt, screenshot)
+│   ├── routes/       # Application pages
+│   │   ├── +layout.svelte # Root layout component
+│   │   ├── +layout.ts     # Prerenders the page to a static index.html
+│   │   └── +page.svelte   # Main page component
+│   └── service-worker/ # Offline app shell (own tsconfig.json, excluded from the app one)
+├── static/           # Static assets served as-is (logo, icons, manifest.webmanifest, robots.txt, sitemap.xml, screenshots, social preview image)
 ├── .gitignore        # Files/folders ignored by Git
 ├── bun.lock          # Exact dependency versions
 ├── package.json      # Project metadata, dependencies and `#lib` import map

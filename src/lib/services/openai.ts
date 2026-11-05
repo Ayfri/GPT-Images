@@ -36,7 +36,7 @@ async function request(apiKey: string, endpoint: 'generations' | 'edits', body: 
 	if (!res.ok) throw new Error(json.error?.message || `HTTP ${res.status}`);
 
 	const images = (json.data ?? []).map((item) => item.b64_json).filter((b64) => b64 !== undefined);
-	if (images.length === 0) throw new Error('API did not return image data');
+	if (images.length === 0) throw new Error('The API returned no image data');
 	return { images, size: json.size, svgUsage: json.svg_usage, usage: json.usage };
 }
 

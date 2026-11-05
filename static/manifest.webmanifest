@@ -1,0 +1,22 @@
+{
+	"id": "/",
+	"name": "GPT Image Generator",
+	"short_name": "GPT Images",
+	"description": "Generate and edit images, animated GIFs and SVGs in your browser with OpenAI's GPT Image 2, 2.5 and 2.6 models, using your own API key.",
+	"lang": "en",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#11111b",
+	"theme_color": "#11111b",
+	"categories": ["photo", "productivity", "utilities"],
+	"icons": [
+		{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{ "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	],
+	"screenshots": [
+		{ "src": "/screenshot.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "Gallery of generated images next to the prompt form" },
+		{ "src": "/screenshot-narrow.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "Gallery of generated images on a phone" }
+	]
+}

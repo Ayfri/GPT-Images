@@ -13,7 +13,7 @@
 			<Key class="h-4 w-4 text-primary-400" />
 		</div>
 		<div>
-			<h2 class="text-sm font-semibold text-gray-100">OpenAI API Key</h2>
+			<h2 class="text-sm font-semibold text-gray-100">OpenAI API key</h2>
 			<p class="text-xs text-gray-600">Stored locally in your browser</p>
 		</div>
 		{#if apiKey.value}
@@ -56,7 +56,7 @@
 		</div>
 
 		<button class="btn btn-primary w-full text-sm py-2.5 disabled:opacity-40 disabled:cursor-not-allowed" disabled={keyInput === apiKey.value}>
-			Save API Key
+			Save API key
 		</button>
 	</form>
 </div>

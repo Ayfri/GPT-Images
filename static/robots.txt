@@ -1,2 +1,4 @@
 User-Agent: *
-Allow:
+Allow: /
+
+Sitemap: https://gpt-images.ayfri.com/sitemap.xml

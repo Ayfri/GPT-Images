@@ -6,21 +6,49 @@
 		<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
 		<link rel="icon" type="image/avif" sizes="32x32" href="/favicon.avif" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="theme-color" content="#11111b" />
+		<meta name="apple-mobile-web-app-title" content="GPT Images" />
 		<title>GPT Image Generator</title>
 
-		<meta name="description" content="Generate and edit images in your browser with OpenAI's GPT Image 2, 2.5 and 2.6 models, including animated GIF and SVG output." />
+		<meta name="description" content="Generate and edit images, animated GIFs and SVGs in your browser with OpenAI's GPT Image 2, 2.5 and 2.6 models, using your own API key." />
 		<meta name="author" content="Ayfri" />
 
 		<meta property="og:title" content="GPT Image Generator" />
-		<meta property="og:description" content="Generate and edit images in your browser with OpenAI's GPT Image 2, 2.5 and 2.6 models, including animated GIF and SVG output." />
+		<meta property="og:description" content="Generate and edit images, animated GIFs and SVGs in your browser with OpenAI's GPT Image 2, 2.5 and 2.6 models, using your own API key." />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content="https://gpt-images.ayfri.com" />
 		<meta property="og:site_name" content="GPT Image Generator" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:image" content="https://gpt-images.ayfri.com/og-image.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:alt" content="GPT Image Generator showing a gallery of AI-generated images" />
 
-		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content="https://gpt-images.ayfri.com/og-image.png" />
+		<meta name="twitter:image:alt" content="GPT Image Generator showing a gallery of AI-generated images" />
 
 		<link rel="canonical" href="https://gpt-images.ayfri.com" />
+
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "WebApplication",
+				"name": "GPT Image Generator",
+				"url": "https://gpt-images.ayfri.com",
+				"description": "Generate and edit images, animated GIFs and SVGs in your browser with OpenAI's GPT Image 2, 2.5 and 2.6 models, using your own API key.",
+				"applicationCategory": "MultimediaApplication",
+				"operatingSystem": "Any",
+				"browserRequirements": "Requires a modern browser with JavaScript and an OpenAI API key",
+				"isAccessibleForFree": true,
+				"image": "https://gpt-images.ayfri.com/og-image.png",
+				"offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+				"author": { "@type": "Person", "name": "Ayfri", "url": "https://github.com/Ayfri" }
+			}
+		</script>
 
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-YKYKTBFCYW"></script>
 		<script>

@@ -4,5 +4,6 @@
 		"noFallthroughCasesInSwitch": true,
 		"strict": true
 	},
-	"include": ["src", "*"]
+	"include": ["src", "*"],
+	"exclude": ["src/service-worker"]
 }

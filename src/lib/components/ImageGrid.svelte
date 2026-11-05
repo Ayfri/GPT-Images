@@ -56,7 +56,7 @@
 <div>
 	<div class="mb-6 flex items-center justify-between">
 		<div>
-			<h2 class="text-base font-semibold text-gray-100">Image History</h2>
+			<h2 class="text-base font-semibold text-gray-100">Image history</h2>
 			<p class="mt-0.5 text-xs text-gray-600">
 				{gallery.images.length} image{gallery.images.length !== 1 ? 's' : ''} generated
 			</p>
@@ -92,7 +92,7 @@
 
 	{#if !gallery.loaded}
 		<div class="flex h-40 items-center justify-center">
-			<div class="animate-pulse-slow text-gray-500">Loading images...</div>
+			<div class="animate-pulse-slow text-gray-500">Loading images…</div>
 		</div>
 	{:else if gallery.images.length === 0}
 		<div

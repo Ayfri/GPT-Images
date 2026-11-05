@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, ClipboardPaste, Brush } from '@lucide/svelte';
+	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, Brush } from '@lucide/svelte';
 	import { apiKey } from '#lib/stores/apiKey.svelte.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
 	import { generateImage, editImage, type ImageResult } from '#lib/services/openai.ts';
@@ -145,7 +145,7 @@
 				: opts.prompt.length > GPT_IMAGE_MODEL_PROMPT_MAX_CHARS
 					? `Prompt exceeds the API limit (${GPT_IMAGE_MODEL_PROMPT_MAX_CHARS.toLocaleString('en-US')} characters for GPT Image models). Shorten the text and try again.`
 					: opts.selectedBackground === 'transparent' && format === 'jpeg'
-						? 'Transparent background is not supported for JPEG output format. Please select PNG or WebP.'
+						? 'JPEG does not support a transparent background. Choose PNG or WebP.'
 						: format === 'gif' && !VALID.frameDurationMs(opts.frameDurationMs)
 							? `Frame duration must be a whole number between ${GIF_LIMITS.minFrameDurationMs} and ${GIF_LIMITS.maxFrameDurationMs} ms.`
 							: null
@@ -191,7 +191,7 @@
 			return;
 		}
 		if (file.size > IMAGE_UPLOAD_LIMITS.maskMaxSize) {
-			error = `Mask file "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maskMaxSize / (1024 * 1024)}MB.`;
+			error = `Mask file "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maskMaxSize / (1024 * 1024)} MB.`;
 			return;
 		}
 
@@ -269,7 +269,7 @@
 		<div class="flex items-center gap-2">
 			<Sparkles class="h-4 w-4 text-brand-400" />
 			<h2 class="text-sm font-semibold text-gray-100 tracking-wide uppercase">
-				{inputImages.length > 0 ? 'Generate with references' : 'Create Image'}
+				{inputImages.length > 0 ? 'Generate with references' : 'Create image'}
 			</h2>
 		</div>
 		{#if inputImages.length > 0}
@@ -278,14 +278,6 @@
 				class="text-xs px-2 py-0.5 rounded-full bg-brand-900/50 text-brand-300 border border-brand-700/40"
 			>
 				{inputImages.length} reference{inputImages.length > 1 ? 's' : ''} attached
-			</span>
-		{:else}
-			<span
-				in:fade={{ duration: 200 }}
-				class="text-xs text-gray-600 flex items-center gap-1"
-			>
-				<ClipboardPaste class="h-3 w-3" />
-				Ctrl+V to attach image
 			</span>
 		{/if}
 	</div>
@@ -298,7 +290,7 @@
 					bind:value={opts.prompt}
 					rows="4"
 					placeholder={inputImages.length > 0
-						? 'Describe what to generate using these references - style, subject, composition…'
+						? 'Describe what to generate from these references: style, subject, composition…'
 						: 'Describe the image you want to create…'}
 					class="input resize-none leading-relaxed pb-8"
 					disabled={isGenerating}
@@ -328,14 +320,9 @@
 			<ImageUploadZone bind:files={inputImages} disabled={isGenerating} onerror={(message) => (error = message)}
 				onsvg={(text) => (opts.prompt = opts.prompt.trim() ? `${opts.prompt}\n\n${text}` : text)}
 			/>
-			{#if inputImages.length === 0}
-				<p class="text-xs text-gray-700 mt-1.5">
-					Drop, paste (Ctrl+V) or browse - any image up to 50 MB, SVG files are added to the prompt as text
-				</p>
-			{/if}
 		</div>
 
-		<div class="grid grid-cols-3 gap-3">
+		<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 			<div>
 				<label for="model" class="field-label block mb-1.5">Model</label>
 				<select id="model" bind:value={opts.selectedModel} class="input" disabled={isGenerating}>
@@ -398,7 +385,7 @@
 					<div class="grid grid-cols-2 gap-4">
 						<div>
 							<label for="outputFormat" class="field-label block mb-1.5">
-								Output Format
+								Output format
 							</label>
 							<select id="outputFormat" bind:value={() => format, (value) => (opts.outputFormat = value)} class="input" disabled={isGenerating}>
 								{#each Object.entries(OUTPUT_FORMAT_OPTIONS) as [key, option] (key)}
@@ -535,7 +522,7 @@
 					{#if mode === 'edit'}
 						<div>
 							<label class="field-label block mb-1.5" for="mask-upload">
-								Mask (Optional)
+								Mask (optional)
 							</label>
 							<div class="flex items-center gap-3">
 								<label class="cursor-pointer">
@@ -572,7 +559,7 @@
 
 					{#if markupAllowed}
 						<div>
-							<span class="field-label block mb-1.5">Markup (Optional)</span>
+							<span class="field-label block mb-1.5">Markup (optional)</span>
 							<button
 								type="button"
 								class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors cursor-pointer"
@@ -641,7 +628,7 @@
 			{#if price !== null}
 				<span class="text-secondary-500">${(price * effectiveCount).toFixed(3)} for {effectiveCount} {effectiveCount > 1 ? 'images' : 'image'}</span>
 			{:else}
-				<span class="text-gray-500">Price estimate unavailable, the real cost is recorded after generation</span>
+				<span class="text-gray-500">Price estimate unavailable. The real cost is recorded after generation.</span>
 			{/if}
 		</div>
 	</form>

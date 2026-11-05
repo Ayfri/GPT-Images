@@ -19,7 +19,7 @@
 				</div>
 			</div>
 			<div>
-				<span class="text-base sm:text-lg font-bold gradient-text">GPT Generator</span>
+				<span class="text-base sm:text-lg font-bold gradient-text whitespace-nowrap">GPT Image Generator</span>
 			</div>
 		</a>
 		<div class="flex items-center gap-1 sm:gap-2 md:gap-3 ml-auto">
@@ -30,7 +30,7 @@
 				class='hidden sm:flex items-center gap-1 sm:gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 sm:px-3 py-1.5 rounded-lg hover:bg-white/5'
 			>
 				<ExternalLink class="w-3.5 h-3.5" />
-				API Docs
+				API docs
 			</a>
 			<a
 				href='https://github.com/Ayfri/GPT-Images'

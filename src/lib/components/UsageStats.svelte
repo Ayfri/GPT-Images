@@ -12,7 +12,7 @@
 		<div class="flex items-center justify-center w-8 h-8 rounded-xl bg-accent-500/15 border border-accent-500/20">
 			<ChartColumn class="h-4 w-4 text-accent-400" />
 		</div>
-		<h2 class="text-sm font-semibold text-gray-100">Usage Statistics</h2>
+		<h2 class="text-sm font-semibold text-gray-100">Usage statistics</h2>
 	</div>
 
 	<div class="space-y-4">

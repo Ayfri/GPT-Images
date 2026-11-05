@@ -8,11 +8,11 @@
 </script>
 
 <div class="mb-10 text-center animate-slide-up">
-	<h1 class="text-4xl sm:text-5xl font-bold mb-4 tracking-tight">
-		<span class="gradient-text">Image Generator</span>
+	<h1 class="text-3xl sm:text-5xl font-bold mb-4 tracking-tight">
+		<span class="gradient-text">GPT Image Generator</span>
 	</h1>
 	<p class="text-gray-400 max-w-xl mx-auto leading-relaxed">
-		Generate images from text - or drag, paste, or click to attach reference images and let AI use them as a visual guide.
+		Generate or edit images, GIFs and SVGs with OpenAI's GPT Image models. Runs in your browser with your own API key, and your history stays on your device.
 	</p>
 </div>
 

@@ -47,7 +47,7 @@
 
 				/** Checked before decoding: a huge file is rejected without paying for the bitmap and the PNG re-encode. */
 				if (file.size > IMAGE_UPLOAD_LIMITS.maxFileSize) {
-					onerror(`File "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maxFileSize / (1024 * 1024)}MB.`);
+					onerror(`File "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maxFileSize / (1024 * 1024)} MB.`);
 					return null;
 				}
 
@@ -192,7 +192,8 @@
 					<button type="button" onclick={submitUrl} class="text-xs text-primary-500 hover:text-primary-400 shrink-0" disabled={blocked}>Load</button>
 				{/if}
 			</div>
-			<p class="text-xs text-gray-700 mt-1.5">Drop here or Ctrl+V anywhere on the page</p>
+			<p class="text-xs text-gray-700 mt-1.5">Drop, paste or browse images. SVG files are added to the prompt as text.</p>
+			<p class="text-xs text-gray-700">Up to {IMAGE_UPLOAD_LIMITS.maxImages} images, {IMAGE_UPLOAD_LIMITS.maxFileSize / (1024 * 1024)} MB each</p>
 		</div>
 	{/if}
 </div>

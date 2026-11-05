@@ -43,7 +43,7 @@ export const QUALITY_OPTIONS = {
 	low: { label: 'Low' },
 	medium: { label: 'Medium' },
 	high: { label: 'High' },
-	xhigh: { label: 'Extra High' },
+	xhigh: { label: 'Extra high' },
 	max: { label: 'Max' },
 	auto: { label: 'Auto' }
 } as const satisfies Record<ImageQuality, { label: string }>;
@@ -100,9 +100,9 @@ export const SVG_EFFORT_OPTIONS = {
 } as const satisfies Record<SvgEffort, { label: string }>;
 
 export const BACKGROUND_OPTIONS = {
-	auto: { label: 'Auto', description: 'Model automatically determines the best background' },
-	opaque: { label: 'Opaque', description: 'Ensures a solid background' },
-	transparent: { label: 'Transparent', description: 'Generates image with transparent background (PNG/WebP only)' }
+	auto: { label: 'Auto', description: 'The model picks the best background' },
+	opaque: { label: 'Opaque', description: 'Solid background' },
+	transparent: { label: 'Transparent', description: 'Transparent background (PNG and WebP only)' }
 } as const satisfies Record<ImageBackground, { description: string; label: string }>;
 
 export const MODERATION_OPTIONS = {

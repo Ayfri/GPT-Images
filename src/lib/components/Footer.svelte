@@ -14,12 +14,12 @@
 			<a href="https://github.com/Ayfri/GPT-Images" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-300 transition-colors p-1" title="GitHub">
 				<GitHubIcon size={16} />
 			</a>
-			<a href="https://platform.openai.com/docs/guides/image-generation" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-300 transition-colors p-1" title="API Documentation">
+			<a href="https://platform.openai.com/docs/guides/image-generation" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-300 transition-colors p-1" title="API documentation">
 				<ExternalLink class="w-4 h-4" />
 			</a>
 		</div>
 		<p class="text-xs text-gray-600 text-center">
-			GPT Generator &nbsp;·&nbsp; {new Date().getFullYear()} &nbsp;·&nbsp;
+			GPT Image Generator &nbsp;·&nbsp; {new Date().getFullYear()} &nbsp;·&nbsp;
 			<span class="text-primary-400 font-medium">SvelteKit</span> + <span class="text-secondary-400 font-medium">Tailwind</span>
 		</p>
 	</div>

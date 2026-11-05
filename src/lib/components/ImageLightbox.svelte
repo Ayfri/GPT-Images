@@ -77,13 +77,13 @@
 			<span>Quality: {image.quality ?? 'N/A'}</span>
 			<span>Size: {image.size ?? 'N/A'}</span>
 			{#if image.input_fidelity && image.input_fidelity !== 'low'}
-				<span>Input Fidelity: {image.input_fidelity}</span>
+				<span>Input fidelity: {image.input_fidelity}</span>
 			{/if}
 			{#if image.output_compression && image.output_compression !== 100}
-				<span>Output Compression: {image.output_compression}</span>
+				<span>Output compression: {image.output_compression}%</span>
 			{/if}
 			{#if image.output_format && image.output_format !== 'png'}
-				<span>Output Format: {image.output_format}</span>
+				<span>Output format: {image.output_format}</span>
 			{/if}
 			{#if image.background && image.background !== 'auto'}
 				<span>Background: {image.background}</span>
@@ -95,7 +95,7 @@
 				<span>Complexity: {image.complexity}</span>
 			{/if}
 			{#if image.frame_count && image.frame_duration_ms}
-				<span>Frames: {image.frame_count} x {image.frame_duration_ms} ms</span>
+				<span>Frames: {image.frame_count} × {image.frame_duration_ms} ms</span>
 			{/if}
 			{#if image.svg_usage}
 				<span>SVG author: {image.svg_usage.model}, {image.svg_usage.input_tokens} in / {image.svg_usage.output_tokens} out tokens (not in cost)</span>
