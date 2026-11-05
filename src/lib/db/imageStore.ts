@@ -1,7 +1,7 @@
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
 import type { ImagesResponse } from "openai/resources/images";
-import type { ImageBackground, ImageComplexity, ImageQuality, ImageSize, InputFidelity, OutputFormat, StoredImageModel } from "#lib/types/image.ts";
+import type { ImageBackground, ImageComplexity, ImageQuality, InputFidelity, OutputFormat, StoredImageModel, StoredImageSize } from "#lib/types/image.ts";
 import { OUTPUT_FORMAT_OPTIONS, getRecordPrice } from "#lib/types/image.ts";
 import { clearMediaFolder, deleteMediaFile, readMediaObjectUrl, writeMediaFile } from "./opfsStore";
 
@@ -20,7 +20,7 @@ export interface ImageRecord {
 	output_format?: OutputFormat;
 	prompt: string;
 	quality?: ImageQuality;
-	size?: ImageSize;
+	size?: StoredImageSize;
 	svg_usage?: ImagesResponse.SvgUsage;
 	timestamp: number;
 }

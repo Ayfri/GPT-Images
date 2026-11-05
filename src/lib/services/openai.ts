@@ -3,14 +3,15 @@ import type { ImageEditParamsNonStreaming, ImageGenerateParamsNonStreaming, Imag
 
 export interface ImageResult {
 	images: string[];
+	size?: ImagesResponse['size'];
 	svgUsage?: ImagesResponse.SvgUsage;
 	usage?: ImagesResponse.Usage;
 }
 
-function toResult({ data, svg_usage, usage }: ImagesResponse): ImageResult {
+function toResult({ data, size, svg_usage, usage }: ImagesResponse): ImageResult {
 	const images = (data ?? []).map((item) => item.b64_json).filter((b64) => b64 !== undefined);
 	if (images.length === 0) throw new Error('API did not return image data');
-	return { images, svgUsage: svg_usage, usage };
+	return { images, size, svgUsage: svg_usage, usage };
 }
 
 export async function generateImage(apiKey: string, params: ImageGenerateParamsNonStreaming): Promise<ImageResult> {

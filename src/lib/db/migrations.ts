@@ -44,9 +44,12 @@ async function migration2(): Promise<void> {
 	localStorage.removeItem('gpt-video-cost-cache');
 	/** A tab still on the old video page blocks the deletion, which then finishes once that tab closes: resolving on blocked keeps the image page from hanging. */
 	await new Promise<void>((resolve, reject) => void deleteDB('gpt-video-generator', { blocked: () => resolve() }).then(resolve, reject));
-	await (await navigator.storage.getDirectory()).removeEntry('videos', { recursive: true }).catch((error: unknown) => {
-		if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
-	});
+	try {
+		await (await navigator.storage.getDirectory()).removeEntry('videos', { recursive: true });
+	} catch (error) {
+		/** No videos folder (NotFoundError) or OPFS blocked (SecurityError, Firefox private mode): there are no video files to wipe. */
+		if (!(error instanceof DOMException && (error.name === 'NotFoundError' || error.name === 'SecurityError'))) throw error;
+	}
 }
 
 type Migration = { name: string; run: () => Promise<void>; version: number };

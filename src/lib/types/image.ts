@@ -17,6 +17,8 @@ export type ImageSize =
 	| '2048x1152'
 	| '3840x2160'
 	| '2160x3840';
+/** The API returns the real size, which can fall outside the sizes offered (e.g. `512x512` for `auto` GIFs). */
+export type StoredImageSize = ImageSize | (string & {});
 export type PricedImageSize = '1024x1024' | '1024x1536' | '1536x1024';
 export type ImageComplexity = 'low' | 'medium' | 'high';
 export type InputFidelity = 'low' | 'high';
@@ -119,7 +121,7 @@ type PaidImageQuality = Exclude<ImageQuality, 'auto'>;
 
 // Per-image pricing from developers.openai.com; token-priced models follow $/image-output-token rules.
 // Columns: 1024×1024 | 1024×1536 (portrait) | 1536×1024 (landscape)
-type PricingByQuality = Partial<Record<ImageQuality, Partial<Record<ImageSize, number>>>>;
+type PricingByQuality = Partial<Record<ImageQuality, Partial<Record<string, number>>>>;
 export const PRICING: Record<StoredImageModel, PricingByQuality> = {
 	'gpt-image-1': {
 		high: { '1024x1024': 0.167, '1024x1536': 0.25, '1536x1024': 0.25 },
@@ -212,7 +214,7 @@ function aspectBucket(w: number, h: number): AspectBucket {
  * Prices a token-billed render: exact for the three sizes OpenAI publishes, otherwise scaled by √(pixel ratio)
  * inside the nearest aspect bucket (OpenAI notes non-square costs can be lower than a naive area rule).
  */
-function estimateImageOutputUsd(model: ImageModel, quality: PaidImageQuality, size: Exclude<ImageSize, 'auto'>): number | null {
+function estimateImageOutputUsd(model: ImageModel, quality: PaidImageQuality, size: string): number | null {
 	const fixed = PRICING[model][quality]?.[size];
 	if (fixed !== undefined) return fixed;
 
@@ -231,7 +233,7 @@ function estimateImageOutputUsd(model: ImageModel, quality: PaidImageQuality, si
 	return (tokens / 1_000_000) * IMAGE_OUTPUT_USD_PER_MILLION;
 }
 
-export function getImagePrice(model: StoredImageModel, quality: ImageQuality, size: ImageSize): number | null {
+export function getImagePrice(model: StoredImageModel, quality: ImageQuality, size: StoredImageSize): number | null {
 	if (isSelectableModel(model)) return estimateImageOutputUsd(model, quality === 'auto' ? 'medium' : quality, size === 'auto' ? '1024x1024' : size);
 	return PRICING[model][quality]?.[size] ?? null;
 }
@@ -239,15 +241,15 @@ export function getImagePrice(model: StoredImageModel, quality: ImageQuality, si
 /** Real cost of a GPT Image 2.x request: the API returns usage for 2.6 too, although the SDK documents it for gpt-image-1 only. */
 export function usageCostUsd({ input_tokens_details, output_tokens }: ImagesResponse.Usage): number {
 	return (
-		(input_tokens_details.text_tokens * TOKEN_INPUT_USD_PER_MILLION.text +
-			input_tokens_details.image_tokens * TOKEN_INPUT_USD_PER_MILLION.image +
-			output_tokens * IMAGE_OUTPUT_USD_PER_MILLION) /
+		((input_tokens_details?.text_tokens ?? 0) * TOKEN_INPUT_USD_PER_MILLION.text +
+			(input_tokens_details?.image_tokens ?? 0) * TOKEN_INPUT_USD_PER_MILLION.image +
+			(output_tokens ?? 0) * IMAGE_OUTPUT_USD_PER_MILLION) /
 		1_000_000
 	);
 }
 
 /** Stored real cost when present, otherwise the estimate: records saved before usage tracking have no cost. */
-export function getRecordPrice({ cost, model = 'gpt-image-2', quality, size }: { cost?: number; model?: StoredImageModel; quality?: ImageQuality; size?: ImageSize }): number {
+export function getRecordPrice({ cost, model = 'gpt-image-2', quality, size }: { cost?: number; model?: StoredImageModel; quality?: ImageQuality; size?: StoredImageSize }): number {
 	return cost ?? (quality && size ? (getImagePrice(model, quality, size) ?? 0.01) : 0.01);
 }
 
@@ -272,6 +274,7 @@ export const MODEL_SUPPORT: Record<ImageModel, ModelSupport> = {
 };
 
 export const isSelectableModel = (model: string): model is ImageModel => Object.hasOwn(MODEL_SUPPORT, model);
+export const isImageSize = (size: string): size is ImageSize => Object.hasOwn(SIZE_OPTIONS, size);
 
 // GPT Image 1 specifications for image uploads
 export const IMAGE_UPLOAD_LIMITS = {

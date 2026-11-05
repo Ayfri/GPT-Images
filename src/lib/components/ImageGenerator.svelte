@@ -26,12 +26,14 @@
 		STANDARD_SIZES,
 		SVG_AUTHOR_MODEL_OPTIONS,
 		SVG_EFFORT_OPTIONS,
+		isImageSize,
 		isSelectableModel,
 		usageCostUsd
 	} from '#lib/types/image.ts';
 	import { browser } from '$app/env';
 	import ImageUploadZone from './ImageUploadZone.svelte';
 	import MarkupCanvas from './MarkupCanvas.svelte';
+	import { sanitizeSvgBase64 } from '#lib/utils/sanitizeSvg.ts';
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'image-generator-options';
@@ -47,11 +49,11 @@
 			if (opts.selectedQuality) selectedQuality = opts.selectedQuality
 			if (opts.selectedSize) selectedSize = opts.selectedSize
 			if (opts.imageCount) imageCount = opts.imageCount
-			if (opts.complexity) complexity = opts.complexity
-			if (opts.frameCount) frameCount = opts.frameCount
-			if (opts.frameDurationMs) frameDurationMs = opts.frameDurationMs
-			if (opts.svgModel) svgModel = opts.svgModel
-			if (opts.svgEffort) svgEffort = opts.svgEffort
+			if (Object.hasOwn(COMPLEXITY_OPTIONS, opts.complexity)) complexity = opts.complexity
+			if (Number.isInteger(opts.frameCount) && opts.frameCount >= GIF_LIMITS.minFrameCount && opts.frameCount <= GIF_LIMITS.maxFrameCount) frameCount = opts.frameCount
+			if (Number.isInteger(opts.frameDurationMs) && opts.frameDurationMs >= GIF_LIMITS.minFrameDurationMs && opts.frameDurationMs <= GIF_LIMITS.maxFrameDurationMs) frameDurationMs = opts.frameDurationMs
+			if (Object.hasOwn(SVG_AUTHOR_MODEL_OPTIONS, opts.svgModel)) svgModel = opts.svgModel
+			if (Object.hasOwn(SVG_EFFORT_OPTIONS, opts.svgEffort)) svgEffort = opts.svgEffort
 			if (opts.outputCompression !== undefined) outputCompression = opts.outputCompression
 			if (opts.outputFormat) outputFormat = opts.outputFormat
 			if (opts.selectedBackground) selectedBackground = opts.selectedBackground
@@ -97,8 +99,10 @@
 	let imagePreviews: string[] = $state([]);
 	let inputMask: File | null = $state(null);
 	let maskPreview: string | null = $state(null);
-	let inputMarkup: File | null = $state(null);
 	let showMarkup = $state(false);
+	let markupHasStrokes = $state(false);
+	let markupCanvas: ReturnType<typeof MarkupCanvas> | undefined = $state();
+	const firstReference = $derived(inputImages[0]);
 	let pasteFlash = $state(false);
 
 	// Mode is auto-derived: if images are attached → edit/compose, otherwise → pure generation
@@ -120,15 +124,12 @@
 	let svgAllowed = $derived(mode === 'generate' && support.svg);
 	let availableSizes = $derived(outputFormat === 'gif' ? GIF_SIZES : STANDARD_SIZES);
 	let effectiveCount = $derived(outputFormat === 'svg' ? 1 : imageCount);
-	// `xhigh` and `max` only exist on GPT Image 2.5 and 2.6, so fall back when switching to a model without them.
+	/** `xhigh` and `max` only exist on GPT Image 2.5 and 2.6, so fall back when switching to a model without them. */
 	$effect(() => {
 		if (!support.qualities.includes(selectedQuality)) selectedQuality = 'high';
 		if ((outputFormat === 'gif' && !gifAllowed) || (outputFormat === 'svg' && !svgAllowed)) outputFormat = 'png';
 		if (!availableSizes.includes(selectedSize)) selectedSize = 'auto';
-		if (mode === 'generate' || !support.markup) {
-			showMarkup = false;
-			inputMarkup = null;
-		}
+		if (mode === 'generate' || !support.markup || !showAdvanced) showMarkup = false;
 	});
 	let displayPrice = $derived(outputFormat === 'gif' || outputFormat === 'svg' ? null : getImagePrice(selectedModel, selectedQuality, selectedSize));
 
@@ -229,7 +230,7 @@
 			// Set other image properties if available
 			selectedModel = imageToEdit.model && isSelectableModel(imageToEdit.model) ? imageToEdit.model : DEFAULT_IMAGE_MODEL;
 			selectedQuality = imageToEdit.quality ?? 'low';
-			selectedSize = imageToEdit.size ?? '1024x1024';
+			selectedSize = imageToEdit.size && isImageSize(imageToEdit.size) ? imageToEdit.size : '1024x1024';
 			if (imageToEdit.complexity) complexity = imageToEdit.complexity;
 			outputCompression = imageToEdit.output_compression ?? 100;
 			outputFormat = format;
@@ -317,20 +318,14 @@
 			return;
 		}
 
-		if (inputMask && inputMarkup) {
-			error = "Markup and mask can't be combined.";
-			return;
-		}
-
-		if (inputMarkup && inputMarkup.size >= IMAGE_UPLOAD_LIMITS.maxFileSize) {
-			error = 'Markup must be under 50 MB.';
-			return;
-		}
-
 		isGenerating = true;
 		error = null;
 
 		try {
+			const markup = mode === 'edit' && support.markup && showMarkup && markupHasStrokes ? await markupCanvas?.toFile() : null;
+			if (markup && inputMask) throw new Error("Markup and mask can't be combined.");
+			if (markup && markup.size >= IMAGE_UPLOAD_LIMITS.maxFileSize) throw new Error('Markup must be under 50 MB.');
+
 			const format = outputFormat;
 			const compression = format === 'jpeg' || format === 'webp' ? { output_compression: outputCompression } : {};
 			const shared = {
@@ -347,7 +342,7 @@
 			let result: ImageResult;
 			if (mode === 'edit') {
 				if (format === 'gif' || format === 'svg') throw new Error('GIF and SVG output only work without reference images.');
-				result = await editImage($apiKey, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }), ...(support.markup && inputMarkup && { markup: inputMarkup }) });
+				result = await editImage($apiKey, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }), ...(markup && { markup }) });
 			} else {
 				result = await generateImage($apiKey, {
 					...shared,
@@ -358,16 +353,16 @@
 				});
 			}
 
-			// The usage covers the whole request, so each image gets an equal share.
+			/** The usage covers the whole request, so each image gets an equal share. */
 			const cost = result.usage && usageCostUsd(result.usage) / result.images.length;
 			for (const b64 of result.images) {
-				await addImage(`data:${OUTPUT_FORMAT_OPTIONS[format].mime};base64,${b64}`, {
+				await addImage(`data:${OUTPUT_FORMAT_OPTIONS[format].mime};base64,${format === 'svg' ? sanitizeSvgBase64(b64) : b64}`, {
 					background: selectedBackground,
 					model: selectedModel,
 					output_format: format,
 					prompt,
 					quality: selectedQuality,
-					size: selectedSize,
+					size: result.size ?? selectedSize,
 					...compression,
 					...(support.complexity && { complexity }),
 					...(format === 'gif' && { frame_count: frameCount, frame_duration_ms: frameDurationMs }),
@@ -597,7 +592,7 @@
 									type="number"
 									min={GIF_LIMITS.minFrameDurationMs}
 									max={GIF_LIMITS.maxFrameDurationMs}
-									step="10"
+									step="1"
 									bind:value={frameDurationMs}
 									class="input w-full text-sm"
 									disabled={isGenerating}
@@ -692,9 +687,9 @@
 										accept=".png"
 										class="hidden"
 										onchange={handleMaskUpload}
-										disabled={isGenerating || inputMask !== null || inputMarkup !== null}
+										disabled={isGenerating || inputMask !== null || showMarkup}
 									/>
-									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors {inputMask !== null || inputMarkup !== null ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}">
+									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors {inputMask !== null || showMarkup ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}">
 										<Upload class="h-3.5 w-3.5" />
 										Upload PNG mask
 									</div>
@@ -724,17 +719,14 @@
 								type="button"
 								class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors cursor-pointer"
 								disabled={isGenerating || inputMask !== null}
-								onclick={() => {
-									showMarkup = !showMarkup;
-									if (!showMarkup) inputMarkup = null;
-								}}
+								onclick={() => (showMarkup = !showMarkup)}
 							>
 								<Brush class="h-3.5 w-3.5" />
 								{showMarkup ? 'Discard markup' : 'Draw markup'}
 							</button>
 							{#if showMarkup}
 								<div class="mt-3">
-									<MarkupCanvas image={inputImages[0]} disabled={isGenerating} bind:markup={inputMarkup} />
+									<MarkupCanvas bind:this={markupCanvas} bind:hasStrokes={markupHasStrokes} disabled={isGenerating || inputMask !== null} image={firstReference} />
 								</div>
 							{/if}
 							<p class="text-xs text-gray-600 mt-1">Can't be combined with a mask.</p>

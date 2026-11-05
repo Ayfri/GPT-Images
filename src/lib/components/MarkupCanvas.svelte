@@ -6,17 +6,22 @@
 
 	interface Props {
 		disabled: boolean;
+		hasStrokes?: boolean;
 		image: File;
-		markup: File | null;
 	}
 
-	let { disabled, image, markup = $bindable(null) }: Props = $props();
+	let { disabled, hasStrokes = $bindable(false), image }: Props = $props();
 
 	let color = $state('#ef4444');
 	let size = $state(12);
 	let strokes = $state.raw<Stroke[]>([]);
 	let current: Stroke | null = null;
+	let activePointerId = -1;
 	let ctx: CanvasRenderingContext2D | null = null;
+
+	$effect(() => {
+		hasStrokes = strokes.length > 0;
+	});
 
 	const src = $derived(URL.createObjectURL(image));
 	$effect(() => {
@@ -30,12 +35,10 @@
 		ctx.canvas.width = img.naturalWidth;
 		ctx.canvas.height = img.naturalHeight;
 		strokes = [];
-		markup = null;
 	}
 
 	type CanvasPointerEvent = PointerEvent & { currentTarget: HTMLCanvasElement };
 
-	/** Maps the pointer from displayed pixels to canvas pixels. */
 	function toCanvas({ clientX, clientY, currentTarget: canvas }: CanvasPointerEvent): Point {
 		const rect = canvas.getBoundingClientRect();
 		return { x: ((clientX - rect.left) * canvas.width) / rect.width, y: ((clientY - rect.top) * canvas.height) / rect.height };
@@ -55,37 +58,31 @@
 	}
 
 	function onpointerdown(e: CanvasPointerEvent) {
-		if (disabled || !ctx || e.button !== 0) return;
+		if (disabled || !ctx || current || e.button !== 0) return;
 		const canvas = e.currentTarget;
 		canvas.setPointerCapture(e.pointerId);
+		activePointerId = e.pointerId;
 		current = { color, points: [toCanvas(e)], width: (size * canvas.width) / canvas.getBoundingClientRect().width };
 		paint(current, 0);
 	}
 
 	function onpointermove(e: CanvasPointerEvent) {
-		if (!current) return;
+		if (!current || e.pointerId !== activePointerId) return;
 		current.points.push(toCanvas(e));
 		paint(current, current.points.length - 1);
 	}
 
-	function end() {
-		if (!current) return;
+	function end(e: PointerEvent) {
+		if (!current || e.pointerId !== activePointerId) return;
 		strokes = [...strokes, current];
 		current = null;
-		exportMarkup();
 	}
 
-	/** Out-of-order or late encodes are dropped when the strokes changed in the meantime. */
-	function exportMarkup() {
-		if (!ctx) return;
-		if (!strokes.length) {
-			markup = null;
-			return;
-		}
-		const snapshot = strokes;
-		ctx.canvas.toBlob((blob) => {
-			if (blob && strokes === snapshot) markup = new File([blob], 'markup.png', { type: 'image/png' });
-		}, 'image/png');
+	/** Encoded on demand rather than after each stroke, so a fast submit never sends a stale or missing image. */
+	export function toFile(): Promise<File | null> {
+		const canvas = ctx?.canvas;
+		if (!canvas || !strokes.length) return Promise.resolve(null);
+		return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob && new File([blob], 'markup.png', { type: 'image/png' })), 'image/png'));
 	}
 
 	function undo() {
@@ -93,14 +90,12 @@
 		strokes = strokes.slice(0, -1);
 		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 		for (const stroke of strokes) paint(stroke, 0);
-		exportMarkup();
 	}
 
 	function clear() {
 		if (!ctx) return;
 		strokes = [];
 		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-		markup = null;
 	}
 </script>
 

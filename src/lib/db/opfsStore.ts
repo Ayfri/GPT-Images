@@ -37,7 +37,7 @@ export async function writeMediaFile(id: string, dataUrl: string): Promise<void>
 	if (!isOpfsAvailable()) return;
 	const blob = dataUrlToBlob(dataUrl);
 
-	// Cache an object URL immediately, the next read will be a cache hit.
+	/** The object URL is cached before the OPFS write so the next read is a cache hit. */
 	const existing = objectUrlCache.get(id);
 	if (existing) URL.revokeObjectURL(existing);
 	objectUrlCache.set(id, URL.createObjectURL(blob));
