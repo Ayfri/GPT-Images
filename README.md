@@ -1,11 +1,11 @@
 # GPT Image Generator ✨
 
-[![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev/docs/kit)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-A modern web application built with SvelteKit and Tailwind CSS that allows users to generate stunning images using OpenAI's image generation models.
+A modern web application built with SvelteKit 3 and Tailwind CSS that allows users to generate stunning images using OpenAI's image generation models.
 
 **Website**: [https://gpt-images.ayfri.com](https://gpt-images.ayfri.com)
 
@@ -14,7 +14,7 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 ## Features
 
 *   **AI Image Generation**: Leverages OpenAI's powerful models to create images from text prompts.
-*   **API Key Management**: Securely stores your OpenAI API key in the browser's IndexedDB.
+*   **API Key Management**: Stores your OpenAI API key in the browser's `localStorage` (key `openai-api-key`). The key never leaves your browser except in requests to OpenAI.
 *   **Image Gallery**: Displays previously generated images.
 *   **Regenerate Option**: Easily regenerate an image with the same prompt.
 *   **Usage Statistics**: Tracks usage information (details depend on implementation).
@@ -24,21 +24,22 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 
 ## Tech Stack
 
-*   **Framework**: SvelteKit
+*   **Framework**: SvelteKit 3 (Svelte 5)
 *   **Styling**: Tailwind CSS
 *   **Language**: TypeScript
 *   **AI**: OpenAI API
 *   **Icons**: Lucide Svelte
 *   **Client-side Storage**: IndexedDB (via `idb` library)
-*   **Package Manager**: pnpm
+*   **Package Manager**: Bun
 *   **Build Tool**: Vite
+*   **Hosting**: Cloudflare Workers (`@sveltejs/adapter-cloudflare`, deployed with Wrangler)
 
 ## Getting Started
 
 ### Prerequisites
 
-*   Node.js (v18 or higher recommended)
-*   pnpm (Install using `npm install -g pnpm`)
+*   Node.js (v22.17 or higher)
+*   Bun (see [bun.sh](https://bun.sh/))
 *   An OpenAI API Key (Get one from [OpenAI Platform](https://platform.openai.com/))
 
 ### Installation & Setup
@@ -51,21 +52,15 @@ A modern web application built with SvelteKit and Tailwind CSS that allows users
 
 2.  **Install dependencies:**
     ```bash
-    pnpm install
+    bun install
     ```
 
-3.  **Environment Variables (Optional):**
-    If the application requires environment variables (e.g., for a backend API key if implemented differently), create a `.env` file in the root directory based on `.env.example` (if provided).
-    ```
-    # Example .env file content
-    OPENAI_API_KEY="your_secret_key_here" # Usually handled client-side in this setup
-    ```
-    *Note: In the current setup, the API key seems to be managed client-side via the UI and stored in IndexedDB. Be mindful of security implications when handling API keys.*
+The application reads no environment variables. The API key is entered in the UI and stored in the browser's `localStorage`. Be mindful of security implications when handling API keys.
 
 ### Running the Development Server
 
 ```bash
-pnpm run dev
+bun run dev
 ```
 
 This command starts a local development server. Open your browser and navigate to `http://localhost:5173` (or the port specified in the output).
@@ -75,51 +70,53 @@ Enter your OpenAI API key in the application's UI to start generating images.
 ### Building for Production
 
 ```bash
-pnpm run build
+bun run build
 ```
 
-This command creates an optimized production build of your application in the `build` directory (or as configured in `svelte.config.js`).
+This command creates an optimized production build in the `.svelte-kit/cloudflare` directory, which `wrangler.jsonc` points to for the Worker and its static assets. Deploy it with `bunx wrangler deploy`.
 
 ### Previewing the Production Build
 
 ```bash
-pnpm run preview
+bun run preview
 ```
 
 This command starts a local server to preview the production build.
+
+### Type Checking
+
+```bash
+bun run check
+```
 
 ## Project Structure
 
 ```
 gpt-images/
 ├── .svelte-kit/      # SvelteKit build artifacts (generated)
-├── node_modules/     # Project dependencies (managed by pnpm)
-├── public/           # Static assets (favicon, images, etc.)
+├── node_modules/     # Project dependencies (managed by Bun)
 ├── src/
-│   ├── app.css       # Global CSS styles
+│   ├── app.css       # Global CSS styles and Tailwind CSS 4 configuration
 │   ├── app.html      # HTML template shell
 │   ├── assets/       # Static assets imported by modules
-│   ├── lib/          # Application library (components, utils, etc.)
+│   ├── lib/          # Application library, imported as `#lib/...`
 │   │   ├── components/ # Reusable Svelte components
 │   │   ├── db/         # Database interaction (IndexedDB)
 │   │   ├── services/   # API interactions (OpenAI)
 │   │   ├── stores/     # Svelte stores
+│   │   ├── types/      # Shared types and model definitions
 │   │   └── utils/      # Utility functions
-│   ├── routes/       # Application pages and endpoints
-│   │   ├── +layout.svelte # Root layout component
-│   │   └── +page.svelte   # Main page component
-│   └── ...           # Other SvelteKit files (hooks, service-worker)
+│   └── routes/       # Application pages
+│       ├── +layout.svelte # Root layout component
+│       └── +page.svelte   # Main page component
+├── static/           # Static assets served as-is (logo, robots.txt, screenshot)
 ├── .gitignore        # Files/folders ignored by Git
-├── package.json      # Project metadata and dependencies
-├── pnpm-lock.yaml    # Exact dependency versions
-├── pnpm-workspace.yaml # pnpm workspace configuration
-├── postcss.config.js # PostCSS configuration
+├── bun.lock          # Exact dependency versions
+├── package.json      # Project metadata, dependencies and `#lib` import map
 ├── README.md         # This file
-├── svelte.config.js  # SvelteKit configuration
-├── tailwind.config.js# Tailwind CSS configuration
 ├── tsconfig.json     # TypeScript configuration
-├── tsconfig.node.json# TypeScript configuration for Node.js parts
-└── vite.config.ts    # Vite configuration
+├── vite.config.ts    # Vite and SvelteKit configuration (adapter included)
+└── wrangler.jsonc    # Cloudflare Workers configuration
 ```
 
 ## Contributing
