@@ -2,9 +2,14 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "gpt-images",
 	"main": ".svelte-kit/cloudflare/_worker.js",
-	// nodejs_compat is enabled by default for compatibility dates from 2026-08-04, so the flag is not listed.
+	/** nodejs_compat is enabled by default for compatibility dates from 2026-08-04, so the flag is not listed. */
 	"compatibility_date": "2026-11-04",
 	"workers_dev": true,
-	"observability": { "enabled": true },
+	"observability": {
+		"enabled": true,
+		"logs": { "enabled": true },
+		"traces": { "enabled": true },
+		"issues": { "enabled": true }
+	},
 	"assets": { "binding": "ASSETS", "directory": ".svelte-kit/cloudflare" }
 }
