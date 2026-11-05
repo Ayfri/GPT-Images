@@ -25,7 +25,7 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 *   **Usage Statistics**: Shows the total spent, using the real cost computed from the API usage for each image (estimate for older images), plus a table of estimated prices.
 *   **Responsive Design**: Adapts beautifully to different screen sizes thanks to Tailwind CSS.
 *   **Modern UI**: Clean and intuitive user interface built with Svelte.
-*   **SEO Optimized**: Includes comprehensive meta tags and Open Graph properties for better search engine visibility and social sharing.
+*   **Link Previews**: Includes a description, a canonical URL and Open Graph tags for search engines and social sharing.
 
 ## Tech Stack
 
@@ -103,12 +103,11 @@ gpt-images/
 ├── src/
 │   ├── app.css       # Global CSS styles and Tailwind CSS 4 configuration
 │   ├── app.html      # HTML template shell
-│   ├── assets/       # Static assets imported by modules
 │   ├── lib/          # Application library, imported as `#lib/...`
 │   │   ├── components/ # Reusable Svelte components
 │   │   ├── db/         # Image metadata (IndexedDB), image files (OPFS) and storage migrations
 │   │   ├── services/   # API interactions (OpenAI)
-│   │   ├── stores/     # Svelte stores
+│   │   ├── stores/     # Runes state classes (gallery, API key)
 │   │   ├── types/      # Shared types and model definitions
 │   │   └── utils/      # Utility functions
 │   └── routes/       # Application pages

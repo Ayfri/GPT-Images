@@ -39,7 +39,7 @@
 				type={showApiKey ? 'text' : 'password'}
 				bind:value={keyInput}
 				placeholder="sk-..."
-				class="input w-full pr-10 font-mono text-xs"
+				class="input pr-10 font-mono text-xs"
 			/>
 			<button
 				aria-label={showApiKey ? 'Hide API key' : 'Show API key'}

@@ -106,7 +106,7 @@
 			max="64"
 			bind:value={size}
 			{disabled}
-			class="w-28 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+			class="range w-28"
 		/>
 		<span class="w-6 text-gray-400">{size}</span>
 		<button type="button" class="flex items-center gap-1.5 px-2.5 py-1 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm text-gray-200 transition-colors" onclick={undo} disabled={disabled || !strokes.length}>

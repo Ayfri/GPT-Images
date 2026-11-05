@@ -1,17 +1,7 @@
 {
 	"extends": "$app/tsconfig",
 	"compilerOptions": {
-		"lib": [
-			"ES2024",
-			"DOM",
-			"DOM.Iterable",
-			"DOM.AsyncIterable"
-		],
 		"noFallthroughCasesInSwitch": true,
 		"strict": true
-	},
-	"include": [
-		"src",
-		"*"
-	]
+	}
 }

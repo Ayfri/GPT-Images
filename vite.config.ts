@@ -9,8 +9,5 @@ export default defineConfig({
 		sveltekit({
 			adapter: adapter()
 		})
-	],
-	build: {
-		sourcemap: true
-	}
+	]
 });

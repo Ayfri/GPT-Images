@@ -68,9 +68,7 @@
 				<select
 					bind:value={sortField}
 					class="appearance-none cursor-pointer rounded bg-dark-100 pr-1 text-sm text-gray-200 focus:outline-none"
-					id="sort-by-images"
-					style="color-scheme: dark"
-				>
+					id="sort-by-images"				>
 					<option value="timestamp">Date</option>
 					<option value="price">Price</option>
 					<option value="prompt">Prompt</option>

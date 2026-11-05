@@ -238,7 +238,7 @@
 			/** The usage covers the whole request, so each image gets an equal share. */
 			const cost = result.usage && usageCostUsd(result.usage) / result.images.length;
 			const blobs = result.images.map((b64) => new Blob(
-				[Uint8Array.from(atob(format === 'svg' ? sanitizeSvgBase64(b64) : b64), (c) => c.charCodeAt(0))],
+				[Uint8Array.fromBase64(format === 'svg' ? sanitizeSvgBase64(b64) : b64)],
 				{ type: OUTPUT_FORMAT_OPTIONS[format].mime }
 			));
 			await gallery.add(blobs, {
@@ -297,7 +297,7 @@
 					placeholder={inputImages.length > 0
 						? 'Describe what to generate using these references - style, subject, composition…'
 						: 'Describe the image you want to create…'}
-					class="input w-full resize-none leading-relaxed pb-8"
+					class="input resize-none leading-relaxed pb-8"
 					disabled={isGenerating}
 					aria-describedby="prompt-char-count"
 				></textarea>
@@ -312,7 +312,7 @@
 
 		<div>
 			<div class="flex items-center justify-between mb-2">
-				<label class="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5" for="image-upload">
+				<label class="field-label flex items-center gap-1.5" for="image-upload">
 					<ImagePlus class="h-3.5 w-3.5" />
 					Reference images
 					<span class="text-gray-700 font-normal normal-case tracking-normal">(optional)</span>
@@ -334,24 +334,24 @@
 
 		<div class="grid grid-cols-3 gap-3">
 			<div>
-				<label for="model" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Model</label>
-				<select id="model" bind:value={opts.selectedModel} class="input w-full text-sm" disabled={isGenerating}>
+				<label for="model" class="field-label block mb-1.5">Model</label>
+				<select id="model" bind:value={opts.selectedModel} class="input" disabled={isGenerating}>
 					{#each Object.entries(MODEL_OPTIONS) as [key, option] (key)}
 						<option value={key}>{option.label}</option>
 					{/each}
 				</select>
 			</div>
 			<div>
-				<label for="quality" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Quality</label>
-				<select id="quality" bind:value={() => quality, (value) => (opts.selectedQuality = value)} class="input w-full text-sm" disabled={isGenerating}>
+				<label for="quality" class="field-label block mb-1.5">Quality</label>
+				<select id="quality" bind:value={() => quality, (value) => (opts.selectedQuality = value)} class="input" disabled={isGenerating}>
 					{#each support.qualities as key (key)}
 						<option value={key}>{QUALITY_OPTIONS[key].label}</option>
 					{/each}
 				</select>
 			</div>
 			<div>
-				<label for="size" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Size</label>
-				<select id="size" bind:value={() => size, (value) => (opts.selectedSize = value)} class="input w-full text-sm" disabled={isGenerating}>
+				<label for="size" class="field-label block mb-1.5">Size</label>
+				<select id="size" bind:value={() => size, (value) => (opts.selectedSize = value)} class="input" disabled={isGenerating}>
 					{#each availableSizes as key (key)}
 						<option value={key}>{SIZE_OPTIONS[key].label}</option>
 					{/each}
@@ -360,7 +360,7 @@
 		</div>
 
 		<div class="flex items-center gap-3">
-			<label for="imageCount" class="text-xs font-medium text-gray-500 uppercase tracking-wider shrink-0 w-20">
+			<label for="imageCount" class="field-label shrink-0 w-20">
 				Count
 			</label>
 			<input
@@ -369,7 +369,7 @@
 				min="1"
 				max="10"
 				bind:value={opts.imageCount}
-				class="flex-1 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+				class="range flex-1"
 				disabled={isGenerating || format === 'svg'}
 			/>
 			<span class="text-sm font-medium text-gray-300 w-5 text-right">{effectiveCount}</span>
@@ -394,10 +394,10 @@
 				<div class="mt-4 space-y-4 pl-4 border-l border-gray-700/60" in:fly={{ y: -6, duration: 180 }}>
 					<div class="grid grid-cols-2 gap-4">
 						<div>
-							<label for="outputFormat" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+							<label for="outputFormat" class="field-label block mb-1.5">
 								Output Format
 							</label>
-							<select id="outputFormat" bind:value={() => format, (value) => (opts.outputFormat = value)} class="input w-full text-sm" disabled={isGenerating}>
+							<select id="outputFormat" bind:value={() => format, (value) => (opts.outputFormat = value)} class="input" disabled={isGenerating}>
 								{#each Object.entries(OUTPUT_FORMAT_OPTIONS) as [key, option] (key)}
 									<option value={key} disabled={(key === 'gif' && !gifAllowed) || (key === 'svg' && !svgAllowed) || (key === 'jpeg' && opts.selectedBackground === 'transparent')}>{option.label}</option>
 								{/each}
@@ -406,10 +406,10 @@
 						</div>
 						{#if support.complexity}
 							<div>
-								<label for="complexity" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+								<label for="complexity" class="field-label block mb-1.5">
 									Complexity
 								</label>
-								<select id="complexity" bind:value={opts.complexity} class="input w-full text-sm" disabled={isGenerating}>
+								<select id="complexity" bind:value={opts.complexity} class="input" disabled={isGenerating}>
 									{#each Object.entries(COMPLEXITY_OPTIONS) as [key, option] (key)}
 										<option value={key}>{option.label}</option>
 									{/each}
@@ -423,7 +423,7 @@
 						<div class="grid grid-cols-2 gap-4">
 							<div>
 								<div class="flex items-center justify-between mb-1.5">
-									<label for="frameCount" class="text-xs font-medium text-gray-500 uppercase tracking-wider">
+									<label for="frameCount" class="field-label">
 										Frames
 									</label>
 									<span class="text-xs text-gray-400">{opts.frameCount}</span>
@@ -434,12 +434,12 @@
 									min={GIF_LIMITS.minFrameCount}
 									max={GIF_LIMITS.maxFrameCount}
 									bind:value={opts.frameCount}
-									class="w-full h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+									class="range w-full"
 									disabled={isGenerating}
 								/>
 							</div>
 							<div>
-								<label for="frameDuration" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+								<label for="frameDuration" class="field-label block mb-1.5">
 									Frame duration (ms)
 								</label>
 								<input
@@ -449,7 +449,7 @@
 									max={GIF_LIMITS.maxFrameDurationMs}
 									step="1"
 									bind:value={opts.frameDurationMs}
-									class="input w-full text-sm"
+									class="input"
 									disabled={isGenerating}
 								/>
 							</div>
@@ -460,20 +460,20 @@
 					{#if format === 'svg'}
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label for="svgModel" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+								<label for="svgModel" class="field-label block mb-1.5">
 									SVG author
 								</label>
-								<select id="svgModel" bind:value={opts.svgModel} class="input w-full text-sm" disabled={isGenerating}>
+								<select id="svgModel" bind:value={opts.svgModel} class="input" disabled={isGenerating}>
 									{#each Object.entries(SVG_AUTHOR_MODEL_OPTIONS) as [key, option] (key)}
 										<option value={key}>{option.label}</option>
 									{/each}
 								</select>
 							</div>
 							<div>
-								<label for="svgEffort" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+								<label for="svgEffort" class="field-label block mb-1.5">
 									Author effort
 								</label>
-								<select id="svgEffort" bind:value={opts.svgEffort} class="input w-full text-sm" disabled={isGenerating}>
+								<select id="svgEffort" bind:value={opts.svgEffort} class="input" disabled={isGenerating}>
 									{#each Object.entries(SVG_EFFORT_OPTIONS) as [key, option] (key)}
 										<option value={key}>{option.label}</option>
 									{/each}
@@ -485,10 +485,10 @@
 
 					{#if mode === 'generate'}
 						<div>
-							<label for="moderation" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+							<label for="moderation" class="field-label block mb-1.5">
 								Moderation
 							</label>
-							<select id="moderation" bind:value={opts.selectedModeration} class="input w-full text-sm" disabled={isGenerating}>
+							<select id="moderation" bind:value={opts.selectedModeration} class="input" disabled={isGenerating}>
 								{#each Object.entries(MODERATION_OPTIONS) as [key, option] (key)}
 									<option value={key}>{option.label}</option>
 								{/each}
@@ -498,10 +498,10 @@
 					{/if}
 
 					<div>
-						<label for="background" class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">
+						<label for="background" class="field-label block mb-1.5">
 							Background
 						</label>
-						<select id="background" bind:value={opts.selectedBackground} class="input w-full text-sm" disabled={isGenerating}>
+						<select id="background" bind:value={opts.selectedBackground} class="input" disabled={isGenerating}>
 							{#each Object.entries(BACKGROUND_OPTIONS) as [key, option] (key)}
 								<option value={key}>{option.label}</option>
 							{/each}
@@ -512,7 +512,7 @@
 					{#if format === 'jpeg' || format === 'webp'}
 						<div>
 							<div class="flex items-center justify-between mb-1.5">
-								<label for="outputCompression" class="text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<label for="outputCompression" class="field-label">
 									Compression
 								</label>
 								<span class="text-xs text-gray-400">{opts.outputCompression}%</span>
@@ -523,7 +523,7 @@
 								min="0"
 								max="100"
 								bind:value={opts.outputCompression}
-								class="w-full h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-purple-500"
+								class="range w-full"
 								disabled={isGenerating}
 							/>
 						</div>
@@ -531,7 +531,7 @@
 
 					{#if mode === 'edit'}
 						<div>
-							<label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider" for="mask-upload">
+							<label class="field-label block mb-1.5" for="mask-upload">
 								Mask (Optional)
 							</label>
 							<div class="flex items-center gap-3">
@@ -569,7 +569,7 @@
 
 					{#if markupAllowed}
 						<div>
-							<span class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Markup (Optional)</span>
+							<span class="field-label block mb-1.5">Markup (Optional)</span>
 							<button
 								type="button"
 								class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors cursor-pointer"
