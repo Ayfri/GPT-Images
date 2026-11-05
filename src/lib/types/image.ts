@@ -257,16 +257,18 @@ const EXTENDED_QUALITIES = ['low', 'medium', 'high', 'xhigh', 'max', 'auto'] as 
 interface ModelSupport {
 	complexity: boolean;
 	gif: boolean;
+	markup: boolean;
 	qualities: readonly ImageQuality[];
 	svg: boolean;
 }
 
+/** markup is documented for 2.5 and verified on 2.6, gpt-image-2 is untested. */
 export const MODEL_SUPPORT: Record<ImageModel, ModelSupport> = {
-	'gpt-image-2': { complexity: false, gif: false, qualities: BASE_QUALITIES, svg: false },
-	'gpt-image-2.5-flare': { complexity: false, gif: false, qualities: EXTENDED_QUALITIES, svg: false },
-	'gpt-image-2.5-sunburst': { complexity: false, gif: false, qualities: EXTENDED_QUALITIES, svg: false },
-	'gpt-image-2.6-flare': { complexity: true, gif: true, qualities: EXTENDED_QUALITIES, svg: true },
-	'gpt-image-2.6-sunburst': { complexity: true, gif: true, qualities: EXTENDED_QUALITIES, svg: true }
+	'gpt-image-2': { complexity: false, gif: false, markup: false, qualities: BASE_QUALITIES, svg: false },
+	'gpt-image-2.5-flare': { complexity: false, gif: false, markup: true, qualities: EXTENDED_QUALITIES, svg: false },
+	'gpt-image-2.5-sunburst': { complexity: false, gif: false, markup: true, qualities: EXTENDED_QUALITIES, svg: false },
+	'gpt-image-2.6-flare': { complexity: true, gif: true, markup: true, qualities: EXTENDED_QUALITIES, svg: true },
+	'gpt-image-2.6-sunburst': { complexity: true, gif: true, markup: true, qualities: EXTENDED_QUALITIES, svg: true }
 };
 
 export const isSelectableModel = (model: string): model is ImageModel => Object.hasOwn(MODEL_SUPPORT, model);

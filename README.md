@@ -16,6 +16,7 @@ A modern web application built with SvelteKit 3 and Tailwind CSS that allows use
 *   **AI Image Generation**: Creates images from text prompts with `gpt-image-2`, GPT Image 2.5 Flare and Sunburst, and GPT Image 2.6 Flare and Sunburst (default: 2.6 Flare). Quality goes up to `xhigh` and `max` on 2.5 and 2.6, and 2.6 adds a complexity setting.
 *   **Output Formats**: PNG, JPEG and WebP, plus animated GIF (2 to 16 frames, 512 or 768 squares) and SVG (a vector image authored by a text model) on GPT Image 2.6.
 *   **Image Editing**: Edits with up to 16 reference images and an optional mask.
+*   **Markup Edits**: Draw on the first reference image (brush color and size, undo, clear) to guide the edit with GPT Image 2.5 and 2.6. Can't be combined with a mask.
 *   **API Key Management**: Stores your OpenAI API key in the browser's `localStorage` (key `openai-api-key`). The key never leaves your browser except in requests to OpenAI.
 *   **Image Gallery**: Displays previously generated images.
 *   **Regenerate Option**: Easily regenerate an image with the same prompt.

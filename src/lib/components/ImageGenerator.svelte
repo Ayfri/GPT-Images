@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, ClipboardPaste } from '@lucide/svelte';
+	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, ClipboardPaste, Brush } from '@lucide/svelte';
 	import { apiKey } from '#lib/stores/apiKeyStore.ts';
 	import { addImage } from '#lib/db/imageStore.ts';
 	import { refreshImageStore } from '#lib/stores/imageStore.ts';
@@ -31,6 +31,7 @@
 	} from '#lib/types/image.ts';
 	import { browser } from '$app/env';
 	import ImageUploadZone from './ImageUploadZone.svelte';
+	import MarkupCanvas from './MarkupCanvas.svelte';
 
 	// Storage keys
 	const FORM_OPTIONS_KEY = 'image-generator-options';
@@ -96,6 +97,8 @@
 	let imagePreviews: string[] = $state([]);
 	let inputMask: File | null = $state(null);
 	let maskPreview: string | null = $state(null);
+	let inputMarkup: File | null = $state(null);
+	let showMarkup = $state(false);
 	let pasteFlash = $state(false);
 
 	// Mode is auto-derived: if images are attached → edit/compose, otherwise → pure generation
@@ -122,6 +125,10 @@
 		if (!support.qualities.includes(selectedQuality)) selectedQuality = 'high';
 		if ((outputFormat === 'gif' && !gifAllowed) || (outputFormat === 'svg' && !svgAllowed)) outputFormat = 'png';
 		if (!availableSizes.includes(selectedSize)) selectedSize = 'auto';
+		if (mode === 'generate' || !support.markup) {
+			showMarkup = false;
+			inputMarkup = null;
+		}
 	});
 	let displayPrice = $derived(outputFormat === 'gif' || outputFormat === 'svg' ? null : getImagePrice(selectedModel, selectedQuality, selectedSize));
 
@@ -310,6 +317,16 @@
 			return;
 		}
 
+		if (inputMask && inputMarkup) {
+			error = "Markup and mask can't be combined.";
+			return;
+		}
+
+		if (inputMarkup && inputMarkup.size >= IMAGE_UPLOAD_LIMITS.maxFileSize) {
+			error = 'Markup must be under 50 MB.';
+			return;
+		}
+
 		isGenerating = true;
 		error = null;
 
@@ -330,7 +347,7 @@
 			let result: ImageResult;
 			if (mode === 'edit') {
 				if (format === 'gif' || format === 'svg') throw new Error('GIF and SVG output only work without reference images.');
-				result = await editImage($apiKey, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }) });
+				result = await editImage($apiKey, { ...shared, image: inputImages, output_format: format, ...(inputMask && { mask: inputMask }), ...(support.markup && inputMarkup && { markup: inputMarkup }) });
 			} else {
 				result = await generateImage($apiKey, {
 					...shared,
@@ -675,9 +692,9 @@
 										accept=".png"
 										class="hidden"
 										onchange={handleMaskUpload}
-										disabled={isGenerating || inputMask !== null}
+										disabled={isGenerating || inputMask !== null || inputMarkup !== null}
 									/>
-									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors {inputMask !== null ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}">
+									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors {inputMask !== null || inputMarkup !== null ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}">
 										<Upload class="h-3.5 w-3.5" />
 										Upload PNG mask
 									</div>
@@ -697,6 +714,30 @@
 								{/if}
 							</div>
 							<p class="text-xs text-gray-600 mt-1">PNG only, max 4 MB. Controls editable regions on the first image.</p>
+						</div>
+					{/if}
+
+					{#if mode === 'edit' && support.markup}
+						<div>
+							<span class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wider">Markup (Optional)</span>
+							<button
+								type="button"
+								class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm transition-colors cursor-pointer"
+								disabled={isGenerating || inputMask !== null}
+								onclick={() => {
+									showMarkup = !showMarkup;
+									if (!showMarkup) inputMarkup = null;
+								}}
+							>
+								<Brush class="h-3.5 w-3.5" />
+								{showMarkup ? 'Discard markup' : 'Draw markup'}
+							</button>
+							{#if showMarkup}
+								<div class="mt-3">
+									<MarkupCanvas image={inputImages[0]} disabled={isGenerating} bind:markup={inputMarkup} />
+								</div>
+							{/if}
+							<p class="text-xs text-gray-600 mt-1">Can't be combined with a mask.</p>
 						</div>
 					{/if}
 				</div>
