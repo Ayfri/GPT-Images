@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { ChartColumn, Coins } from '@lucide/svelte';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
-	import { MODEL_OPTIONS, MODEL_SUPPORT, PRICED_SIZE_OPTIONS, getImagePrice } from '#lib/types/image.ts';
-	import type { ImageQuality } from '#lib/types/image.ts';
+	import { MODEL_OPTIONS, MODEL_SUPPORT, PRICED_SIZES, getImagePrice } from '#lib/types/image.ts';
+	import type { ImageModel } from '#lib/types/image.ts';
 
-	const models = Object.entries(MODEL_OPTIONS) as [keyof typeof MODEL_OPTIONS, { label: string }][];
-	const qualitiesFor = (model: keyof typeof MODEL_OPTIONS): ImageQuality[] =>
-		MODEL_SUPPORT[model].qualities.filter((quality) => quality !== 'auto');
-	const sizes = Object.keys(PRICED_SIZE_OPTIONS) as (keyof typeof PRICED_SIZE_OPTIONS)[];
+	const models = Object.keys(MODEL_OPTIONS) as ImageModel[];
 </script>
 
 <div class="glass-panel p-5 rounded-2xl">
@@ -19,7 +16,6 @@
 	</div>
 
 	<div class="space-y-4">
-		<!-- Stats row -->
 		<div class="grid grid-cols-2 gap-3">
 			<div class="rounded-xl bg-white/3 border border-white/6 p-3.5">
 				<div class="text-xs text-gray-500 mb-1.5">Images generated</div>
@@ -31,7 +27,6 @@
 			</div>
 		</div>
 
-		<!-- Pricing table -->
 		<div class="rounded-xl bg-white/3 border border-white/6 p-4">
 			<div class="flex items-center gap-2 mb-4">
 				<Coins class="h-3.5 w-3.5 text-warning-400" />
@@ -39,27 +34,25 @@
 			</div>
 
 			<div class="space-y-5">
-				{#each models as [modelKey, model]}
+				{#each models as model (model)}
 					<div class="space-y-2">
-						<div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">{model.label}</div>
-						<!-- Header row -->
+						<div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">{MODEL_OPTIONS[model].label}</div>
 						<div class="grid grid-cols-4 gap-1 text-[10px] text-gray-600 uppercase tracking-wider mb-1">
 							<div></div>
-							{#each sizes as size}
-								<div class="text-center">{PRICED_SIZE_OPTIONS[size].label}</div>
+							{#each PRICED_SIZES as size (size)}
+								<div class="text-center">{size.replace('x', '×')}</div>
 							{/each}
 						</div>
-						<!-- Data rows -->
-						{#each qualitiesFor(modelKey) as quality}
+						{#each MODEL_SUPPORT[model].qualities.filter((quality) => quality !== 'auto') as quality (quality)}
 							<div class="grid grid-cols-4 gap-1">
 								<div class="text-xs text-gray-500 flex items-center capitalize">{quality}</div>
-								{#each sizes as size}
-									{@const price = getImagePrice(modelKey, quality, size)}
+								{#each PRICED_SIZES as size (size)}
+									{@const price = getImagePrice(model, quality, size)}
 									<div class="rounded-lg bg-dark-300/60 border border-white/4 p-1.5 text-center">
 										{#if price !== null}
 											<span class="text-xs font-semibold text-gray-200">${price.toFixed(3)}</span>
 										{:else}
-											<span class="text-xs font-semibold text-gray-500">—</span>
+											<span class="text-xs font-semibold text-gray-500">-</span>
 										{/if}
 									</div>
 								{/each}

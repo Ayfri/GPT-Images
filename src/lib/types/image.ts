@@ -1,9 +1,8 @@
-// Common types for image generation and editing
 import type { ImagesResponse } from 'openai/resources/images';
 
 export type ImageModel = 'gpt-image-2' | 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2.6-flare' | 'gpt-image-2.6-sunburst';
 /** No longer offered: gpt-image-1 is shut down, gpt-image-1-mini and gpt-image-1.5 retire on 2026-12-01. History records keep them for display and pricing. */
-export type LegacyImageModel = 'gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5';
+type LegacyImageModel ='gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5';
 export type StoredImageModel = ImageModel | LegacyImageModel;
 export type ImageQuality = 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'auto';
 export type ImageSize =
@@ -19,29 +18,26 @@ export type ImageSize =
 	| '2160x3840';
 /** The API returns the real size, which can fall outside the sizes offered (e.g. `512x512` for `auto` GIFs). */
 export type StoredImageSize = ImageSize | (string & {});
-export type PricedImageSize = '1024x1024' | '1024x1536' | '1536x1024';
 export type ImageComplexity = 'low' | 'medium' | 'high';
 export type InputFidelity = 'low' | 'high';
 export type OutputFormat = 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
-export type SvgAuthorModel = 'gpt-5.4-nano' | 'gpt-5.4-mini' | 'gpt-5.5';
+export type SvgAuthorModel = 'gpt-6-luna' | 'gpt-6.1-terra' | 'gpt-6.1-sol';
 export type SvgEffort = 'default' | 'low' | 'medium' | 'high';
 export type ImageBackground = 'transparent' | 'opaque' | 'auto';
 export type ImageModeration = 'auto' | 'low';
 
 export const DEFAULT_IMAGE_MODEL: ImageModel = 'gpt-image-2.6-flare';
 
-/**
- * OpenAI Images API: max `prompt` length in characters.
- */
+/** OpenAI Images API: max `prompt` length in characters. */
 export const GPT_IMAGE_MODEL_PROMPT_MAX_CHARS = 32_000;
 
 export const MODEL_OPTIONS = {
-	'gpt-image-2': { description: 'Highest quality with flexible sizing', label: 'GPT Image 2' },
-	'gpt-image-2.5-flare': { description: 'Fast everyday generation, up to 50% lower latency', label: 'GPT Image 2.5 Flare' },
-	'gpt-image-2.5-sunburst': { description: 'Premium detail and precise edits', label: 'GPT Image 2.5 Sunburst' },
-	'gpt-image-2.6-flare': { description: 'Flare variant of GPT Image 2.6', label: 'GPT Image 2.6 Flare' },
-	'gpt-image-2.6-sunburst': { description: 'Sunburst variant of GPT Image 2.6', label: 'GPT Image 2.6 Sunburst' }
-} as const satisfies Record<ImageModel, { description: string; label: string }>;
+	'gpt-image-2': { label: 'GPT Image 2' },
+	'gpt-image-2.5-flare': { label: 'GPT Image 2.5 Flare' },
+	'gpt-image-2.5-sunburst': { label: 'GPT Image 2.5 Sunburst' },
+	'gpt-image-2.6-flare': { label: 'GPT Image 2.6 Flare' },
+	'gpt-image-2.6-sunburst': { label: 'GPT Image 2.6 Sunburst' }
+} as const satisfies Record<ImageModel, { label: string }>;
 
 export const QUALITY_OPTIONS = {
 	low: { label: 'Low' },
@@ -50,7 +46,7 @@ export const QUALITY_OPTIONS = {
 	xhigh: { label: 'Extra High' },
 	max: { label: 'Max' },
 	auto: { label: 'Auto' }
-} as const;
+} as const satisfies Record<ImageQuality, { label: string }>;
 
 export const SIZE_OPTIONS = {
 	auto: { label: 'Auto' },
@@ -73,11 +69,7 @@ export const GIF_SIZES: readonly ImageSize[] = ['auto', '512x512', '768x768'];
 /** 17 frames and 10 ms are rejected by the live API, the SDK only documents the 655,350 ms cap. */
 export const GIF_LIMITS = { defaultFrameCount: 9, defaultFrameDurationMs: 200, maxFrameCount: 16, maxFrameDurationMs: 655_350, minFrameCount: 2, minFrameDurationMs: 20 } as const;
 
-export const PRICED_SIZE_OPTIONS: Record<PricedImageSize, { label: string }> = {
-	'1024x1024': { label: '1024×1024' },
-	'1024x1536': { label: '1024×1536' },
-	'1536x1024': { label: '1536×1024' }
-} as const;
+export const PRICED_SIZES = ['1024x1024', '1024x1536', '1536x1024'] as const satisfies readonly ImageSize[];
 
 export const COMPLEXITY_OPTIONS = {
 	low: { label: 'Low' },
@@ -94,9 +86,10 @@ export const OUTPUT_FORMAT_OPTIONS = {
 } as const satisfies Record<OutputFormat, { description: string; label: string; mime: string }>;
 
 export const SVG_AUTHOR_MODEL_OPTIONS = {
-	'gpt-5.4-nano': { label: 'GPT-5.4 Nano' },
-	'gpt-5.4-mini': { label: 'GPT-5.4 Mini' },
-	'gpt-5.5': { label: 'GPT-5.5' }
+	/** GPT-6 authors are verified on the API (2026-11-05), gpt-5.4-nano shuts down on 2027-04-01 with gpt-6-luna as its replacement. */
+	'gpt-6-luna': { label: 'GPT-6 Luna' },
+	'gpt-6.1-terra': { label: 'GPT-6.1 Terra' },
+	'gpt-6.1-sol': { label: 'GPT-6.1 Sol' }
 } as const satisfies Record<SvgAuthorModel, { label: string }>;
 
 export const SVG_EFFORT_OPTIONS = {
@@ -110,19 +103,28 @@ export const BACKGROUND_OPTIONS = {
 	auto: { label: 'Auto', description: 'Model automatically determines the best background' },
 	opaque: { label: 'Opaque', description: 'Ensures a solid background' },
 	transparent: { label: 'Transparent', description: 'Generates image with transparent background (PNG/WebP only)' }
-} as const;
+} as const satisfies Record<ImageBackground, { description: string; label: string }>;
 
 export const MODERATION_OPTIONS = {
 	auto: { label: 'Auto', description: 'Standard filtering' },
 	low: { label: 'Low', description: 'Less restrictive filtering' }
-} as const;
+} as const satisfies Record<ImageModeration, { description: string; label: string }>;
 
 type PaidImageQuality = Exclude<ImageQuality, 'auto'>;
 
-// Per-image pricing from developers.openai.com; token-priced models follow $/image-output-token rules.
-// Columns: 1024×1024 | 1024×1536 (portrait) | 1536×1024 (landscape)
 type PricingByQuality = Partial<Record<ImageQuality, Partial<Record<string, number>>>>;
-export const PRICING: Record<StoredImageModel, PricingByQuality> = {
+
+/** GPT Image 2.5 keeps GPT Image 2 token rates but respreads them over six tiers: its high costs what 2 charged at medium, its max what 2 charged at high. */
+const GPT_IMAGE_2_5_PRICING: PricingByQuality = {
+	high: { '1024x1024': 0.053, '1024x1536': 0.041, '1536x1024': 0.041 },
+	low: { '1024x1024': 0.006, '1024x1536': 0.005, '1536x1024': 0.005 },
+	max: { '1024x1024': 0.211, '1024x1536': 0.165, '1536x1024': 0.165 },
+	medium: { '1024x1024': 0.013, '1024x1536': 0.01, '1536x1024': 0.01 },
+	xhigh: { '1024x1024': 0.094, '1024x1536': 0.073, '1536x1024': 0.073 },
+};
+
+/** Per-image prices in USD from developers.openai.com, by size: 1024x1024, 1024x1536 (portrait) and 1536x1024 (landscape). */
+const PRICING: Record<StoredImageModel, PricingByQuality> = {
 	'gpt-image-1': {
 		high: { '1024x1024': 0.167, '1024x1536': 0.25, '1536x1024': 0.25 },
 		low: { '1024x1024': 0.011, '1024x1536': 0.016, '1536x1024': 0.016 },
@@ -143,31 +145,18 @@ export const PRICING: Record<StoredImageModel, PricingByQuality> = {
 		low: { '1024x1024': 0.006, '1024x1536': 0.005, '1536x1024': 0.005 },
 		medium: { '1024x1024': 0.053, '1024x1536': 0.041, '1536x1024': 0.041 },
 	},
-	// GPT Image 2.5 keeps GPT Image 2 token rates but respreads them over six tiers: its high costs what 2 charged at medium, its max what 2 charged at high.
-	'gpt-image-2.5-flare': {
-		high: { '1024x1024': 0.053, '1024x1536': 0.041, '1536x1024': 0.041 },
-		low: { '1024x1024': 0.006, '1024x1536': 0.005, '1536x1024': 0.005 },
-		max: { '1024x1024': 0.211, '1024x1536': 0.165, '1536x1024': 0.165 },
-		medium: { '1024x1024': 0.013, '1024x1536': 0.01, '1536x1024': 0.01 },
-		xhigh: { '1024x1024': 0.094, '1024x1536': 0.073, '1536x1024': 0.073 },
-	},
-	'gpt-image-2.5-sunburst': {
-		high: { '1024x1024': 0.053, '1024x1536': 0.041, '1536x1024': 0.041 },
-		low: { '1024x1024': 0.006, '1024x1536': 0.005, '1536x1024': 0.005 },
-		max: { '1024x1024': 0.211, '1024x1536': 0.165, '1536x1024': 0.165 },
-		medium: { '1024x1024': 0.013, '1024x1536': 0.01, '1536x1024': 0.01 },
-		xhigh: { '1024x1024': 0.094, '1024x1536': 0.073, '1536x1024': 0.073 },
-	},
+	'gpt-image-2.5-flare': GPT_IMAGE_2_5_PRICING,
+	'gpt-image-2.5-sunburst': GPT_IMAGE_2_5_PRICING,
 	/** GPT Image 2.6 has no published per-image table: its estimates come from SQUARE_OUTPUT_TOKENS measured on the live API. */
 	'gpt-image-2.6-flare': {},
 	'gpt-image-2.6-sunburst': {},
 };
 
 /** Image output tokens billed at this rate for every GPT Image model (openai.com/api/pricing). */
-export const IMAGE_OUTPUT_USD_PER_MILLION = 30;
+const IMAGE_OUTPUT_USD_PER_MILLION = 30;
 
 /** Input token rates shared by every selectable model. */
-export const TOKEN_INPUT_USD_PER_MILLION = { image: 8, imageCached: 2, text: 5, textCached: 1.25 } as const;
+const TOKEN_INPUT_USD_PER_MILLION = { image: 8, text: 5 } as const;
 
 type AspectBucket = 'landscape' | 'portrait' | 'square';
 
@@ -191,23 +180,10 @@ const SQUARE_OUTPUT_TOKENS: Record<ImageModel, Partial<Record<PaidImageQuality, 
 /** Portrait and landscape renders bill ~22% fewer output tokens than a square one at the same quality (OpenAI per-image table). */
 const NON_SQUARE_TOKEN_RATIO = 0.78;
 
+/** The nearest of 1, 2:3 and 3:2 by ratio distance: the cut points are their midpoints, 5/6 and 5/4, and a tie stays square. */
 function aspectBucket(w: number, h: number): AspectBucket {
 	const ar = w / h;
-	const targets: { ar: number; bucket: AspectBucket }[] = [
-		{ ar: 1, bucket: 'square' },
-		{ ar: 1024 / 1536, bucket: 'portrait' },
-		{ ar: 1536 / 1024, bucket: 'landscape' },
-	];
-	let best = targets[0];
-	let bestDist = Math.abs(ar - best.ar);
-	for (const t of targets) {
-		const d = Math.abs(ar - t.ar);
-		if (d < bestDist) {
-			bestDist = d;
-			best = t;
-		}
-	}
-	return best.bucket;
+	return ar < 5 / 6 ? 'portrait' : ar > 1.25 ? 'landscape' : 'square';
 }
 
 /**
@@ -221,11 +197,8 @@ function estimateImageOutputUsd(model: ImageModel, quality: PaidImageQuality, si
 	const baseline = SQUARE_OUTPUT_TOKENS[model][quality];
 	if (baseline === undefined) return null;
 
-	const m = /^(\d+)x(\d+)$/.exec(size);
-	if (!m) return null;
-	const w = Number.parseInt(m[1], 10);
-	const h = Number.parseInt(m[2], 10);
-	if (w <= 0 || h <= 0) return null;
+	const [w, h] = size.split('x').map(Number);
+	if (!(w > 0 && h > 0)) return null;
 
 	const bucket = aspectBucket(w, h);
 	const ref = REF_PX[bucket];
@@ -249,7 +222,8 @@ export function usageCostUsd({ input_tokens_details, output_tokens }: ImagesResp
 }
 
 /** Stored real cost when present, otherwise the estimate: records saved before usage tracking have no cost. */
-export function getRecordPrice({ cost, model = 'gpt-image-2', quality, size }: { cost?: number; model?: StoredImageModel; quality?: ImageQuality; size?: StoredImageSize }): number {
+/** Records without a model predate the model field, which only existed once gpt-image-1 was the sole model. */
+export function getRecordPrice({ cost, model = 'gpt-image-1', quality, size }: { cost?: number; model?: StoredImageModel; quality?: ImageQuality; size?: StoredImageSize }): number {
 	return cost ?? (quality && size ? (getImagePrice(model, quality, size) ?? 0.01) : 0.01);
 }
 

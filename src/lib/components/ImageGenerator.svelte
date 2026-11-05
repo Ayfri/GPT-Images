@@ -90,7 +90,7 @@
 		selectedQuality: 'low',
 		selectedSize: '1024x1024',
 		svgEffort: 'default',
-		svgModel: 'gpt-5.4-nano'
+		svgModel: 'gpt-6-luna'
 	});
 
 	function restore<K extends keyof FormOptions>(key: K, value: unknown) {

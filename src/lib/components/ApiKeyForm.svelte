@@ -5,14 +5,6 @@
 
 	let showApiKey = $state(false);
 	let keyInput = $state(apiKey.value);
-
-	function toggleVisibility() {
-		showApiKey = !showApiKey;
-	}
-
-	function saveApiKey() {
-		apiKey.value = keyInput;
-	}
 </script>
 
 <div class="glass-panel p-5 rounded-2xl">
@@ -35,27 +27,24 @@
 		{/if}
 	</div>
 
-	<div class="space-y-3">
+	<form
+		class="space-y-3"
+		onsubmit={(event) => {
+			event.preventDefault();
+			apiKey.value = keyInput;
+		}}
+	>
 		<div class="relative">
-			{#if showApiKey}
-				<input
-					type="text"
-					bind:value={keyInput}
-					placeholder="sk-..."
-					class="input w-full pr-10 font-mono text-xs"
-				/>
-			{:else}
-				<input
-					type="password"
-					bind:value={keyInput}
-					placeholder="sk-..."
-					class="input w-full pr-10 font-mono text-xs"
-				/>
-			{/if}
+			<input
+				type={showApiKey ? 'text' : 'password'}
+				bind:value={keyInput}
+				placeholder="sk-..."
+				class="input w-full pr-10 font-mono text-xs"
+			/>
 			<button
-				aria-label={showApiKey ? "Hide API key" : "Show API key"}
+				aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
 				class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-600 hover:text-gray-300 transition-colors cursor-pointer"
-				onclick={toggleVisibility}
+				onclick={() => (showApiKey = !showApiKey)}
 				type="button"
 			>
 				{#if showApiKey}
@@ -66,13 +55,8 @@
 			</button>
 		</div>
 
-		<button
-			class="btn btn-primary w-full text-sm py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
-			disabled={!keyInput || keyInput === apiKey.value}
-			onclick={saveApiKey}
-			type="button"
-		>
+		<button class="btn btn-primary w-full text-sm py-2.5 disabled:opacity-40 disabled:cursor-not-allowed" disabled={keyInput === apiKey.value}>
 			Save API Key
 		</button>
-	</div>
+	</form>
 </div>
