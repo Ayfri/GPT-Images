@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import type { ImageEditParamsNonStreaming, ImageGenerateParamsNonStreaming, ImagesResponse } from 'openai/resources/images';
 
 export interface ImageResult {
@@ -8,17 +7,37 @@ export interface ImageResult {
 	usage?: ImagesResponse.Usage;
 }
 
-function toResult({ data, size, svg_usage, usage }: ImagesResponse): ImageResult {
-	const images = (data ?? []).map((item) => item.b64_json).filter((b64) => b64 !== undefined);
-	if (images.length === 0) throw new Error('API did not return image data');
-	return { images, size, svgUsage: svg_usage, usage };
+const part = (value: unknown) => (value instanceof Blob ? value : String(value));
+
+/** Same encoding as the openai SDK (internal/uploads.mjs, addFormValue): arrays repeat as `key[]`, Files keep their name, other values are stringified. */
+function toForm(params: ImageEditParamsNonStreaming) {
+	const form = new FormData();
+	const fields: [string, unknown][] = Object.entries(params);
+	for (const [key, value] of fields) {
+		if (value == null) continue;
+		if (Array.isArray(value)) for (const entry of value) form.append(`${key}[]`, part(entry));
+		else form.append(key, part(value));
+	}
+	return form;
 }
 
-export async function generateImage(apiKey: string, params: ImageGenerateParamsNonStreaming): Promise<ImageResult> {
-	return toResult(await new OpenAI({ apiKey, dangerouslyAllowBrowser: true }).images.generate(params));
+/** The SDK's automatic retries on 429 and 5xx are not reproduced: a failed request surfaces its error right away. */
+async function request(apiKey: string, endpoint: 'generations' | 'edits', body: FormData | ImageGenerateParamsNonStreaming): Promise<ImageResult> {
+	const isForm = body instanceof FormData;
+	const res = await fetch(`https://api.openai.com/v1/images/${endpoint}`, {
+		method: 'POST',
+		headers: { Authorization: `Bearer ${apiKey}`, ...(!isForm && { 'Content-Type': 'application/json' }) },
+		body: isForm ? body : JSON.stringify(body)
+	});
+	const json: ImagesResponse & { error?: { message: string } } = await res.json();
+	if (!res.ok) throw new Error(json.error?.message ?? res.statusText);
+
+	const images = (json.data ?? []).map((item) => item.b64_json).filter((b64) => b64 !== undefined);
+	if (images.length === 0) throw new Error('API did not return image data');
+	return { images, size: json.size, svgUsage: json.svg_usage, usage: json.usage };
 }
+
+export const generateImage = (apiKey: string, params: ImageGenerateParamsNonStreaming) => request(apiKey, 'generations', params);
 
 /** No selectable model takes input_fidelity: gpt-image-2 and 2.5 always use high fidelity and 2.6 rejects it (verified 2026-11-05), so edits never send it. */
-export async function editImage(apiKey: string, params: ImageEditParamsNonStreaming): Promise<ImageResult> {
-	return toResult(await new OpenAI({ apiKey, dangerouslyAllowBrowser: true }).images.edit(params));
-}
+export const editImage = (apiKey: string, params: ImageEditParamsNonStreaming) => request(apiKey, 'edits', toForm(params));
