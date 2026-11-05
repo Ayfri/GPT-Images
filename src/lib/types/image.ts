@@ -276,11 +276,12 @@ export const MODEL_SUPPORT: Record<ImageModel, ModelSupport> = {
 export const isSelectableModel = (model: string): model is ImageModel => Object.hasOwn(MODEL_SUPPORT, model);
 export const isImageSize = (size: string): size is ImageSize => Object.hasOwn(SIZE_OPTIONS, size);
 
-// GPT Image 1 specifications for image uploads
+/** Reference image types the edits endpoint takes as is: any other decodable image is converted to PNG before upload. */
+export const ACCEPTED_IMAGE_TYPES: readonly string[] = ['image/png', 'image/webp', 'image/jpeg'];
+
+/** Upload limits of the Images API edits endpoint, sizes in bytes. */
 export const IMAGE_UPLOAD_LIMITS = {
-	maxFileSize: 50 * 1024 * 1024, // 50MB in bytes
+	maxFileSize: 50 * 1024 * 1024,
 	maxImages: 16,
-	acceptedFormats: ['image/png', 'image/webp', 'image/jpeg', 'image/jpg'],
-	acceptedExtensions: '.png,.webp,.jpg,.jpeg',
-	maskMaxSize: 4 * 1024 * 1024 // 4MB in bytes
+	maskMaxSize: 4 * 1024 * 1024
 } as const;

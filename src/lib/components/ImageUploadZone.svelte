@@ -1,321 +1,187 @@
 <script lang="ts">
 	import { Upload, X } from '@lucide/svelte';
-	import { IMAGE_UPLOAD_LIMITS } from '#lib/types/image.ts';
+	import { ACCEPTED_IMAGE_TYPES, IMAGE_UPLOAD_LIMITS } from '#lib/types/image.ts';
+	import { fileSrc } from '#lib/utils/fileSrc.ts';
 
 	interface Props {
-		images: File[];
-		imagePreviews: string[];
-		maxImages: number;
-		acceptedExtensions: string;
-		isGenerating: boolean;
-		onImagesChange: (images: File[], previews: string[]) => void;
-		validateFile?: (file: File) => string | null;
+		disabled?: boolean;
+		files: File[];
+		onerror: (message: string) => void;
+		onsvg: (text: string) => void;
 	}
 
-	let { images, imagePreviews, maxImages, acceptedExtensions, isGenerating, onImagesChange, validateFile }: Props = $props();
+	let { disabled = false, files = $bindable(), onerror, onsvg }: Props = $props();
 
 	let isDragging = $state(false);
+	let pasteFlash = $state(false);
 	let urlInput = $state('');
-	let dropZone: HTMLDivElement | undefined = $state();
+	const blocked = $derived(disabled || files.length >= IMAGE_UPLOAD_LIMITS.maxImages);
 
-	function validateImageFile(file: File): string | null {
-		if (validateFile) {
-			return validateFile(file);
-		}
+	const isSvg = (file: File) => file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
 
-		// Default validation
-		if (file.size > IMAGE_UPLOAD_LIMITS.maxFileSize) {
-			return `File "${file.name}" is too large. Maximum size is 50MB.`;
-		}
+	/** The edits endpoint only takes PNG, WEBP and JPEG: other formats the browser can decode (GIF first frame, AVIF, BMP...) are redrawn as PNG. */
+	async function toSupported(file: File) {
+		if (ACCEPTED_IMAGE_TYPES.includes(file.type)) return file;
 
-		if (!IMAGE_UPLOAD_LIMITS.acceptedFormats.includes(file.type as any)) {
-			return `File "${file.name}" has an unsupported format. Please use PNG, WEBP, or JPEG.`;
-		}
-
-		return null;
+		const bitmap = await createImageBitmap(file);
+		const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+		canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+		bitmap.close();
+		return new File([await canvas.convertToBlob({ type: 'image/png' })], `${file.name.replace(/\.[^.]*$/, '')}.png`, { type: 'image/png' });
 	}
 
-	function handleImageUpload(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const files = Array.from(target.files || []);
+	function flash() {
+		pasteFlash = true;
+		setTimeout(() => (pasteFlash = false), 1200);
+	}
 
-		if (files.length === 0) return;
+	async function add(incoming: File[]) {
+		const valid: File[] = [];
+		for (const file of incoming) {
+			/** SVG is untrusted markup and the edits endpoint rejects it, so its text goes to the prompt and it is never rendered. */
+			if (isSvg(file)) {
+				onsvg((await file.text()).trim());
+				flash();
+				continue;
+			}
 
-		// Check if adding these files would exceed the limit
-		if (images.length + files.length > maxImages) {
-			// You might want to emit an error event here
-			return;
-		}
-
-		// Validate each file
-		for (const file of files) {
-			const validationError = validateImageFile(file);
-			if (validationError) {
-				// You might want to emit an error event here
-				return;
+			try {
+				const prepared = await toSupported(file);
+				if (prepared.size > IMAGE_UPLOAD_LIMITS.maxFileSize) onerror(`File "${file.name}" is too large. Maximum size is ${IMAGE_UPLOAD_LIMITS.maxFileSize / (1024 * 1024)}MB.`);
+				else valid.push(prepared);
+			} catch {
+				onerror(`Unsupported image format: ${file.name}`);
 			}
 		}
+		if (!valid.length) return;
+		if (files.length + valid.length > IMAGE_UPLOAD_LIMITS.maxImages) return onerror(`You can attach up to ${IMAGE_UPLOAD_LIMITS.maxImages} reference images.`);
 
-		// Add files and create previews
-		const newImages = [...images];
-		const newPreviews = [...imagePreviews];
-
-		files.forEach((file) => {
-			newImages.push(file);
-
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				newPreviews.push(e.target?.result as string);
-				onImagesChange(newImages, newPreviews);
-			};
-			reader.readAsDataURL(file);
-		});
-
-		// Clear the input
-		target.value = '';
+		files = [...files, ...valid];
+		flash();
 	}
 
-	async function handleDrop(event: DragEvent) {
-		event.preventDefault();
-		isDragging = false;
-
-		const files = Array.from(event.dataTransfer?.files || []);
-		if (files.length === 0) return;
-
-		// Check if adding these files would exceed the limit
-		if (images.length + files.length > maxImages) {
-			return;
-		}
-
-		// Filter and validate image files
-		const imageFiles = files.filter(file => file.type.startsWith('image/'));
-
-		for (const file of imageFiles) {
-			const validationError = validateImageFile(file);
-			if (validationError) {
-				return;
-			}
-		}
-
-		if (imageFiles.length === 0) return;
-
-		// Add files and create previews
-		const newImages = [...images];
-		const newPreviews = [...imagePreviews];
-
-		imageFiles.forEach((file) => {
-			newImages.push(file);
-
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				newPreviews.push(e.target?.result as string);
-				onImagesChange(newImages, newPreviews);
-			};
-			reader.readAsDataURL(file);
-		});
-	}
-
-	function handleDragOver(event: DragEvent) {
-		event.preventDefault();
-		isDragging = true;
-	}
-
-	function handleDragLeave() {
-		isDragging = false;
-	}
-
-	async function handleUrlSubmit() {
-		if (!urlInput.trim()) return;
-
-		// Check if adding one more file would exceed the limit
-		if (images.length + 1 > maxImages) {
-			return;
-		}
-
+	async function addUrl(url: string) {
 		try {
-			const response = await fetch(urlInput.trim());
-			const blob = await response.blob();
-
-			// Validate the blob
-			if (!blob.type.startsWith('image/')) {
-				return;
-			}
-
-			const file = new File([blob], 'image-from-url', { type: blob.type });
-			const validationError = validateImageFile(file);
-			if (validationError) {
-				return;
-			}
-
-			// Add file and create preview
-			const newImages = [...images, file];
-			const newPreviews = [...imagePreviews];
-
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				newPreviews.push(e.target?.result as string);
-				onImagesChange(newImages, newPreviews);
-			};
-			reader.readAsDataURL(file);
-
-			urlInput = '';
-		} catch (err) {
-			console.error('Error loading image from URL:', err);
+			const blob = await (await fetch(url)).blob();
+			await add([new File([blob], new URL(url).pathname.split('/').pop() || 'image-from-url', { type: blob.type })]);
+		} catch {
+			onerror(`Could not load an image from ${url}. The server may block cross-origin requests.`);
 		}
 	}
 
-	async function handlePaste(event: ClipboardEvent) {
-		// Check for image file
-		const items = event.clipboardData?.items;
-		if (items) {
-			for (let i = 0; i < items.length; i++) {
-				if (items[i].type.startsWith('image/')) {
-					const file = items[i].getAsFile();
-					if (file) {
-						event.preventDefault();
+	function submitUrl() {
+		if (!urlInput.trim() || blocked) return;
+		addUrl(urlInput.trim());
+		urlInput = '';
+	}
 
-						// Check if adding one more file would exceed the limit
-						if (images.length + 1 > maxImages) {
-							return;
-						}
+	/** Pasting inside a text field keeps its native behavior, so the URL field still takes a pasted link as text. */
+	function onpaste(event: ClipboardEvent) {
+		const { clipboardData, target } = event;
+		if (disabled || !clipboardData || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
 
-						const validationError = validateImageFile(file);
-						if (validationError) {
-							return;
-						}
-
-						// Add file and create preview
-						const newImages = [...images, file];
-						const newPreviews = [...imagePreviews];
-
-						const reader = new FileReader();
-						reader.onload = (e) => {
-							newPreviews.push(e.target?.result as string);
-							onImagesChange(newImages, newPreviews);
-						};
-						reader.readAsDataURL(file);
-						return;
-					}
-				}
-			}
-		}
-
-		// Check for URL
-		const text = event.clipboardData?.getData('text');
-		if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+		if (clipboardData.files.length) {
 			event.preventDefault();
-			urlInput = text;
-			await handleUrlSubmit();
+			add([...clipboardData.files]);
+			return;
+		}
+
+		const text = clipboardData.getData('text').trim();
+		if (/^https?:\/\//.test(text)) {
+			event.preventDefault();
+			addUrl(text);
 		}
 	}
 
-	function removeImage(index: number) {
-		const newImages = images.filter((_, i) => i !== index);
-		const newPreviews = imagePreviews.filter((_, i) => i !== index);
-		onImagesChange(newImages, newPreviews);
-	}
-
-	function clearAllImages() {
-		onImagesChange([], []);
+	function ondrop(event: DragEvent) {
+		event.preventDefault();
+		isDragging = false;
+		if (!disabled) add([...(event.dataTransfer?.files ?? [])]);
 	}
 </script>
 
-<div class="space-y-2">
-	{#if imagePreviews.length > 0}
+<svelte:document {onpaste} />
+
+<div
+	aria-label="Image drop zone"
+	class={['space-y-2 rounded-lg transition-shadow duration-300', isDragging && 'bg-primary-900/10', pasteFlash && 'ring-2 ring-purple-500/60']}
+	ondragleave={() => (isDragging = false)}
+	ondragover={(event) => {
+		event.preventDefault();
+		isDragging = true;
+	}}
+	{ondrop}
+	role="region"
+>
+	<input
+		id="image-upload"
+		type="file"
+		accept="image/*"
+		multiple
+		onchange={(event) => {
+			add([...(event.currentTarget.files ?? [])]);
+			event.currentTarget.value = '';
+		}}
+		class="hidden"
+		disabled={blocked}
+	/>
+
+	{#if files.length}
 		<div class="flex flex-wrap gap-2 mb-1">
-			{#each imagePreviews as preview, index (index)}
+			{#each files as file, index (file)}
 				<div class="relative group">
-					<img src={preview} alt="Reference {index + 1}" class="w-16 h-16 object-cover rounded-lg border border-gray-700/60" />
+					<img {@attach fileSrc(file)} alt="Reference {index + 1}" class="w-16 h-16 object-cover rounded-lg border border-gray-700/60" />
 					<button
 						type="button"
-						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity {isGenerating ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 cursor-pointer'}"
-						onclick={() => !isGenerating && removeImage(index)}
-						disabled={isGenerating}
+						class="absolute -top-1.5 -right-1.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 cursor-pointer disabled:bg-gray-500 disabled:cursor-not-allowed"
+						onclick={() => (files = files.filter((f) => f !== file))}
+						{disabled}
 					>
 						<X class="h-3 w-3" />
 					</button>
 				</div>
 			{/each}
-			<!-- Add more button if not at max -->
-			{#if images.length < maxImages}
+			{#if files.length < IMAGE_UPLOAD_LIMITS.maxImages}
 				<label
-					class="w-16 h-16 rounded-lg border-2 border-dashed border-gray-700 hover:border-gray-500 flex items-center justify-center cursor-pointer transition-colors {isGenerating ? 'opacity-40 cursor-not-allowed' : ''}"
+					for="image-upload"
+					class={['w-16 h-16 rounded-lg border-2 border-dashed border-gray-700 hover:border-gray-500 flex items-center justify-center cursor-pointer transition-colors', blocked && 'opacity-40 cursor-not-allowed']}
 				>
-					<input
-						type="file"
-						accept={acceptedExtensions}
-						multiple
-						onchange={handleImageUpload}
-						class="hidden"
-						disabled={isGenerating || images.length >= maxImages}
-					/>
 					<Upload class="w-5 h-5 text-gray-600" />
 				</label>
 			{/if}
 		</div>
-		{#if images.length > 0}
-			<button
-				type="button"
-				class="text-xs text-red-500/70 hover:text-red-400 transition-colors {isGenerating ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}"
-				onclick={() => !isGenerating && clearAllImages()}
-				disabled={isGenerating}
-			>
-				Clear all
-			</button>
-		{/if}
-	{/if}
-
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-	{#if imagePreviews.length === 0}
-	<div
-		aria-label="Image drop zone"
-		bind:this={dropZone}
-		class="border border-dashed rounded-lg px-4 py-3 transition-all {isDragging ? 'border-primary-500 bg-primary-900/10' : 'border-gray-700/70 hover:border-gray-600'}"
-		ondragleave={handleDragLeave}
-		ondragover={handleDragOver}
-		ondrop={handleDrop}
-		onpaste={handlePaste}
-		role="region"
-		tabindex="0"
-	>
-		<div class="flex items-center gap-3">
-			<label
-				for="image-upload"
-				class="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs rounded-md cursor-pointer transition-colors shrink-0 {images.length >= maxImages ? 'opacity-40 cursor-not-allowed' : ''}"
-			>
-				<Upload class="w-3.5 h-3.5" />
-				Browse
-			</label>
-			<input
-				id="image-upload"
-				type="file"
-				accept={acceptedExtensions}
-				multiple
-				onchange={handleImageUpload}
-				class="hidden"
-				disabled={isGenerating || images.length >= maxImages}
-			/>
-
-			<input
-				type="text"
-				bind:value={urlInput}
-				placeholder="or paste image URL…"
-				onkeydown={(e) => e.key === 'Enter' && handleUrlSubmit()}
-				class="flex-1 bg-transparent border-0 text-xs text-gray-500 placeholder-gray-700 focus:outline-none min-w-0"
-				disabled={isGenerating || images.length >= maxImages}
-			/>
-			{#if urlInput}
-				<button
-					type="button"
-					onclick={handleUrlSubmit}
-					class="text-xs text-primary-500 hover:text-primary-400 shrink-0"
-					disabled={isGenerating || images.length >= maxImages}
+		<button
+			type="button"
+			class="text-xs text-red-500/70 hover:text-red-400 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+			onclick={() => (files = [])}
+			{disabled}
+		>
+			Clear all
+		</button>
+	{:else}
+		<div class={['border border-dashed rounded-lg px-4 py-3 transition-all', isDragging ? 'border-primary-500 bg-primary-900/10' : 'border-gray-700/70 hover:border-gray-600']}>
+			<div class="flex items-center gap-3">
+				<label
+					for="image-upload"
+					class={['flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 text-xs rounded-md cursor-pointer transition-colors shrink-0', blocked && 'opacity-40 cursor-not-allowed']}
 				>
-					Load
-				</button>
-			{/if}
+					<Upload class="w-3.5 h-3.5" />
+					Browse
+				</label>
+
+				<input
+					type="text"
+					bind:value={urlInput}
+					placeholder="or paste image URL…"
+					onkeydown={(event) => event.key === 'Enter' && submitUrl()}
+					class="flex-1 bg-transparent border-0 text-xs text-gray-500 placeholder-gray-700 focus:outline-none min-w-0"
+					disabled={blocked}
+				/>
+				{#if urlInput}
+					<button type="button" onclick={submitUrl} class="text-xs text-primary-500 hover:text-primary-400 shrink-0" disabled={blocked}>Load</button>
+				{/if}
+			</div>
+			<p class="text-xs text-gray-700 mt-1.5">Drop here or Ctrl+V anywhere on the page</p>
 		</div>
-		<p class="text-xs text-gray-700 mt-1.5">Drop here or Ctrl+V anywhere on the page</p>
-	</div>
 	{/if}
 </div>

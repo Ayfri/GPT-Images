@@ -95,14 +95,12 @@
 	let selectedSize: ImageSize = $state('1024x1024');
 	let imageCount = $state(1);
 	let inputImages: File[] = $state([]);
-	let imagePreviews: string[] = $state([]);
 	let inputMask: File | null = $state(null);
 	let maskPreview: string | null = $state(null);
 	let showMarkup = $state(false);
 	let markupHasStrokes = $state(false);
 	let markupCanvas: ReturnType<typeof MarkupCanvas> | undefined = $state();
 	const firstReference = $derived(inputImages[0]);
-	let pasteFlash = $state(false);
 
 	// Mode is auto-derived: if images are attached → edit/compose, otherwise → pure generation
 	let mode = $derived<'generate' | 'edit'>(inputImages.length > 0 ? 'edit' : 'generate');
@@ -143,66 +141,6 @@
 			prompt = "A cyberpunk city at night with neon lights and flying cars";
 		}
 		error = null;
-
-		// Global paste handler: Ctrl+V anywhere on the page adds images
-		function handleGlobalPaste(e: ClipboardEvent) {
-			// Don't intercept if user is typing in a text input/textarea
-			const target = e.target as HTMLElement;
-			if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') return;
-
-			const items = e.clipboardData?.items;
-			if (!items) return;
-
-			for (let i = 0; i < items.length; i++) {
-				if (items[i].type.startsWith('image/')) {
-					const file = items[i].getAsFile();
-					if (!file) continue;
-					if (inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages) return;
-					const validationError = validateImageFile(file);
-					if (validationError) { error = validationError; return; }
-
-					const newImages = [...inputImages, file];
-					const newPreviews = [...imagePreviews];
-					const reader = new FileReader();
-					reader.onload = (ev) => {
-						newPreviews.push(ev.target?.result as string);
-						inputImages = newImages;
-						imagePreviews = newPreviews;
-						pasteFlash = true;
-						setTimeout(() => (pasteFlash = false), 1200);
-					};
-					reader.readAsDataURL(file);
-					return;
-				}
-			}
-
-			// URL paste
-			const text = e.clipboardData?.getData('text');
-			if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
-				fetch(text.trim())
-					.then(r => r.blob())
-					.then(blob => {
-						if (!blob.type.startsWith('image/')) return;
-						const file = new File([blob], 'pasted-image', { type: blob.type });
-						if (inputImages.length >= IMAGE_UPLOAD_LIMITS.maxImages) return;
-						const newImages = [...inputImages, file];
-						const newPreviews = [...imagePreviews];
-						const reader = new FileReader();
-						reader.onload = (ev) => {
-							newPreviews.push(ev.target?.result as string);
-							inputImages = newImages;
-							imagePreviews = newPreviews;
-							pasteFlash = true;
-							setTimeout(() => (pasteFlash = false), 1200);
-						};
-						reader.readAsDataURL(file);
-					})
-					.catch(() => {});
-			}
-		}
-
-		document.addEventListener('paste', handleGlobalPaste);
-		return () => document.removeEventListener('paste', handleGlobalPaste);
 	});
 
 	// Save options whenever they change
@@ -223,7 +161,6 @@
 					const blob = await (await fetch(url)).blob();
 					const file = new File([blob], `edited_image_${id}.${format}`, { type: OUTPUT_FORMAT_OPTIONS[format].mime });
 					inputImages = [file];
-					imagePreviews = [url];
 				})
 				.catch(e => console.error("Error converting image data to File:", e));
 
@@ -237,20 +174,6 @@
 			selectedBackground = imageToEdit.background ?? 'auto';
 		}
 	});
-
-	function validateImageFile(file: File): string | null {
-		// Check file size
-		if (file.size > IMAGE_UPLOAD_LIMITS.maxFileSize) {
-			return `File "${file.name}" is too large. Maximum size is 50MB.`;
-		}
-
-		// Check file type
-		if (!IMAGE_UPLOAD_LIMITS.acceptedFormats.includes(file.type as any)) {
-			return `File "${file.name}" has an unsupported format. Please use PNG, WEBP, or JPEG.`;
-		}
-
-		return null;
-	}
 
 	function handleMaskUpload(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -376,7 +299,6 @@
 			// Clear images if editing (but keep the prompt)
 			if (mode === 'edit') {
 				inputImages = [];
-				imagePreviews = [];
 			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Image generation failed';
@@ -452,23 +374,12 @@
 				{/if}
 			</div>
 
-			<div class="{pasteFlash ? 'ring-2 ring-purple-500/60 rounded-lg' : ''}  transition-shadow duration-300">
-				<ImageUploadZone
-					acceptedExtensions={IMAGE_UPLOAD_LIMITS.acceptedExtensions}
-					{isGenerating}
-					images={inputImages}
-					imagePreviews={imagePreviews}
-					maxImages={IMAGE_UPLOAD_LIMITS.maxImages}
-					onImagesChange={(imgs, previews) => {
-						inputImages = imgs;
-						imagePreviews = previews;
-					}}
-					validateFile={validateImageFile}
-				/>
-			</div>
+			<ImageUploadZone bind:files={inputImages} disabled={isGenerating} onerror={(message) => (error = message)}
+				onsvg={(text) => (prompt = prompt.trim() ? `${prompt}\n\n${text}` : text)}
+			/>
 			{#if inputImages.length === 0}
 				<p class="text-xs text-gray-700 mt-1.5">
-					Drop, paste (Ctrl+V) or browse - PNG, WEBP, JPEG up to 50 MB
+					Drop, paste (Ctrl+V) or browse - any image up to 50 MB, SVG files are added to the prompt as text
 				</p>
 			{/if}
 		</div>
