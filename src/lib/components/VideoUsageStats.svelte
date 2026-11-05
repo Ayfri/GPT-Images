@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BarChart3, Coins, HardDrive } from '@lucide/svelte';
+	import { ChartColumn, Coins, HardDrive } from '@lucide/svelte';
 	import { totalVideoCount, totalCostAll, storageStatus } from '$lib/stores/videoStore';
 	import { MODEL_OPTIONS, PRICING, RESOLUTION_OPTIONS_BY_MODEL, DURATION_OPTIONS } from '$lib/types/video';
 
@@ -10,7 +10,7 @@
 <div class="glass-panel p-5 rounded-2xl">
 	<div class="flex items-center gap-3 mb-5">
 		<div class="flex items-center justify-center w-8 h-8 rounded-xl bg-accent-500/15 border border-accent-500/20">
-			<BarChart3 class="h-4 w-4 text-accent-400" />
+			<ChartColumn class="h-4 w-4 text-accent-400" />
 		</div>
 		<h2 class="text-sm font-semibold text-gray-100">Usage Statistics</h2>
 	</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import { Upload, X, ChevronDown, ChevronRight, Loader2, Sparkles, ImagePlus, ClipboardPaste } from '@lucide/svelte';
+	import { Upload, X, ChevronDown, ChevronRight, LoaderCircle, Sparkles, ImagePlus, ClipboardPaste } from '@lucide/svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addImage } from '$lib/db/imageStore';
 	import { refreshImageStore } from '$lib/stores/imageStore';
@@ -652,7 +652,7 @@
 				<span class="pointer-events-none absolute inset-0 overflow-hidden">
 					<span class="absolute top-0 bottom-0 w-20 bg-linear-to-r from-transparent via-white/20 to-transparent animate-sheen"></span>
 				</span>
-				<Loader2 class="relative z-10 h-4 w-4 animate-spin shrink-0" />
+				<LoaderCircle class="relative z-10 h-4 w-4 animate-spin shrink-0" />
 				<span class="relative z-10 flex items-center gap-2">
 					{mode === 'generate' ? 'Generating' : 'Generating from references'}
 					<span class="flex items-end gap-0.5 pb-px">

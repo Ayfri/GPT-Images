@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import { ClipboardPaste, Film, Loader2, Sparkles, X } from '@lucide/svelte';
+	import { ClipboardPaste, Film, LoaderCircle, Sparkles, X } from '@lucide/svelte';
 	import { apiKey } from '$lib/stores/apiKeyStore';
 	import { addVideoWithStorageManagement } from '$lib/stores/videoStore';
 	import { generateVideo, getVideoStatus, editVideo } from '$lib/services/video';
@@ -333,7 +333,7 @@
 					</label>
 					{#if isProcessingImage}
 						<span class="text-xs text-blue-400 flex items-center gap-1">
-							<Loader2 class="h-3 w-3 animate-spin" /> Resizing…
+							<LoaderCircle class="h-3 w-3 animate-spin" /> Resizing…
 						</span>
 					{/if}
 				</div>
@@ -438,7 +438,7 @@
 				<span class="pointer-events-none absolute inset-0 overflow-hidden">
 					<span class="absolute top-0 bottom-0 w-20 bg-linear-to-r from-transparent via-white/20 to-transparent animate-sheen"></span>
 				</span>
-				<Loader2 class="relative z-10 h-4 w-4 animate-spin shrink-0" />
+				<LoaderCircle class="relative z-10 h-4 w-4 animate-spin shrink-0" />
 				<span class="relative z-10 flex items-center gap-2">
 					{editVideoId ? 'Editing' : 'Generating'}
 					<span class="flex items-end gap-0.5 pb-px">

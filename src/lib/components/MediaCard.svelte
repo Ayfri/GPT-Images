@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { Copy, Download, RefreshCw, Trash2 } from '@lucide/svelte';
+	import { Copy, Download, RefreshCw, Trash } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { formatDate } from '$lib/utils/formatDate';
 
@@ -71,7 +71,7 @@
 						aria-label="Delete"
 						title="Delete"
 					>
-						<Trash2 class="w-4 h-4 text-error-400 group-hover/del:scale-110 transition-transform" />
+						<Trash class="w-4 h-4 text-error-400 group-hover/del:scale-110 transition-transform" />
 					</button>
 
 					<div class="flex items-center gap-1">

@@ -5,7 +5,7 @@
     "": {
       "name": "openai-image-generator",
       "dependencies": {
-        "@lucide/svelte": "^1.33.0",
+        "@lucide/svelte": "^1.69.0",
         "idb": "^8.0.4",
         "openai": "7.51.0",
       },
@@ -164,7 +164,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@lucide/svelte": ["@lucide/svelte@1.33.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-b+osTYG2V4dge5Lr7tnaTaahhy/4vH7Xb8zcqVjmctjwgkpXS0NNOJPkGzHHZoxtw/OO+2YAU28omeMfYCaawg=="],
+    "@lucide/svelte": ["@lucide/svelte@1.69.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-Q61KvD5/lGS+BrbpPXJSBt/zgjDEAWOP8X85tBz6OnYueEyVuDxI0Zh/6R4cjobWRxs3ItY2JD4NSwYprBpHHw=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.156.0", "", {}, "sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw=="],
 

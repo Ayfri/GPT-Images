@@ -4,7 +4,7 @@
 	import VideoGenerator from '$lib/components/VideoGenerator.svelte';
 	import MediaGrid from '$lib/components/MediaGrid.svelte';
 	import { SORA_API_SHUTDOWN_DATE } from '$lib/types/video';
-	import { TriangleAlert } from '@lucide/svelte';
+	import { TriangleExclamationPoint } from '@lucide/svelte';
 
 	let currentPrompt = $state('');
 	let editVideoId: string | null = $state(null);
@@ -39,7 +39,7 @@
 </div>
 
 <div class="mb-8 flex items-start gap-3 rounded-2xl border border-amber-600/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
-	<TriangleAlert class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+	<TriangleExclamationPoint class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
 	<p class="leading-relaxed">
 		OpenAI removes the Videos API and every Sora model on <span class="font-semibold">{SORA_API_SHUTDOWN_DATE}</span>, with no
 		replacement endpoint. Video generation stops working on that date - download anything you want to keep.
