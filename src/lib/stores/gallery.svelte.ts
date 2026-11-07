@@ -18,6 +18,7 @@ class Gallery {
 	loaded = $state(false);
 	totalCost = $derived(this.images.reduce((sum, image) => sum + getRecordPrice(image), 0));
 	#creating = new Map<string, Promise<Library>>();
+	#persistAsked = false;
 
 	constructor() {
 		dbEvents.addEventListener('blocked', () => (this.dbState = 'blocked'));
@@ -63,6 +64,15 @@ class Gallery {
 		}
 
 		this.images = [...saved.toReversed(), ...this.images];
+		/** Asked once, after a save and not on load: Firefox prompts for persist(), and a dismissed prompt must not return after each image. */
+		if (saved.length && !this.#persistAsked) {
+			this.#persistAsked = true;
+			/** Not awaited: the prompt stays open until the user answers. */
+			void navigator.storage
+				.persisted()
+				.then((persisted) => persisted || navigator.storage.persist())
+				.catch((error: unknown) => console.error('Failed to request persistent storage:', error));
+		}
 		if (saved.length < records.length) throw new Error(`${records.length - saved.length} of ${records.length} images could not be saved to this browser's storage.`);
 	};
 
