@@ -41,11 +41,12 @@ export class PanZoom {
 		};
 	};
 
-	/** Measures the native scale and keeps the pan inside the new layout. */
+	/** Measures the native scale (a width attribute is the original's size, a thumbnail's naturalWidth isn't) and clamps the pan. */
 	resize = () => {
 		const image = this.#image;
 		if (!image) return;
-		this.nativeScale = image.naturalWidth && image.offsetWidth ? image.naturalWidth / image.offsetWidth : 2;
+		const naturalWidth = Number(image.getAttribute('width')) || image.naturalWidth;
+		this.nativeScale = naturalWidth && image.offsetWidth ? naturalWidth / image.offsetWidth : 2;
 		this.clamp();
 	};
 

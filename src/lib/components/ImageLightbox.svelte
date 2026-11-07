@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { Check, ChevronLeft, ChevronRight, Copy, EyeOff, Info, X, ZoomIn, ZoomOut } from '@lucide/svelte';
 	import { quintOut } from 'svelte/easing';
 	import type { ImageRecord } from '#lib/db/imageStore.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
-	import { BACKGROUND_OPTIONS, COMPLEXITY_OPTIONS, getRecordPrice, modelLabel, OUTPUT_FORMAT_OPTIONS, QUALITY_OPTIONS } from '#lib/types/image.ts';
+	import { BACKGROUND_OPTIONS, COMPLEXITY_OPTIONS, getRecordPrice, modelLabel, OUTPUT_FORMAT_OPTIONS, parseSize, QUALITY_OPTIONS } from '#lib/types/image.ts';
 	import { PanZoom } from '#lib/utils/panZoom.svelte.ts';
 
 	let { id = $bindable(), images }: { id: string | null; images: ImageRecord[] } = $props();
@@ -24,7 +25,16 @@
 	let expanded = $state(false);
 	let overflowing = $state(false);
 	let swipeStart: Touch | null = null;
+	/** Decoded neighbors, replaced on each change so only the current ones stay alive. */
+	let preloaded: HTMLImageElement[] = [];
+	/** Tagged with its image id, so the previous image's URL never shows for a tick after a step. */
+	let shown = $state<{ id: string; url: string } | null>(null);
 
+	/** An SVG's viewBox ratio can differ from its recorded size, so it is never sized from the record. */
+	const sizeOf = (record?: ImageRecord) => (record?.output_format === 'svg' ? null : parseSize(record?.size));
+
+	const src = $derived(shown?.id === id ? shown.url : null);
+	const size = $derived(sizeOf(image));
 	const libraries = $derived(image?.libraries?.flatMap((libraryId) => gallery.libraries.find((library) => library.id === libraryId) ?? []) ?? []);
 
 	/** Quality and size always show, the other details only when they differ from the defaults. */
@@ -52,6 +62,54 @@
 		panZoom.reset();
 		copied = false;
 		expanded = false;
+	});
+
+	/** Tracks the id only: an edit of the record (libraries) must not restart the load and flash the placeholder again. */
+	$effect(() => {
+		const viewing = id;
+		const record = untrack(() => image);
+		if (viewing === null || !record) return;
+		let stale = false;
+		let upgraded = false;
+
+		/** Without a parsable size the placeholder would render at the thumbnail size and jump on the swap, so the original is shown alone. */
+		if (sizeOf(record)) {
+			void gallery.thumbUrl(record).then((url) => {
+				/** `shown` survives a close: a reopened image keeps its original instead of going back to the thumbnail. */
+				if (url && !stale && !upgraded && shown?.id !== viewing) shown = { id: viewing, url };
+			});
+		}
+
+		void gallery.url(record).then(async (url) => {
+			if (!url || stale) return;
+			if (shown?.id !== viewing || shown.url !== url) {
+				const original = new Image();
+				original.src = url;
+				/** A failed decode still swaps, the <img> then shows or reports the error itself. */
+				await original.decode().catch(() => {});
+				if (stale) return;
+			}
+			upgraded = true;
+			shown = { id: viewing, url };
+		});
+
+		return () => (stale = true);
+	});
+
+	$effect(() => {
+		preloaded = [];
+		if (index === -1 || images.length < 2) return;
+		let stale = false;
+		for (const neighbor of new Set([images[(index - 1 + images.length) % images.length], images[(index + 1) % images.length]])) {
+			void gallery.url(neighbor).then((url) => {
+				if (!url || stale) return;
+				const preload = new Image();
+				preload.src = url;
+				preloaded.push(preload);
+				return preload.decode().catch(() => {});
+			});
+		}
+		return () => (stale = true);
 	});
 
 	function step(delta: number) {
@@ -114,30 +172,32 @@
 		{/if}
 
 		{#key image.id}
-			{#await gallery.url(image) then src}
-				{#if src}
-					<img
-						{@attach panZoom.attach}
-						alt={image.prompt}
-						class={[
-							'isolate max-h-[min(90dvh,90vh)] max-w-[92vw] touch-none object-contain select-none sm:max-w-[80vw]',
-							panZoom.dragging ? 'cursor-grabbing' : panZoom.scale > 1 ? 'cursor-grab' : 'cursor-zoom-in',
-							!panZoom.dragging && 'transition-[translate,scale] duration-200 ease-out'
-						]}
-						draggable="false"
-						in:fly|global={{ x: 30, duration: 300, easing: quintOut }}
-						onload={panZoom.resize}
-						onpointercancel={panZoom.up}
-						onpointerdown={panZoom.down}
-						onpointermove={panZoom.move}
-						onpointerup={panZoom.up}
-						onwheel={panZoom.wheel}
-						{src}
-						style:scale={panZoom.scale}
-						style:translate="{panZoom.x}px {panZoom.y}px"
-					/>
-				{/if}
-			{/await}
+			{#if src}
+				<!-- The attributes and inline width give the thumbnail the original's box (never upscaled), so the swap doesn't resize the image. -->
+				<img
+					{@attach panZoom.attach}
+					alt={image.prompt}
+					class={[
+						'isolate max-h-[min(90dvh,90vh)] max-w-(--max-w) touch-none object-contain select-none [--max-w:92vw] sm:[--max-w:80vw]',
+						panZoom.dragging ? 'cursor-grabbing' : panZoom.scale > 1 ? 'cursor-grab' : 'cursor-zoom-in',
+						!panZoom.dragging && 'transition-[translate,scale] duration-200 ease-out'
+					]}
+					draggable="false"
+					height={size?.height}
+					in:fly|global={{ x: 30, duration: 300, easing: quintOut }}
+					onload={panZoom.resize}
+					onpointercancel={panZoom.up}
+					onpointerdown={panZoom.down}
+					onpointermove={panZoom.move}
+					onpointerup={panZoom.up}
+					onwheel={panZoom.wheel}
+					{src}
+					style:scale={panZoom.scale}
+					style:translate="{panZoom.x}px {panZoom.y}px"
+					style:width={size && `min(${size.width}px, var(--max-w), calc(min(90dvh, 90vh) * ${size.width / size.height}))`}
+					width={size?.width}
+				/>
+			{/if}
 		{/key}
 
 		<div class="{panelClass} absolute top-4 right-4 z-20 flex items-center gap-0.5 rounded-full p-1">
