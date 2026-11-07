@@ -255,6 +255,12 @@ export const MODEL_SUPPORT: Record<ImageModel, ModelSupport> = {
 export const isSelectableModel = (model: string): model is ImageModel => Object.hasOwn(MODEL_SUPPORT, model);
 export const isImageSize = (size: string): size is ImageSize => Object.hasOwn(SIZE_OPTIONS, size);
 
+/** Pixel dimensions of a `WxH` size, null for `auto` and anything else that isn't two integers. */
+export function parseSize(size?: StoredImageSize): { height: number; width: number } | null {
+	const match = size?.match(/^(\d+)x(\d+)$/);
+	return match ? { height: Number(match[2]), width: Number(match[1]) } : null;
+}
+
 /** Records without a model predate the model field and used gpt-image-1. */
 export const modelLabel = (model: StoredImageModel = 'gpt-image-1') => (isSelectableModel(model) ? MODEL_OPTIONS[model] : LEGACY_MODEL_OPTIONS[model]).label;
 

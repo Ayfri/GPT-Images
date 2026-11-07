@@ -4,8 +4,9 @@
 	import ConfirmPopover from './ConfirmPopover.svelte';
 	import LibraryPopover from './LibraryPopover.svelte';
 	import type { ImageRecord } from '#lib/db/imageStore.ts';
+	import { THUMB_SHORT_SIDE } from '#lib/db/opfsStore.ts';
 	import { gallery } from '#lib/stores/gallery.svelte.ts';
-	import { getRecordPrice } from '#lib/types/image.ts';
+	import { getRecordPrice, parseSize } from '#lib/types/image.ts';
 
 	interface Props {
 		image: ImageRecord;
@@ -15,6 +16,11 @@
 	}
 
 	let { image, onEdit, onRegenerate, onView }: Props = $props();
+
+	/** Below sm the grid has one column as wide as the viewport, from sm up cards are 190-300 px (the page is a 2/3 column from md). */
+	const sizes = '(max-width: 639px) 100vw, 300px';
+	const size = $derived(parseSize(image.size));
+	const shortSide = $derived(size && Math.min(size.width, size.height));
 
 	let copied = $state(false);
 
@@ -38,18 +44,24 @@
 	}
 </script>
 
-<article class="card card-gradient-border group relative overflow-hidden transition-all duration-300 hover:-translate-y-1">
+<!-- Off-screen cards skip rendering, on the article since it clips overflow anyway. 28rem is a phone card, the real height is remembered. -->
+<article
+	class="card card-gradient-border group relative overflow-hidden transition-all duration-300 [contain-intrinsic-size:auto_28rem] [content-visibility:auto] hover:-translate-y-1"
+>
 	<div class="relative aspect-square overflow-hidden">
 		<button aria-label="View image" class="block size-full cursor-pointer select-none" onclick={onView} type="button">
-			{#await gallery.url(image) then src}
+			{#await Promise.all([gallery.thumbUrl(image), gallery.url(image)]) then [src, original]}
 				{#if src}
+					<!-- The w descriptors are the short sides: the card is a square object-cover, so the short side is what must cover it. -->
 					<img
 						alt={image.prompt}
 						class="size-full object-cover transition-transform duration-400 group-hover:scale-110"
 						decoding="async"
 						draggable="false"
 						loading="lazy"
+						{sizes}
 						{src}
+						srcset={original && original !== src && shortSide ? `${src} ${THUMB_SHORT_SIDE}w, ${original} ${shortSide}w` : undefined}
 					/>
 				{/if}
 			{/await}

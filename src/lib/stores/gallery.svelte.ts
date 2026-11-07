@@ -2,7 +2,7 @@ import { LIBRARY_STORE, STORE, dbEvents, getDb } from '#lib/db/imageStore.ts';
 import type { ImageRecord, Library, NewImage } from '#lib/db/imageStore.ts';
 import { runMigrations } from '#lib/db/migrations.ts';
 import { mediaFiles } from '#lib/db/opfsStore.ts';
-import { OUTPUT_FORMAT_OPTIONS, getRecordPrice } from '#lib/types/image.ts';
+import { OUTPUT_FORMAT_OPTIONS, getRecordPrice, parseSize } from '#lib/types/image.ts';
 
 class Gallery {
 	dbState = $state<'blocked' | 'ok' | 'outdated'>('ok');
@@ -138,6 +138,16 @@ class Gallery {
 	/** Legacy records keep their inline data URL until migration 1 succeeds. */
 	url = (image: ImageRecord) =>
 		image.imageData ? Promise.resolve(image.imageData) : mediaFiles.url(image.id, OUTPUT_FORMAT_OPTIONS[image.output_format ?? 'png'].mime);
+
+	/**
+	 * Grid and lightbox placeholder. GIF stays animated and SVG is vector, so both use the original. Images with a short side of 768 px or less
+	 * are about the thumbnail size already, so building one saves nothing. Sizes that don't parse (`auto`) get a thumbnail.
+	 */
+	thumbUrl = (image: ImageRecord) => {
+		const size = parseSize(image.size);
+		if (image.imageData || image.output_format === 'gif' || image.output_format === 'svg' || (size && Math.min(size.width, size.height) <= 768)) return this.url(image);
+		return mediaFiles.thumb(image.id, OUTPUT_FORMAT_OPTIONS[image.output_format ?? 'png'].mime);
+	};
 }
 
 export const gallery = new Gallery();
